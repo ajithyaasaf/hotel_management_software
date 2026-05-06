@@ -1,0 +1,365 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS ──────────────────────────────────────────────
+
+enum UserRole {
+  ADMIN
+  RECEPTION
+  RESTAURANT
+}
+
+enum RoomStatus {
+  AVAILABLE
+  OCCUPIED
+  CLEANING
+  BLOCKED
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CHECKED_IN
+  CHECKED_OUT
+  CANCELLED
+  NO_SHOW
+}
+
+enum OrderType {
+  ROOM
+  WALK_IN
+  TAKEAWAY
+}
+
+enum OrderStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  CARD
+}
+
+enum PaymentType {
+  ADVANCE
+  PARTIAL
+  FULL
+  REFUND
+}
+
+enum AdjustmentType {
+  DISCOUNT_FLAT
+  DISCOUNT_PERCENT
+  EXTRA_CHARGE
+}
+
+// ─── USERS ──────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      UserRole @default(RECEPTION)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bookings    Booking[]
+  orders      Order[]
+  payments    Payment[]
+  auditLogs   AuditLog[]
+  adjustments InvoiceAdjustment[]
+
+  @@map("users")
+}
+
+// ─── ROOM TYPES ─────────────────────────────────────────
+
+model RoomType {
+  id           String   @id @default(uuid())
+  name         String   @unique
+  basePrice    Decimal  @db.Decimal(10, 2)
+  description  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  rooms Room[]
+
+  @@map("room_types")
+}
+
+// ─── ROOMS ──────────────────────────────────────────────
+
+model Room {
+  id           String     @id @default(uuid())
+  roomNumber   String     @unique
+  floor        Int        @default(1)
+  roomTypeId   String
+  roomType     RoomType   @relation(fields: [roomTypeId], references: [id])
+  status       RoomStatus @default(AVAILABLE)
+  blockReason  String?
+  blockStart   DateTime?
+  blockEnd     DateTime?
+  notes        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  bookings      Booking[]
+  orders        Order[]
+  transfersFrom RoomTransfer[] @relation("TransferFromRoom")
+  transfersTo   RoomTransfer[] @relation("TransferToRoom")
+
+  @@map("rooms")
+}
+
+// ─── GUESTS ─────────────────────────────────────────────
+
+model Guest {
+  id          String   @id @default(uuid())
+  name        String
+  phone       String   @unique
+  email       String?
+  idProofType String?
+  idProofNumber String?
+  address     String?
+  visitCount  Int      @default(0)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  bookings Booking[]
+
+  @@index([phone])
+  @@map("guests")
+}
+
+// ─── BOOKINGS ───────────────────────────────────────────
+
+model Booking {
+  id                String        @id @default(uuid())
+  bookingNumber     String        @unique
+  guestId           String
+  guest             Guest         @relation(fields: [guestId], references: [id])
+  roomId            String
+  room              Room          @relation(fields: [roomId], references: [id])
+  status            BookingStatus @default(CONFIRMED)
+  checkInDate       DateTime
+  expectedCheckout  DateTime
+  actualCheckout    DateTime?
+  roomPrice         Decimal       @db.Decimal(10, 2)
+  numberOfGuests    Int           @default(1)
+  specialRequests   String?
+  createdById       String
+  createdBy         User          @relation(fields: [createdById], references: [id])
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  invoice       Invoice?
+  transfers     RoomTransfer[]
+  payments      Payment[]
+
+  @@index([bookingNumber])
+  @@index([status])
+  @@map("bookings")
+}
+
+// ─── ROOM TRANSFERS ─────────────────────────────────────
+
+model RoomTransfer {
+  id           String   @id @default(uuid())
+  bookingId    String
+  booking      Booking  @relation(fields: [bookingId], references: [id])
+  fromRoomId   String
+  fromRoom     Room     @relation("TransferFromRoom", fields: [fromRoomId], references: [id])
+  toRoomId     String
+  toRoom       Room     @relation("TransferToRoom", fields: [toRoomId], references: [id])
+  reason       String?
+  newRoomPrice Decimal? @db.Decimal(10, 2)
+  transferredAt DateTime @default(now())
+
+  @@map("room_transfers")
+}
+
+// ─── MENU CATEGORIES ───────────────────────────────────
+
+model MenuCategory {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items MenuItem[]
+
+  @@map("menu_categories")
+}
+
+// ─── MENU ITEMS ─────────────────────────────────────────
+
+model MenuItem {
+  id          String       @id @default(uuid())
+  name        String
+  price       Decimal      @db.Decimal(10, 2)
+  categoryId  String
+  category    MenuCategory @relation(fields: [categoryId], references: [id])
+  description String?
+  isVeg       Boolean      @default(true)
+  isAvailable Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  orderItems OrderItem[]
+
+  @@map("menu_items")
+}
+
+// ─── ORDERS ─────────────────────────────────────────────
+
+model Order {
+  id          String      @id @default(uuid())
+  orderNumber String      @unique
+  type        OrderType
+  status      OrderStatus @default(ACTIVE)
+  roomId      String?
+  room        Room?       @relation(fields: [roomId], references: [id])
+  customerName String?
+  subtotal    Decimal     @db.Decimal(10, 2) @default(0)
+  tax         Decimal     @db.Decimal(10, 2) @default(0)
+  total       Decimal     @db.Decimal(10, 2) @default(0)
+  notes       String?
+  createdById String
+  createdBy   User        @relation(fields: [createdById], references: [id])
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  items    OrderItem[]
+  payments Payment[]
+
+  @@index([orderNumber])
+  @@index([type, status])
+  @@map("orders")
+}
+
+// ─── ORDER ITEMS ────────────────────────────────────────
+
+model OrderItem {
+  id           String   @id @default(uuid())
+  orderId      String
+  order        Order    @relation(fields: [orderId], references: [id])
+  menuItemId   String
+  menuItem     MenuItem @relation(fields: [menuItemId], references: [id])
+  quantity     Int
+  unitPrice    Decimal  @db.Decimal(10, 2)
+  totalPrice   Decimal  @db.Decimal(10, 2)
+  isCancelled  Boolean  @default(false)
+  cancelReason String?
+  cancelledAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("order_items")
+}
+
+// ─── INVOICES ───────────────────────────────────────────
+
+model Invoice {
+  id             String   @id @default(uuid())
+  invoiceNumber  String   @unique
+  bookingId      String   @unique
+  booking        Booking  @relation(fields: [bookingId], references: [id])
+  roomCharges    Decimal  @db.Decimal(10, 2) @default(0)
+  foodCharges    Decimal  @db.Decimal(10, 2) @default(0)
+  extraCharges   Decimal  @db.Decimal(10, 2) @default(0)
+  discountAmount Decimal  @db.Decimal(10, 2) @default(0)
+  subtotal       Decimal  @db.Decimal(10, 2) @default(0)
+  cgst           Decimal  @db.Decimal(10, 2) @default(0)
+  sgst           Decimal  @db.Decimal(10, 2) @default(0)
+  totalTax       Decimal  @db.Decimal(10, 2) @default(0)
+  grandTotal     Decimal  @db.Decimal(10, 2) @default(0)
+  amountPaid     Decimal  @db.Decimal(10, 2) @default(0)
+  pendingAmount  Decimal  @db.Decimal(10, 2) @default(0)
+  isFinalized    Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  adjustments InvoiceAdjustment[]
+
+  @@index([invoiceNumber])
+  @@map("invoices")
+}
+
+// ─── INVOICE ADJUSTMENTS ────────────────────────────────
+
+model InvoiceAdjustment {
+  id          String         @id @default(uuid())
+  invoiceId   String
+  invoice     Invoice        @relation(fields: [invoiceId], references: [id])
+  type        AdjustmentType
+  amount      Decimal        @db.Decimal(10, 2)
+  reason      String
+  createdById String
+  createdBy   User           @relation(fields: [createdById], references: [id])
+  createdAt   DateTime       @default(now())
+
+  @@map("invoice_adjustments")
+}
+
+// ─── PAYMENTS ───────────────────────────────────────────
+
+model Payment {
+  id            String        @id @default(uuid())
+  transactionId String        @unique @default(uuid())
+  bookingId     String?
+  booking       Booking?      @relation(fields: [bookingId], references: [id])
+  orderId       String?
+  order         Order?        @relation(fields: [orderId], references: [id])
+  amount        Decimal       @db.Decimal(10, 2)
+  method        PaymentMethod
+  type          PaymentType
+  reference     String?
+  notes         String?
+  createdById   String
+  createdBy     User          @relation(fields: [createdById], references: [id])
+  createdAt     DateTime      @default(now())
+
+  @@index([bookingId])
+  @@map("payments")
+}
+
+// ─── TAX CONFIG ─────────────────────────────────────────
+
+model TaxConfig {
+  id       String  @id @default(uuid())
+  name     String  @unique
+  rate     Decimal @db.Decimal(5, 2)
+  isActive Boolean @default(true)
+
+  @@map("tax_config")
+}
+
+// ─── AUDIT LOGS ─────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  action     String
+  entity     String
+  entityId   String
+  details    String?
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
