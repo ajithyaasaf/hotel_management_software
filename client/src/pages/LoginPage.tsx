@@ -38,7 +38,7 @@ export default function LoginPage() {
             <Hotel size={32} className="text-white" />
           </div>
           <h1 className="text-4xl font-bold text-gray-900 tracking-tighter">Godiva Rooms</h1>
-          <p className="text-gray-500 text-sm font-medium mt-2">The future of hospitality management</p>
+          <p className="text-gray-500 text-sm font-medium mt-2">The future of hotel management</p>
         </div>
 
         {/* Form card */}

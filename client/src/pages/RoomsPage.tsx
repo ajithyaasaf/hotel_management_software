@@ -5,6 +5,7 @@ import { useAuthStore } from '../store/authStore';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Plus, BedDouble, Ban, Sparkles, Lock, Search, Filter } from 'lucide-react';
+import SearchableSelect from '../components/ui/SearchableSelect';
 
 const statusConfig: Record<string, { label: string; badge: string; bg: string }> = {
   AVAILABLE: { label: 'Available', badge: 'badge-green', bg: 'bg-status-available-bg border-status-available-text/20' },
@@ -197,12 +198,15 @@ export default function RoomsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Floor</label>
                 <input type="number" min={1} className="input" value={newRoom.floor} onChange={e => setNewRoom(p => ({ ...p, floor: parseInt(e.target.value) || 1 }))} />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Room Type</label>
-                <select className="input" value={newRoom.roomTypeId} onChange={e => setNewRoom(p => ({ ...p, roomTypeId: e.target.value }))}>
-                  {roomTypes.map(rt => <option key={rt.id} value={rt.id}>{rt.name} — ₹{Number(rt.basePrice).toLocaleString()}/night</option>)}
-                </select>
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Room Type</label>
+              <SearchableSelect
+                options={roomTypes.map(rt => ({ id: rt.id, label: rt.name, sublabel: `₹${Number(rt.basePrice).toLocaleString()}/night` }))}
+                value={newRoom.roomTypeId}
+                onChange={val => setNewRoom(p => ({ ...p, roomTypeId: val }))}
+                placeholder="Select type..."
+              />
+            </div>
               <div className="flex gap-3 pt-2">
                 <button className="btn btn-outline flex-1" onClick={() => setShowAdd(false)}>Cancel</button>
                 <button className="btn btn-primary flex-1" onClick={handleAddRoom}>Create Room</button>

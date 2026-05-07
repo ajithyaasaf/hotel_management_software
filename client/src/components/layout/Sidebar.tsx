@@ -35,7 +35,7 @@ export default function Sidebar() {
         <h1 className="text-2xl font-bold text-primary-600 tracking-tighter flex items-center gap-2">
           <span className="text-3xl">✦</span> Godiva
         </h1>
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1 ml-1">Hospitality Management</p>
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1 ml-1">Hotel Management</p>
       </div>
 
       {/* Navigation */}

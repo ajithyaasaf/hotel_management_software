@@ -3,6 +3,7 @@ import { menuApi } from '../api';
 import type { RoomType, MenuCategory, MenuItem } from '../types';
 import toast from 'react-hot-toast';
 import { Plus, Pencil, Trash2, X, Save } from 'lucide-react';
+import SearchableSelect from '../components/ui/SearchableSelect';
 
 export default function SettingsPage() {
   const [tab, setTab] = useState<'roomTypes' | 'menu'>('roomTypes');
@@ -203,9 +204,12 @@ export default function SettingsPage() {
             <div><label className="block text-sm font-medium text-gray-600 mb-1">Name</label><input className="input" value={itemForm.name} onChange={e => setItemForm(p => ({ ...p, name: e.target.value }))} /></div>
             <div><label className="block text-sm font-medium text-gray-600 mb-1">Price (₹)</label><input className="input" type="number" value={itemForm.price} onChange={e => setItemForm(p => ({ ...p, price: parseFloat(e.target.value) || 0 }))} /></div>
             <div><label className="block text-sm font-medium text-gray-600 mb-1">Category</label>
-              <select className="input" value={itemForm.categoryId} onChange={e => setItemForm(p => ({ ...p, categoryId: e.target.value }))}>
-                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              <SearchableSelect
+                options={categories.map(c => ({ id: c.id, label: c.name }))}
+                value={itemForm.categoryId}
+                onChange={val => setItemForm(p => ({ ...p, categoryId: val }))}
+                placeholder="Select category..."
+              />
             </div>
             <div className="flex items-center gap-3">
               <label className="text-sm font-medium text-gray-600">Vegetarian</label>

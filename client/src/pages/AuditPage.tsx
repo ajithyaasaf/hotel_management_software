@@ -3,6 +3,7 @@ import { reportsApi } from '../api';
 import type { AuditLog } from '../types';
 import { format } from 'date-fns';
 import { Shield, Filter } from 'lucide-react';
+import SearchableSelect from '../components/ui/SearchableSelect';
 
 export default function AuditPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -25,18 +26,18 @@ export default function AuditPage() {
   }
 
   const actionColor: Record<string, string> = {
-    CHECKIN: 'text-emerald-600 bg-emerald-50',
-    CHECKOUT: 'text-blue-600 bg-blue-50',
-    CANCEL_BOOKING: 'text-red-600 bg-red-50',
-    ROOM_TRANSFER: 'text-violet-600 bg-violet-50',
-    INVOICE_ADJUSTMENT: 'text-amber-600 bg-amber-50',
-    CANCEL_ORDER: 'text-red-600 bg-red-50',
-    CANCEL_ITEM: 'text-orange-600 bg-orange-50',
-    EXTEND_STAY: 'text-blue-600 bg-blue-50',
-    PAYMENT_ADVANCE: 'text-emerald-600 bg-emerald-50',
-    PAYMENT_PARTIAL: 'text-emerald-600 bg-emerald-50',
-    PAYMENT_FULL: 'text-emerald-600 bg-emerald-50',
-    PAYMENT_REFUND: 'text-red-600 bg-red-50',
+    CHECKIN: 'text-status-available-text bg-status-available-bg',
+    CHECKOUT: 'text-status-occupied-text bg-status-occupied-bg',
+    CANCEL_BOOKING: 'text-status-blocked-text bg-status-blocked-bg',
+    ROOM_TRANSFER: 'text-status-info-text bg-status-info-bg',
+    INVOICE_ADJUSTMENT: 'text-status-cleaning-text bg-status-cleaning-bg',
+    CANCEL_ORDER: 'text-status-blocked-text bg-status-blocked-bg',
+    CANCEL_ITEM: 'text-status-blocked-text bg-status-blocked-bg',
+    EXTEND_STAY: 'text-status-info-text bg-status-info-bg',
+    PAYMENT_ADVANCE: 'text-status-available-text bg-status-available-bg',
+    PAYMENT_PARTIAL: 'text-status-available-text bg-status-available-bg',
+    PAYMENT_FULL: 'text-status-available-text bg-status-available-bg',
+    PAYMENT_REFUND: 'text-status-blocked-text bg-status-blocked-bg',
   };
 
   return (
@@ -50,14 +51,19 @@ export default function AuditPage() {
 
       {/* Filters */}
       <div className="flex items-center gap-4 mb-6 flex-wrap">
-        <select className="input max-w-[180px]" value={entity} onChange={e => setEntity(e.target.value)}>
-          <option value="">All Entities</option>
-          <option value="booking">Bookings</option>
-          <option value="order">Orders</option>
-          <option value="order_item">Order Items</option>
-          <option value="invoice">Invoices</option>
-          <option value="payment">Payments</option>
-        </select>
+        <SearchableSelect
+          className="w-[220px]"
+          options={[
+            { id: 'booking', label: 'Bookings' },
+            { id: 'order', label: 'Orders' },
+            { id: 'order_item', label: 'Order Items' },
+            { id: 'invoice', label: 'Invoices' },
+            { id: 'payment', label: 'Payments' },
+          ]}
+          value={entity}
+          onChange={setEntity}
+          placeholder="All Entities"
+        />
         <input type="date" className="input max-w-[160px]" value={from} onChange={e => setFrom(e.target.value)} placeholder="From" />
         <input type="date" className="input max-w-[160px]" value={to} onChange={e => setTo(e.target.value)} placeholder="To" />
         {(entity || from || to) && (
