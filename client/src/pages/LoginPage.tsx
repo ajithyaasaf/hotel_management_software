@@ -30,31 +30,29 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4"
-      style={{ background: 'linear-gradient(135deg, #1a1b2e 0%, #2d2f4e 50%, #4c6ef5 100%)' }}>
-
+    <div className="min-h-screen flex items-center justify-center p-4 bg-white">
       <div className="w-full max-w-[420px] animate-scaleIn">
         {/* Brand */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm mb-4">
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary-600 mb-4 shadow-lg shadow-primary-200">
             <Hotel size={32} className="text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white">Godiva Rooms</h1>
-          <p className="text-white/50 text-sm mt-2">Hotel Management System</p>
+          <h1 className="text-4xl font-bold text-gray-900 tracking-tighter">Godiva Rooms</h1>
+          <p className="text-gray-500 text-sm font-medium mt-2">The future of hospitality management</p>
         </div>
 
         {/* Form card */}
-        <div className="bg-white rounded-2xl p-8 shadow-lg">
-          <h2 className="text-xl font-semibold text-gray-900 mb-1">Welcome back</h2>
-          <p className="text-sm text-gray-500 mb-6">Sign in to your account to continue</p>
+        <div className="bg-white border border-gray-200 rounded-[24px] p-10 shadow-xl shadow-gray-100/50">
+          <h2 className="text-2xl font-bold text-gray-900 mb-1">Login</h2>
+          <p className="text-sm text-gray-500 mb-8 font-medium">Please enter your credentials to manage your hotel</p>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+              <label className="block text-xs font-bold text-gray-900 uppercase tracking-widest mb-2 ml-1">Email Address</label>
               <input
                 type="email"
                 className="input"
-                placeholder="your@email.com"
+                placeholder="email@example.com"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 autoFocus
@@ -62,21 +60,21 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+              <label className="block text-xs font-bold text-gray-900 uppercase tracking-widest mb-2 ml-1">Password</label>
               <div className="relative">
                 <input
                   type={showPw ? 'text' : 'password'}
                   className="input pr-10"
-                  placeholder="Enter your password"
+                  placeholder="••••••••"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw(!showPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900 transition-colors"
                 >
-                  {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPw ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
             </div>
@@ -84,23 +82,23 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="btn btn-primary w-full btn-lg"
+              className="btn btn-primary w-full btn-lg mt-4 shadow-lg shadow-primary-200"
             >
               {loading ? (
-                <span className="flex items-center gap-2">
+                <span className="flex items-center gap-3">
                   <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                   </svg>
-                  Signing in...
+                  Processing...
                 </span>
-              ) : 'Sign In'}
+              ) : 'Continue'}
             </button>
           </form>
         </div>
 
-        <p className="text-center text-white/30 text-xs mt-6">
-          © 2026 Godiva Rooms — Powered by Godivatech
+        <p className="text-center text-gray-400 text-xs font-bold uppercase tracking-widest mt-10">
+          © 2026 Godiva Rooms • Godivatech
         </p>
       </div>
     </div>
