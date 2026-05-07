@@ -7,10 +7,10 @@ import toast from 'react-hot-toast';
 import { Plus, BedDouble, Ban, Sparkles, Lock, Search, Filter } from 'lucide-react';
 
 const statusConfig: Record<string, { label: string; badge: string; bg: string }> = {
-  AVAILABLE: { label: 'Available', badge: 'badge-green', bg: 'bg-emerald-50 border-emerald-200' },
-  OCCUPIED: { label: 'Occupied', badge: 'badge-blue', bg: 'bg-blue-50 border-blue-200' },
-  CLEANING: { label: 'Cleaning', badge: 'badge-yellow', bg: 'bg-amber-50 border-amber-200' },
-  BLOCKED: { label: 'Blocked', badge: 'badge-red', bg: 'bg-red-50 border-red-200' },
+  AVAILABLE: { label: 'Available', badge: 'badge-green', bg: 'bg-status-available-bg border-status-available-text/20' },
+  OCCUPIED: { label: 'Occupied', badge: 'badge-blue', bg: 'bg-status-occupied-bg border-status-occupied-text/20' },
+  CLEANING: { label: 'Cleaning', badge: 'badge-yellow', bg: 'bg-status-cleaning-bg border-status-cleaning-text/20' },
+  BLOCKED: { label: 'Blocked', badge: 'badge-red', bg: 'bg-status-blocked-bg border-status-blocked-text/20' },
 };
 
 export default function RoomsPage() {
@@ -144,7 +144,7 @@ export default function RoomsPage() {
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-lg font-bold text-gray-900">{room.roomNumber}</span>
-                    {room.status === 'OCCUPIED' && <BedDouble size={16} className="text-blue-500" />}
+                    {room.status === 'OCCUPIED' && <BedDouble size={16} className="text-primary-600" />}
                     {room.status === 'CLEANING' && <Sparkles size={16} className="text-amber-500" />}
                     {room.status === 'BLOCKED' && <Lock size={16} className="text-red-500" />}
                   </div>

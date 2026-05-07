@@ -5,6 +5,7 @@ import type { Booking, Invoice, Room } from '../types';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { ArrowLeft, ArrowRightLeft, CalendarPlus, LogOut as CheckOutIcon, CreditCard, Receipt, X, Ban } from 'lucide-react';
+import SearchableSelect from '../components/ui/SearchableSelect';
 
 export default function BookingDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -427,10 +428,12 @@ export default function BookingDetailPage() {
         <Modal onClose={() => setShowTransfer(false)} title="Room Transfer">
           <div className="space-y-4">
             <div><label className="block text-sm font-medium text-gray-600 mb-1">New Room</label>
-              <select className="input" value={transferRoom} onChange={e => setTransferRoom(e.target.value)}>
-                <option value="">Select room...</option>
-                {availableRooms.map(r => <option key={r.id} value={r.id}>{r.roomNumber} — {r.roomType.name}</option>)}
-              </select>
+              <SearchableSelect
+                options={availableRooms.map(r => ({ id: r.id, label: `Room ${r.roomNumber}`, sublabel: r.roomType.name }))}
+                value={transferRoom}
+                onChange={setTransferRoom}
+                placeholder="Select room..."
+              />
             </div>
             <div><label className="block text-sm font-medium text-gray-600 mb-1">Reason</label><input className="input" value={transferReason} onChange={e => setTransferReason(e.target.value)} /></div>
             <div className="flex gap-3 pt-2"><button className="btn btn-outline flex-1" onClick={() => setShowTransfer(false)}>Cancel</button><button className="btn btn-primary flex-1" onClick={handleTransfer}>Transfer</button></div>

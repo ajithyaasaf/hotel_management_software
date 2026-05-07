@@ -4,6 +4,7 @@ import { bookingsApi, roomsApi, guestsApi } from '../api';
 import type { Room } from '../types';
 import toast from 'react-hot-toast';
 import { ArrowLeft, Search, UserCheck } from 'lucide-react';
+import SearchableSelect from '../components/ui/SearchableSelect';
 
 export default function NewBookingPage() {
   const navigate = useNavigate();
@@ -134,9 +135,12 @@ export default function NewBookingPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Room *</label>
-              <select className="input" value={form.roomId} onChange={e => handleRoomChange(e.target.value)}>
-                {rooms.map(r => <option key={r.id} value={r.id}>{r.roomNumber} — {r.roomType.name} (₹{Number(r.roomType.basePrice)})</option>)}
-              </select>
+              <SearchableSelect
+                options={rooms.map(r => ({ id: r.id, label: `Room ${r.roomNumber}`, sublabel: `${r.roomType.name} (₹${Number(r.roomType.basePrice)})` }))}
+                value={form.roomId}
+                onChange={handleRoomChange}
+                placeholder="Select room..."
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Rate / Night (₹) *</label>

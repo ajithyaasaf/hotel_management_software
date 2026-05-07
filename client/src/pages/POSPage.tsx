@@ -3,6 +3,7 @@ import { menuApi, ordersApi, roomsApi } from '../api';
 import type { MenuCategory, Room, Order } from '../types';
 import toast from 'react-hot-toast';
 import { ShoppingCart, Plus, Minus, Trash2, X, UtensilsCrossed, Send } from 'lucide-react';
+import SearchableSelect from '../components/ui/SearchableSelect';
 
 interface CartItem { menuItemId: string; name: string; price: number; quantity: number; }
 
@@ -88,17 +89,21 @@ export default function POSPage() {
         </div>
 
         {orderType === 'ROOM' && (
-          <select className="input mb-4 max-w-xs" value={selectedRoom} onChange={e => setSelectedRoom(e.target.value)}>
-            <option value="">Select room...</option>
-            {rooms.map(r => <option key={r.id} value={r.id}>Room {r.roomNumber}</option>)}
-          </select>
+          <div className="mb-4 max-w-xs">
+            <SearchableSelect
+              options={rooms.map(r => ({ id: r.id, label: `Room ${r.roomNumber}`, sublabel: r.roomType.name }))}
+              value={selectedRoom}
+              onChange={setSelectedRoom}
+              placeholder="Search room..."
+            />
+          </div>
         )}
 
         {/* Category tabs */}
         <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
           {categories.map(cat => (
             <button key={cat.id} onClick={() => setActiveCat(cat.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${activeCat === cat.id ? 'bg-gray-900 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}>
+              className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${activeCat === cat.id ? 'bg-primary-600 text-white shadow-md' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}>
               {cat.name}
             </button>
           ))}

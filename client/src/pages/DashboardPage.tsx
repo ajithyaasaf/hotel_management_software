@@ -39,11 +39,18 @@ export default function DashboardPage() {
   );
 
   const stats = summary ? [
-    { label: 'Total Revenue', value: `₹${summary.totalRevenue.toLocaleString()}`, icon: DollarSign, color: 'bg-primary-50 text-primary-600', trend: '+12%' },
-    { label: 'Room Revenue', value: `₹${summary.roomRevenue.toLocaleString()}`, icon: BedDouble, color: 'bg-emerald-50 text-emerald-600' },
-    { label: 'Restaurant Revenue', value: `₹${summary.restaurantRevenue.toLocaleString()}`, icon: Utensils, color: 'bg-amber-50 text-amber-600' },
-    { label: 'Occupancy', value: `${summary.occupancyPercent}%`, icon: TrendingUp, color: 'bg-violet-50 text-violet-600', sub: `${summary.occupiedRooms}/${summary.totalRooms} rooms` },
+    { label: 'Total Revenue', value: `₹${summary.totalRevenue.toLocaleString()}`, icon: DollarSign, color: 'bg-status-info-bg text-status-info-text', trend: '+12%' },
+    { label: 'Room Revenue', value: `₹${summary.roomRevenue.toLocaleString()}`, icon: BedDouble, color: 'bg-status-available-bg text-status-available-text' },
+    { label: 'Restaurant Revenue', value: `₹${summary.restaurantRevenue.toLocaleString()}`, icon: Utensils, color: 'bg-status-cleaning-bg text-status-cleaning-text' },
+    { label: 'Occupancy', value: `${summary.occupancyPercent}%`, icon: TrendingUp, color: 'bg-status-occupied-bg text-status-occupied-text', sub: `${summary.occupiedRooms}/${summary.totalRooms} rooms` },
   ] : [];
+
+  const statusConfig: Record<string, { label: string; badge: string; bg: string }> = {
+    AVAILABLE: { label: 'Available', badge: 'badge-green', bg: 'bg-status-available-bg border-status-available-text/20' },
+    OCCUPIED: { label: 'Occupied', badge: 'badge-blue', bg: 'bg-status-occupied-bg border-status-occupied-text/20' },
+    CLEANING: { label: 'Cleaning', badge: 'badge-yellow', bg: 'bg-status-cleaning-bg border-status-cleaning-text/20' },
+    BLOCKED: { label: 'Blocked', badge: 'badge-red', bg: 'bg-status-blocked-bg border-status-blocked-text/20' },
+  };
 
   const quickStats = summary ? [
     { label: 'Current Check-ins', value: summary.currentCheckins, icon: CalendarCheck },
@@ -86,7 +93,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-3 gap-4 mb-8">
         {quickStats.map((s, i) => (
           <div key={i} className="card p-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400">
+            <div className="w-12 h-12 rounded-xl bg-primary-50 flex items-center justify-center text-primary-600">
               <s.icon size={22} />
             </div>
             <div>
