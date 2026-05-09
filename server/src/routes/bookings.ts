@@ -211,7 +211,7 @@ router.post('/', async (req: AuthRequest, res) => {
 
     res.status(201).json(result);
   } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: err.errors }); return; }
+    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
     console.error(err);
     res.status(500).json({ error: 'Failed to create booking' });
   }
@@ -279,7 +279,7 @@ router.put('/:id/extend', async (req: AuthRequest, res) => {
     const updated = await prisma.booking.findUnique({ where: { id: req.params.id }, include: { guest: true, room: { include: { roomType: true } }, invoice: true } });
     res.json(updated);
   } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: err.errors }); return; }
+    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
     res.status(500).json({ error: 'Failed to extend stay' });
   }
 });
@@ -321,7 +321,7 @@ router.put('/:id/transfer', async (req: AuthRequest, res) => {
     const updated = await prisma.booking.findUnique({ where: { id: req.params.id }, include: { guest: true, room: { include: { roomType: true } } } });
     res.json(updated);
   } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: err.errors }); return; }
+    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
     res.status(500).json({ error: 'Room transfer failed' });
   }
 });
@@ -354,7 +354,7 @@ router.put('/:id/checkout', async (req: AuthRequest, res) => {
 router.put('/:id/cancel', async (req: AuthRequest, res) => {
   try {
     const { reason } = z.object({ reason: z.string().optional() }).parse(req.body);
-    const booking = await prisma.booking.findUnique({ where: { id: req.params.id }, include: { room: true } });
+    const booking = await prisma.booking.findUnique({ where: { id: req.params.id as string }, include: { room: true } });
     if (!booking) { res.status(404).json({ error: 'Booking not found' }); return; }
     if (booking.status === 'CHECKED_OUT') { res.status(400).json({ error: 'Cannot cancel a checked-out booking' }); return; }
 
@@ -373,7 +373,7 @@ router.put('/:id/cancel', async (req: AuthRequest, res) => {
 // PUT /api/bookings/:id/noshow
 router.put('/:id/noshow', async (req: AuthRequest, res) => {
   try {
-    const booking = await prisma.booking.findUnique({ where: { id: req.params.id } });
+    const booking = await prisma.booking.findUnique({ where: { id: req.params.id as string } });
     if (!booking) { res.status(404).json({ error: 'Booking not found' }); return; }
     if (booking.status !== 'CONFIRMED') { res.status(400).json({ error: 'Only confirmed advance bookings can be marked as No Show' }); return; }
 

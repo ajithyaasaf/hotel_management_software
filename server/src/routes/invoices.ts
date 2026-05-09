@@ -11,7 +11,7 @@ router.use(authenticate);
 router.get('/:id', async (req, res) => {
   try {
     const invoice = await prisma.invoice.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       include: {
         booking: { include: { guest: true, room: { include: { roomType: true } }, payments: { include: { createdBy: { select: { name: true } } } } } },
         adjustments: { include: { createdBy: { select: { name: true } } } },
@@ -58,7 +58,7 @@ router.post('/:id/adjustments', authorize('ADMIN', 'RECEPTION'), async (req: Aut
       reason: z.string().min(1),
     }).parse(req.body);
 
-    const invoice = await prisma.invoice.findUnique({ where: { id: req.params.id } });
+    const invoice = await prisma.invoice.findUnique({ where: { id: req.params.id as string } });
     if (!invoice) { res.status(404).json({ error: 'Invoice not found' }); return; }
     if (invoice.isFinalized) { res.status(400).json({ error: 'Invoice is finalized' }); return; }
 
@@ -97,7 +97,7 @@ router.post('/:id/adjustments', authorize('ADMIN', 'RECEPTION'), async (req: Aut
     const updated = await prisma.invoice.findUnique({ where: { id: invoice.id }, include: { adjustments: { include: { createdBy: { select: { name: true } } } } } });
     res.json(updated);
   } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: err.errors }); return; }
+    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
     res.status(500).json({ error: 'Failed to add adjustment' });
   }
 });
@@ -105,7 +105,7 @@ router.post('/:id/adjustments', authorize('ADMIN', 'RECEPTION'), async (req: Aut
 // POST /api/invoices/:id/recalculate — force recalculate totals
 router.post('/:id/recalculate', authorize('ADMIN', 'RECEPTION'), async (req, res) => {
   try {
-    const invoice = await prisma.invoice.findUnique({ where: { id: req.params.id }, include: { booking: true } });
+    const invoice = await prisma.invoice.findUnique({ where: { id: req.params.id as string }, include: { booking: true } }) as any;
     if (!invoice) { res.status(404).json({ error: 'Invoice not found' }); return; }
 
     // Recalculate room charges based on actual nights

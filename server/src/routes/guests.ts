@@ -50,7 +50,7 @@ router.get('/search', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const guest = await prisma.guest.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       include: {
         bookings: {
           orderBy: { createdAt: 'desc' },
@@ -76,10 +76,10 @@ router.put('/:id', async (req, res) => {
       address: z.string().optional().nullable(),
       notes: z.string().optional().nullable(),
     }).parse(req.body);
-    const guest = await prisma.guest.update({ where: { id: req.params.id }, data });
+    const guest = await prisma.guest.update({ where: { id: req.params.id as string }, data });
     res.json(guest);
   } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: err.errors }); return; }
+    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
     res.status(500).json({ error: 'Failed to update guest' });
   }
 });
