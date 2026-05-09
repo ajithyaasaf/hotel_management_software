@@ -330,9 +330,9 @@ router.put('/:id/transfer', async (req: AuthRequest, res) => {
 router.put('/:id/checkout', async (req: AuthRequest, res) => {
   try {
     const booking = await prisma.booking.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       include: { invoice: true, room: true },
-    });
+    }) as any;
     if (!booking) { res.status(404).json({ error: 'Booking not found' }); return; }
     if (booking.status !== 'CHECKED_IN') { res.status(400).json({ error: 'Booking not active' }); return; }
 
