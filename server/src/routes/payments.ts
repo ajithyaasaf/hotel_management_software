@@ -39,7 +39,16 @@ router.post('/', async (req: AuthRequest, res) => {
 
     const payment = await prisma.$transaction(async (tx) => {
       const p = await tx.payment.create({
-        data: { ...data, createdById: req.user!.id },
+        data: {
+          bookingId: data.bookingId,
+          orderId: data.orderId,
+          amount: data.amount,
+          method: data.method,
+          type: data.type,
+          reference: data.reference,
+          notes: data.notes,
+          createdById: req.user!.id
+        },
         include: { createdBy: { select: { name: true } } },
       });
 

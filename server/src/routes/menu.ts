@@ -23,7 +23,12 @@ router.get('/categories', async (_req, res) => {
 router.post('/categories', authorize('ADMIN'), async (req: AuthRequest, res) => {
   try {
     const data = z.object({ name: z.string().min(1), sortOrder: z.number().int().optional() }).parse(req.body);
-    const cat = await prisma.menuCategory.create({ data });
+    const cat = await prisma.menuCategory.create({
+      data: {
+        name: data.name,
+        sortOrder: data.sortOrder || 0
+      }
+    });
     res.status(201).json(cat);
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
@@ -80,7 +85,16 @@ router.post('/items', authorize('ADMIN'), async (req: AuthRequest, res) => {
       description: z.string().optional().nullable(),
       isVeg: z.boolean().optional(),
     }).parse(req.body);
-    const item = await prisma.menuItem.create({ data, include: { category: true } });
+    const item = await prisma.menuItem.create({
+      data: {
+        name: data.name,
+        price: data.price,
+        categoryId: data.categoryId,
+        description: data.description,
+        isVeg: data.isVeg || false
+      },
+      include: { category: true }
+    });
     res.status(201).json(item);
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
@@ -129,7 +143,13 @@ router.get('/room-types', async (_req, res) => {
 router.post('/room-types', authorize('ADMIN'), async (req: AuthRequest, res) => {
   try {
     const data = z.object({ name: z.string().min(1), basePrice: z.number().positive(), description: z.string().optional() }).parse(req.body);
-    const rt = await prisma.roomType.create({ data });
+    const rt = await prisma.roomType.create({
+      data: {
+        name: data.name,
+        basePrice: data.basePrice,
+        description: data.description || ''
+      }
+    });
     res.status(201).json(rt);
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }

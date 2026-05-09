@@ -39,7 +39,7 @@ router.post('/login', async (req, res) => {
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role, name: user.name },
       process.env.JWT_SECRET || 'fallback-secret',
-      { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
+      { expiresIn: (process.env.JWT_EXPIRES_IN as any) || '24h' }
     );
 
     res.json({
@@ -48,7 +48,7 @@ router.post('/login', async (req, res) => {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'Invalid input', details: error.errors });
+      res.status(400).json({ error: 'Invalid input', details: (error as any).errors });
       return;
     }
     res.status(500).json({ error: 'Login failed' });
@@ -84,13 +84,13 @@ router.post('/register', async (req, res) => {
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role, name: user.name },
       process.env.JWT_SECRET || 'fallback-secret',
-      { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
+      { expiresIn: (process.env.JWT_EXPIRES_IN as any) || '24h' }
     );
 
     res.status(201).json({ token, user });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'Invalid input', details: error.errors });
+      res.status(400).json({ error: 'Invalid input', details: (error as any).errors });
       return;
     }
     res.status(500).json({ error: 'Registration failed' });

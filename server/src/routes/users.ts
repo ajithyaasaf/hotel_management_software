@@ -33,7 +33,12 @@ router.post('/', async (req: AuthRequest, res) => {
 
     const hashed = await bcrypt.hash(data.password, 10);
     const user = await prisma.user.create({
-      data: { ...data, password: hashed },
+      data: {
+        name: data.name,
+        email: data.email,
+        password: hashed,
+        role: data.role as any
+      },
       select: { id: true, name: true, email: true, role: true, isActive: true },
     });
     res.status(201).json(user);
