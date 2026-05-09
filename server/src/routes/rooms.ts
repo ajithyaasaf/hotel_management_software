@@ -103,7 +103,7 @@ router.post('/', authorize('ADMIN'), async (req: AuthRequest, res) => {
     res.status(201).json(room);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'Invalid input', details: error.errors });
+      res.status(400).json({ error: 'Invalid input', details: (error as z.ZodError).errors });
       return;
     }
     res.status(500).json({ error: 'Failed to create room' });
@@ -115,14 +115,14 @@ router.put('/:id', authorize('ADMIN'), async (req: AuthRequest, res) => {
   try {
     const data = roomSchema.partial().parse(req.body);
     const room = await prisma.room.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data,
       include: { roomType: true },
     });
     res.json(room);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'Invalid input', details: error.errors });
+      res.status(400).json({ error: 'Invalid input', details: (error as z.ZodError).errors });
       return;
     }
     res.status(500).json({ error: 'Failed to update room' });
@@ -134,7 +134,7 @@ router.put('/:id/status', authorize('ADMIN', 'RECEPTION'), async (req: AuthReque
   try {
     const { status } = z.object({ status: z.enum(['AVAILABLE', 'CLEANING', 'BLOCKED']) }).parse(req.body);
     const room = await prisma.room.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: {
         status,
         ...(status !== 'BLOCKED' && { blockReason: null, blockStart: null, blockEnd: null }),
@@ -144,7 +144,7 @@ router.put('/:id/status', authorize('ADMIN', 'RECEPTION'), async (req: AuthReque
     res.json(room);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'Invalid input', details: error.errors });
+      res.status(400).json({ error: 'Invalid input', details: (error as z.ZodError).errors });
       return;
     }
     res.status(500).json({ error: 'Failed to update room status' });
@@ -155,7 +155,7 @@ router.put('/:id/status', authorize('ADMIN', 'RECEPTION'), async (req: AuthReque
 router.put('/:id/block', authorize('ADMIN', 'RECEPTION'), async (req: AuthRequest, res) => {
   try {
     const data = blockSchema.parse(req.body);
-    const room = await prisma.room.findUnique({ where: { id: req.params.id } });
+    const room = await prisma.room.findUnique({ where: { id: req.params.id as string } });
     if (!room) {
       res.status(404).json({ error: 'Room not found' });
       return;
@@ -165,7 +165,7 @@ router.put('/:id/block', authorize('ADMIN', 'RECEPTION'), async (req: AuthReques
       return;
     }
     const updated = await prisma.room.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: {
         status: 'BLOCKED',
         blockReason: data.reason,
@@ -177,7 +177,7 @@ router.put('/:id/block', authorize('ADMIN', 'RECEPTION'), async (req: AuthReques
     res.json(updated);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'Invalid input', details: error.errors });
+      res.status(400).json({ error: 'Invalid input', details: (error as z.ZodError).errors });
       return;
     }
     res.status(500).json({ error: 'Failed to block room' });
@@ -188,7 +188,7 @@ router.put('/:id/block', authorize('ADMIN', 'RECEPTION'), async (req: AuthReques
 router.put('/:id/unblock', authorize('ADMIN', 'RECEPTION'), async (req: AuthRequest, res) => {
   try {
     const room = await prisma.room.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: {
         status: 'AVAILABLE',
         blockReason: null,
@@ -206,7 +206,7 @@ router.put('/:id/unblock', authorize('ADMIN', 'RECEPTION'), async (req: AuthRequ
 // DELETE /api/rooms/:id
 router.delete('/:id', authorize('ADMIN'), async (req, res) => {
   try {
-    await prisma.room.delete({ where: { id: req.params.id } });
+    await prisma.room.delete({ where: { id: req.params.id as string } });
     res.json({ message: 'Room deleted' });
   } catch {
     res.status(500).json({ error: 'Failed to delete room' });

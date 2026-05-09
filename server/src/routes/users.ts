@@ -38,7 +38,7 @@ router.post('/', async (req: AuthRequest, res) => {
     });
     res.status(201).json(user);
   } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: err.errors }); return; }
+    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
     res.status(500).json({ error: 'Failed to create user' });
   }
 });
@@ -59,13 +59,13 @@ router.put('/:id', async (req: AuthRequest, res) => {
     }
 
     const user = await prisma.user.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: updateData,
       select: { id: true, name: true, email: true, role: true, isActive: true },
     });
     res.json(user);
   } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: err.errors }); return; }
+    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
     res.status(500).json({ error: 'Failed to update user' });
   }
 });
@@ -74,7 +74,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
 router.delete('/:id', async (req: AuthRequest, res) => {
   if (req.params.id === req.user!.id) { res.status(400).json({ error: 'Cannot delete yourself' }); return; }
   try {
-    await prisma.user.update({ where: { id: req.params.id }, data: { isActive: false } });
+    await prisma.user.update({ where: { id: req.params.id as string }, data: { isActive: false } });
     res.json({ message: 'User deactivated' });
   } catch { res.status(500).json({ error: 'Failed to deactivate user' }); }
 });

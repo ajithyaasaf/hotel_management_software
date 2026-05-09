@@ -21,7 +21,9 @@ const createOrderSchema = z.object({
 // GET /api/orders
 router.get('/', async (req, res) => {
   try {
-    const { status, type, roomId } = req.query;
+    const status = req.query.status as string | undefined;
+    const type = req.query.type as string | undefined;
+    const roomId = req.query.roomId as string | undefined;
     const where: any = {};
     if (status) where.status = status;
     if (type) where.type = type;
@@ -149,7 +151,7 @@ router.post('/', async (req: AuthRequest, res) => {
 
     res.status(201).json(order);
   } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: err.errors }); return; }
+    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
     console.error(err);
     res.status(500).json({ error: 'Failed to create order' });
   }
@@ -195,7 +197,7 @@ router.post('/:id/items', async (req: AuthRequest, res) => {
     const updated = await prisma.order.findUnique({ where: { id: req.params.id }, include: { items: { include: { menuItem: true } } } });
     res.json(updated);
   } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: err.errors }); return; }
+    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
     res.status(500).json({ error: 'Failed to add item' });
   }
 });
@@ -204,7 +206,7 @@ router.post('/:id/items', async (req: AuthRequest, res) => {
 router.delete('/:id/items/:itemId', async (req: AuthRequest, res) => {
   try {
     const { reason } = z.object({ reason: z.string().optional() }).parse(req.body);
-    const item = await prisma.orderItem.findUnique({ where: { id: req.params.itemId }, include: { order: true } });
+    const item = await prisma.orderItem.findUnique({ where: { id: req.params.itemId }, include: { order: true } }) as any;
     if (!item || item.isCancelled) { res.status(400).json({ error: 'Item not found or already cancelled' }); return; }
     if (item.order.status !== 'ACTIVE') { res.status(400).json({ error: 'Order is not active' }); return; }
 

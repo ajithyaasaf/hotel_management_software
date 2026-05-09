@@ -66,7 +66,7 @@ export default function ReportsPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f3f5" />
                   <XAxis dataKey="date" tick={{ fontSize: 12 }} tickFormatter={v => format(new Date(v), 'dd MMM')} />
                   <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `₹${v}`} />
-                  <Tooltip formatter={(v: number) => [`₹${v.toLocaleString()}`, 'Revenue']} />
+                  <Tooltip formatter={(v: any) => [`₹${Number(v).toLocaleString()}`, 'Revenue']} />
                   <Bar dataKey="amount" fill="#4c6ef5" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>

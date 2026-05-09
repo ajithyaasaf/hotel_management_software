@@ -78,7 +78,7 @@ router.post('/', async (req: AuthRequest, res) => {
 
     res.status(201).json(payment);
   } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: err.errors }); return; }
+    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
     res.status(500).json({ error: 'Payment failed' });
   }
 });
