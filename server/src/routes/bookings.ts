@@ -26,7 +26,8 @@ const createBookingSchema = z.object({
 // GET /api/bookings
 router.get('/', async (req, res) => {
   try {
-    const { status, date } = req.query;
+    const status = req.query.status as any;
+    const date = req.query.date as any;
     const where: any = {};
     if (status) where.status = status;
     if (date) {
@@ -60,7 +61,7 @@ router.get('/active', async (_req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const booking = await prisma.booking.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id as any },
       include: {
         guest: true,
         room: { include: { roomType: true } },
@@ -220,7 +221,7 @@ router.post('/', async (req: AuthRequest, res) => {
 // PUT /api/bookings/:id/checkin
 router.put('/:id/checkin', async (req: AuthRequest, res) => {
   try {
-    const booking = await prisma.booking.findUnique({ where: { id: req.params.id }, include: { room: true } });
+    const booking = await prisma.booking.findUnique({ where: { id: req.params.id as any }, include: { room: true } });
     if (!booking) { res.status(404).json({ error: 'Booking not found' }); return; }
     if (booking.status !== 'CONFIRMED') { res.status(400).json({ error: 'Booking is not in CONFIRMED state' }); return; }
     if (booking.room.status !== 'AVAILABLE') { res.status(400).json({ error: 'Room is not currently available for check-in' }); return; }
@@ -258,7 +259,7 @@ router.put('/:id/extend', async (req: AuthRequest, res) => {
 
     await prisma.$transaction(async (tx) => {
       await tx.booking.update({
-        where: { id: req.params.id },
+        where: { id: req.params.id as any },
         data: { expectedCheckout: new Date(newCheckout), ...(newPrice && { roomPrice: newPrice }) },
       });
       if (booking.invoice) {
@@ -276,7 +277,7 @@ router.put('/:id/extend', async (req: AuthRequest, res) => {
     });
 
     await createAuditLog({ action: 'EXTEND_STAY', entity: 'booking', entityId: req.params.id, details: `Extended to ${newCheckout}`, userId: req.user!.id });
-    const updated = await prisma.booking.findUnique({ where: { id: req.params.id }, include: { guest: true, room: { include: { roomType: true } }, invoice: true } });
+    const updated = await prisma.booking.findUnique({ where: { id: req.params.id as any }, include: { guest: true, room: { include: { roomType: true } }, invoice: true } });
     res.json(updated);
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
@@ -293,7 +294,7 @@ router.put('/:id/transfer', async (req: AuthRequest, res) => {
       newRoomPrice: z.number().positive().optional(),
     }).parse(req.body);
 
-    const booking = await prisma.booking.findUnique({ where: { id: req.params.id } });
+    const booking = await prisma.booking.findUnique({ where: { id: req.params.id as any } });
     if (!booking || booking.status !== 'CHECKED_IN') { res.status(400).json({ error: 'Invalid booking' }); return; }
 
     const toRoom = await prisma.room.findUnique({ where: { id: toRoomId } });
@@ -312,13 +313,13 @@ router.put('/:id/transfer', async (req: AuthRequest, res) => {
       await tx.room.update({ where: { id: booking.roomId }, data: { status: 'CLEANING' } });
       await tx.room.update({ where: { id: toRoomId }, data: { status: 'OCCUPIED' } });
       await tx.booking.update({
-        where: { id: booking.id },
+        where: { id: booking.id as any },
         data: { roomId: toRoomId, ...(newRoomPrice && { roomPrice: newRoomPrice }) },
       });
     });
 
     await createAuditLog({ action: 'ROOM_TRANSFER', entity: 'booking', entityId: booking.id, details: `Transferred from room ${booking.roomId} to ${toRoomId}`, userId: req.user!.id });
-    const updated = await prisma.booking.findUnique({ where: { id: req.params.id }, include: { guest: true, room: { include: { roomType: true } } } });
+    const updated = await prisma.booking.findUnique({ where: { id: req.params.id as any }, include: { guest: true, room: { include: { roomType: true } } } });
     res.json(updated);
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
