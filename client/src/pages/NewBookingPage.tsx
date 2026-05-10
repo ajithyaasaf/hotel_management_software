@@ -16,7 +16,7 @@ export default function NewBookingPage() {
   const [searchPhone, setSearchPhone] = useState('');
   const [guestFound, setGuestFound] = useState(false);
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<any>({
     guestName: '', guestPhone: '', guestEmail: '',
     idProofType: 'Aadhar', idProofNumber: '',
     roomId: preselected?.roomId || '',
@@ -69,6 +69,9 @@ export default function NewBookingPage() {
     try {
       const payload = {
         ...form,
+        roomPrice: Number(form.roomPrice) || 0,
+        numberOfGuests: Number(form.numberOfGuests) || 1,
+        advanceAmount: Number(form.advanceAmount) || 0,
         checkInDate: new Date(form.checkInDate).toISOString(),
         expectedCheckout: new Date(form.expectedCheckout).toISOString(),
         guestEmail: form.guestEmail || null,
@@ -115,7 +118,7 @@ export default function NewBookingPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Number of Guests</label>
-              <input className="input" type="number" min={1} value={form.numberOfGuests} onChange={e => setForm(p => ({ ...p, numberOfGuests: parseInt(e.target.value) || 1 }))} />
+              <input className="input" type="number" min={1} value={form.numberOfGuests} onChange={e => setForm(p => ({ ...p, numberOfGuests: e.target.value }))} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">ID Proof Type</label>
@@ -144,7 +147,7 @@ export default function NewBookingPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Rate / Night (₹) *</label>
-              <input className="input" type="number" value={form.roomPrice} onChange={e => setForm(p => ({ ...p, roomPrice: parseFloat(e.target.value) || 0 }))} />
+              <input className="input" type="number" value={form.roomPrice} onChange={e => setForm(p => ({ ...p, roomPrice: e.target.value }))} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Check-in Date *</label>
@@ -166,7 +169,7 @@ export default function NewBookingPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Advance Amount (₹)</label>
-              <input className="input" type="number" min={0} value={form.advanceAmount} onChange={e => setForm(p => ({ ...p, advanceAmount: parseFloat(e.target.value) || 0 }))} />
+              <input className="input" type="number" min={0} value={form.advanceAmount} onChange={e => setForm(p => ({ ...p, advanceAmount: e.target.value }))} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Payment Method</label>

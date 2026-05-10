@@ -26,7 +26,7 @@ export default function BookingDetailPage() {
   const [transferReason, setTransferReason] = useState('');
 
   // Payment state
-  const [payAmount, setPayAmount] = useState(0);
+  const [payAmount, setPayAmount] = useState<number | string>(0);
   const [payMethod, setPayMethod] = useState<'CASH' | 'UPI' | 'CARD'>('CASH');
   const [payType, setPayType] = useState<'PARTIAL' | 'FULL'>('FULL');
   const [payNotes, setPayNotes] = useState('');
@@ -37,7 +37,7 @@ export default function BookingDetailPage() {
 
   // Adjustment state
   const [adjType, setAdjType] = useState<'DISCOUNT_FLAT' | 'DISCOUNT_PERCENT' | 'EXTRA_CHARGE'>('DISCOUNT_FLAT');
-  const [adjAmount, setAdjAmount] = useState(0);
+  const [adjAmount, setAdjAmount] = useState<number | string>(0);
   const [adjReason, setAdjReason] = useState('');
 
   useEffect(() => { loadBooking(); }, [id]);
@@ -98,7 +98,7 @@ export default function BookingDetailPage() {
   async function handlePayment() {
     if (payAmount <= 0) { toast.error('Enter valid amount'); return; }
     try {
-      await paymentsApi.create({ bookingId: id, amount: payAmount, method: payMethod, type: payType, notes: payNotes, reference: payRef });
+      await paymentsApi.create({ bookingId: id, amount: Number(payAmount), method: payMethod, type: payType, notes: payNotes, reference: payRef });
       toast.success('Payment recorded');
       setShowPayment(false);
       setPayNotes('');
@@ -130,7 +130,7 @@ export default function BookingDetailPage() {
   async function handleAdjustment() {
     if (adjAmount <= 0 || !adjReason) { toast.error('Fill all fields'); return; }
     try {
-      await invoicesApi.addAdjustment(invoice!.id, { type: adjType, amount: adjAmount, reason: adjReason });
+      await invoicesApi.addAdjustment(invoice!.id, { type: adjType, amount: Number(adjAmount), reason: adjReason });
       toast.success('Adjustment added');
       setShowAdjustment(false);
       loadBooking();
@@ -411,7 +411,7 @@ export default function BookingDetailPage() {
       {showPayment && (
         <Modal onClose={() => setShowPayment(false)} title="Record Payment">
           <div className="space-y-4">
-            <div><label className="block text-sm font-medium text-gray-600 mb-1">Amount (₹)</label><input className="input" type="number" value={payAmount} onChange={e => setPayAmount(parseFloat(e.target.value) || 0)} /></div>
+            <div><label className="block text-sm font-medium text-gray-600 mb-1">Amount (₹)</label><input className="input" type="number" value={payAmount} onChange={e => setPayAmount(e.target.value)} /></div>
             <div className="grid grid-cols-2 gap-4">
               <div><label className="block text-sm font-medium text-gray-600 mb-1">Method</label><select className="input" value={payMethod} onChange={e => setPayMethod(e.target.value as any)}><option value="CASH">Cash</option><option value="UPI">UPI</option><option value="CARD">Card</option></select></div>
               <div><label className="block text-sm font-medium text-gray-600 mb-1">Type</label><select className="input" value={payType} onChange={e => setPayType(e.target.value as any)}><option value="PARTIAL">Partial</option><option value="FULL">Full</option></select></div>
@@ -460,7 +460,7 @@ export default function BookingDetailPage() {
                 <option value="DISCOUNT_FLAT">Discount (₹)</option><option value="DISCOUNT_PERCENT">Discount (%)</option><option value="EXTRA_CHARGE">Extra Charge</option>
               </select>
             </div>
-            <div><label className="block text-sm font-medium text-gray-600 mb-1">Amount</label><input className="input" type="number" value={adjAmount} onChange={e => setAdjAmount(parseFloat(e.target.value) || 0)} /></div>
+            <div><label className="block text-sm font-medium text-gray-600 mb-1">Amount</label><input className="input" type="number" value={adjAmount} onChange={e => setAdjAmount(e.target.value)} /></div>
             <div><label className="block text-sm font-medium text-gray-600 mb-1">Reason</label><input className="input" value={adjReason} onChange={e => setAdjReason(e.target.value)} placeholder="Late checkout, extra bed, etc." /></div>
             <div className="flex gap-3 pt-2"><button className="btn btn-outline flex-1" onClick={() => setShowAdjustment(false)}>Cancel</button><button className="btn btn-primary flex-1" onClick={handleAdjustment}>Add</button></div>
           </div>

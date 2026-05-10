@@ -27,7 +27,7 @@ export default function RoomsPage() {
   const [blockReason, setBlockReason] = useState('');
 
   // Add room form state
-  const [newRoom, setNewRoom] = useState({ roomNumber: '', floor: 1, roomTypeId: '' });
+  const [newRoom, setNewRoom] = useState<any>({ roomNumber: '', floor: 1, roomTypeId: '' });
 
   useEffect(() => { loadData(); }, []);
 
@@ -44,7 +44,8 @@ export default function RoomsPage() {
   async function handleAddRoom() {
     if (!newRoom.roomNumber) { toast.error('Room number required'); return; }
     try {
-      await roomsApi.create(newRoom);
+      const payload = { ...newRoom, floor: Number(newRoom.floor) || 1 };
+      await roomsApi.create(payload);
       toast.success('Room created');
       setShowAdd(false);
       setNewRoom({ roomNumber: '', floor: 1, roomTypeId: roomTypes[0]?.id || '' });
@@ -196,7 +197,7 @@ export default function RoomsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Floor</label>
-                <input type="number" min={1} className="input" value={newRoom.floor} onChange={e => setNewRoom(p => ({ ...p, floor: parseInt(e.target.value) || 1 }))} />
+                <input type="number" min={1} className="input" value={newRoom.floor} onChange={e => setNewRoom(p => ({ ...p, floor: e.target.value }))} />
               </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Room Type</label>

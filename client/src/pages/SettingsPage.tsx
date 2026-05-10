@@ -14,13 +14,13 @@ export default function SettingsPage() {
   // Forms
   const [showRtForm, setShowRtForm] = useState(false);
   const [editRt, setEditRt] = useState<RoomType | null>(null);
-  const [rtForm, setRtForm] = useState({ name: '', basePrice: 0, description: '' });
+  const [rtForm, setRtForm] = useState<any>({ name: '', basePrice: 0, description: '' });
 
   const [showCatForm, setShowCatForm] = useState(false);
-  const [catForm, setCatForm] = useState({ name: '', sortOrder: 0 });
+  const [catForm, setCatForm] = useState<any>({ name: '', sortOrder: 0 });
 
   const [showItemForm, setShowItemForm] = useState(false);
-  const [itemForm, setItemForm] = useState({ name: '', price: 0, categoryId: '', isVeg: true, description: '' });
+  const [itemForm, setItemForm] = useState<any>({ name: '', price: 0, categoryId: '', isVeg: true, description: '' });
   const [editItem, setEditItem] = useState<MenuItem | null>(null);
 
   useEffect(() => { load(); }, []);
@@ -37,8 +37,9 @@ export default function SettingsPage() {
   async function saveRoomType() {
     if (!rtForm.name || !rtForm.basePrice) { toast.error('Fill required fields'); return; }
     try {
-      if (editRt) { await menuApi.updateRoomType(editRt.id, rtForm); toast.success('Updated'); }
-      else { await menuApi.createRoomType(rtForm); toast.success('Created'); }
+      const payload = { ...rtForm, basePrice: Number(rtForm.basePrice) || 0 };
+      if (editRt) { await menuApi.updateRoomType(editRt.id, payload); toast.success('Updated'); }
+      else { await menuApi.createRoomType(payload); toast.success('Created'); }
       setShowRtForm(false); setEditRt(null); setRtForm({ name: '', basePrice: 0, description: '' }); load();
     } catch (e: any) { toast.error(e.response?.data?.error || 'Failed'); }
   }
@@ -52,7 +53,11 @@ export default function SettingsPage() {
   // Category handlers
   async function saveCategory() {
     if (!catForm.name) { toast.error('Name required'); return; }
-    try { await menuApi.createCategory(catForm); toast.success('Created'); setShowCatForm(false); setCatForm({ name: '', sortOrder: 0 }); load(); }
+    try {
+      const payload = { ...catForm, sortOrder: Number(catForm.sortOrder) || 0 };
+      await menuApi.createCategory(payload);
+      toast.success('Created'); setShowCatForm(false); setCatForm({ name: '', sortOrder: 0 }); load();
+    }
     catch (e: any) { toast.error(e.response?.data?.error || 'Failed'); }
   }
 
@@ -66,8 +71,9 @@ export default function SettingsPage() {
   async function saveItem() {
     if (!itemForm.name || !itemForm.price || !itemForm.categoryId) { toast.error('Fill required fields'); return; }
     try {
-      if (editItem) { await menuApi.updateItem(editItem.id, itemForm); toast.success('Updated'); }
-      else { await menuApi.createItem(itemForm); toast.success('Created'); }
+      const payload = { ...itemForm, price: Number(itemForm.price) || 0 };
+      if (editItem) { await menuApi.updateItem(editItem.id, payload); toast.success('Updated'); }
+      else { await menuApi.createItem(payload); toast.success('Created'); }
       setShowItemForm(false); setEditItem(null); setItemForm({ name: '', price: 0, categoryId: '', isVeg: true, description: '' }); load();
     } catch (e: any) { toast.error(e.response?.data?.error || 'Failed'); }
   }
@@ -179,7 +185,7 @@ export default function SettingsPage() {
         <Modal onClose={() => setShowRtForm(false)} title={editRt ? 'Edit Room Type' : 'Add Room Type'}>
           <div className="space-y-4">
             <div><label className="block text-sm font-medium text-gray-600 mb-1">Name</label><input className="input" value={rtForm.name} onChange={e => setRtForm(p => ({ ...p, name: e.target.value }))} /></div>
-            <div><label className="block text-sm font-medium text-gray-600 mb-1">Base Price (₹/night)</label><input className="input" type="number" value={rtForm.basePrice} onChange={e => setRtForm(p => ({ ...p, basePrice: parseFloat(e.target.value) || 0 }))} /></div>
+            <div><label className="block text-sm font-medium text-gray-600 mb-1">Base Price (₹/night)</label><input className="input" type="number" value={rtForm.basePrice} onChange={e => setRtForm(p => ({ ...p, basePrice: e.target.value }))} /></div>
             <div><label className="block text-sm font-medium text-gray-600 mb-1">Description</label><input className="input" value={rtForm.description} onChange={e => setRtForm(p => ({ ...p, description: e.target.value }))} /></div>
             <div className="flex gap-3 pt-2"><button className="btn btn-outline flex-1" onClick={() => setShowRtForm(false)}>Cancel</button><button className="btn btn-primary flex-1" onClick={saveRoomType}><Save size={16} /> Save</button></div>
           </div>
@@ -191,7 +197,7 @@ export default function SettingsPage() {
         <Modal onClose={() => setShowCatForm(false)} title="Add Category">
           <div className="space-y-4">
             <div><label className="block text-sm font-medium text-gray-600 mb-1">Name</label><input className="input" value={catForm.name} onChange={e => setCatForm(p => ({ ...p, name: e.target.value }))} /></div>
-            <div><label className="block text-sm font-medium text-gray-600 mb-1">Sort Order</label><input className="input" type="number" value={catForm.sortOrder} onChange={e => setCatForm(p => ({ ...p, sortOrder: parseInt(e.target.value) || 0 }))} /></div>
+            <div><label className="block text-sm font-medium text-gray-600 mb-1">Sort Order</label><input className="input" type="number" value={catForm.sortOrder} onChange={e => setCatForm(p => ({ ...p, sortOrder: e.target.value }))} /></div>
             <div className="flex gap-3 pt-2"><button className="btn btn-outline flex-1" onClick={() => setShowCatForm(false)}>Cancel</button><button className="btn btn-primary flex-1" onClick={saveCategory}>Create</button></div>
           </div>
         </Modal>
@@ -202,7 +208,7 @@ export default function SettingsPage() {
         <Modal onClose={() => setShowItemForm(false)} title={editItem ? 'Edit Item' : 'Add Item'}>
           <div className="space-y-4">
             <div><label className="block text-sm font-medium text-gray-600 mb-1">Name</label><input className="input" value={itemForm.name} onChange={e => setItemForm(p => ({ ...p, name: e.target.value }))} /></div>
-            <div><label className="block text-sm font-medium text-gray-600 mb-1">Price (₹)</label><input className="input" type="number" value={itemForm.price} onChange={e => setItemForm(p => ({ ...p, price: parseFloat(e.target.value) || 0 }))} /></div>
+            <div><label className="block text-sm font-medium text-gray-600 mb-1">Price (₹)</label><input className="input" type="number" value={itemForm.price} onChange={e => setItemForm(p => ({ ...p, price: e.target.value }))} /></div>
             <div><label className="block text-sm font-medium text-gray-600 mb-1">Category</label>
               <SearchableSelect
                 options={categories.map(c => ({ id: c.id, label: c.name }))}
