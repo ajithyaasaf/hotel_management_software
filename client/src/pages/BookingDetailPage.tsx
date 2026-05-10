@@ -108,6 +108,9 @@ export default function BookingDetailPage() {
   }
 
   async function handleTransfer() {
+    if (!transferReason || transferReason.length < 5) { 
+      toast.error('Please provide a descriptive reason (min 5 characters)'); return; 
+    }
     if (!transferRoom) { toast.error('Select a room'); return; }
     try {
       await bookingsApi.transfer(id!, { toRoomId: transferRoom, reason: transferReason });
@@ -119,6 +122,12 @@ export default function BookingDetailPage() {
 
   async function handleExtend() {
     if (!newCheckout) { toast.error('Select new checkout date'); return; }
+    if (new Date(newCheckout) <= new Date(booking!.checkInDate)) {
+      toast.error('New checkout date must be after check-in date'); return;
+    }
+    if (new Date(newCheckout) < new Date(new Date().setHours(0,0,0,0))) {
+      toast.error('New checkout date cannot be in the past'); return;
+    }
     try {
       await bookingsApi.extend(id!, { newCheckout: new Date(newCheckout).toISOString() });
       toast.success('Stay extended');

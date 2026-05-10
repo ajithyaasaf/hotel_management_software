@@ -13,7 +13,10 @@ export default function StaffPage() {
   async function load() { try { const { data } = await usersApi.getAll(); setUsers(data); } catch {} }
 
   async function handleAdd() {
-    if (!form.name || !form.email || !form.password) { toast.error('Fill all fields'); return; }
+    if (!form.name || !form.email || !form.password) { toast.error('Please fill all fields'); return; }
+    if (form.name.length < 3 || /^\d+$/.test(form.name)) { toast.error('Enter a valid name (min 3 characters, no pure numbers)'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) { toast.error('Enter a valid email address'); return; }
+    if (form.password.length < 6) { toast.error('Password must be at least 6 characters'); return; }
     try { await usersApi.create(form); toast.success('User created'); setShowAdd(false); setForm({ name: '', email: '', password: '', role: 'RECEPTION' }); load(); }
     catch (e: any) { toast.error(e.response?.data?.error || 'Failed'); }
   }

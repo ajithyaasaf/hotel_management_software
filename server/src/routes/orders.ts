@@ -10,7 +10,7 @@ router.use(authenticate);
 const createOrderSchema = z.object({
   type: z.enum(['ROOM', 'WALK_IN', 'TAKEAWAY']),
   roomId: z.string().uuid().optional().nullable(),
-  customerName: z.string().optional().nullable(),
+  customerName: z.string().min(3).refine(val => !/^\d+$/.test(val), { message: "Name cannot be just numbers" }).optional().nullable(),
   notes: z.string().optional().nullable(),
   items: z.array(z.object({
     menuItemId: z.string().uuid(),

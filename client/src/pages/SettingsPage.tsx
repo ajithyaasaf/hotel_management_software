@@ -35,7 +35,8 @@ export default function SettingsPage() {
 
   // Room Type handlers
   async function saveRoomType() {
-    if (!rtForm.name || !rtForm.basePrice) { toast.error('Fill required fields'); return; }
+    if (!rtForm.name) { toast.error('Room type name is required'); return; }
+    if (Number(rtForm.basePrice) <= 0) { toast.error('Base price must be a positive amount'); return; }
     try {
       const payload = { ...rtForm, basePrice: Number(rtForm.basePrice) || 0 };
       if (editRt) { await menuApi.updateRoomType(editRt.id, payload); toast.success('Updated'); }
@@ -52,7 +53,8 @@ export default function SettingsPage() {
 
   // Category handlers
   async function saveCategory() {
-    if (!catForm.name) { toast.error('Name required'); return; }
+    if (!catForm.name) { toast.error('Category name is required'); return; }
+    if (Number(catForm.sortOrder) < 0) { toast.error('Sort order cannot be negative'); return; }
     try {
       const payload = { ...catForm, sortOrder: Number(catForm.sortOrder) || 0 };
       await menuApi.createCategory(payload);
@@ -69,7 +71,8 @@ export default function SettingsPage() {
 
   // Menu Item handlers
   async function saveItem() {
-    if (!itemForm.name || !itemForm.price || !itemForm.categoryId) { toast.error('Fill required fields'); return; }
+    if (!itemForm.name || !itemForm.categoryId) { toast.error('Name and Category are required'); return; }
+    if (Number(itemForm.price) <= 0) { toast.error('Price must be a positive amount'); return; }
     try {
       const payload = { ...itemForm, price: Number(itemForm.price) || 0 };
       if (editItem) { await menuApi.updateItem(editItem.id, payload); toast.success('Updated'); }

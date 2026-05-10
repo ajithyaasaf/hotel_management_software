@@ -65,6 +65,24 @@ export default function NewBookingPage() {
     if (!form.guestName || !form.guestPhone || !form.roomId || !form.expectedCheckout) {
       toast.error('Please fill all required fields'); return;
     }
+    if (/^\d+$/.test(form.guestName)) {
+      toast.error('Full Name cannot be just numbers'); return;
+    }
+    if (form.guestName.length < 3) {
+      toast.error('Full Name must be at least 3 characters'); return;
+    }
+    if (form.guestPhone.length < 10) {
+      toast.error('Phone number must be at least 10 digits'); return;
+    }
+    if (form.guestEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.guestEmail)) {
+      toast.error('Please enter a valid email address'); return;
+    }
+    if (new Date(form.expectedCheckout) <= new Date(form.checkInDate)) {
+      toast.error('Checkout date must be after check-in date'); return;
+    }
+    if (Number(form.roomPrice) <= 0) {
+      toast.error('Room rate must be a positive amount'); return;
+    }
     setLoading(true);
     try {
       const payload = {

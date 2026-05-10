@@ -50,6 +50,9 @@ export default function POSPage() {
   async function submitOrder() {
     if (cart.length === 0) { toast.error('Cart is empty'); return; }
     if (orderType === 'ROOM' && !selectedRoom) { toast.error('Select a room'); return; }
+    if (customerName && (customerName.length < 3 || /^\d+$/.test(customerName))) {
+      toast.error('Enter a valid customer name (min 3 characters, no pure numbers)'); return;
+    }
     setSubmitting(true);
     try {
       const { data } = await ordersApi.create({

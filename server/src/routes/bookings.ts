@@ -8,7 +8,7 @@ const router = Router();
 router.use(authenticate);
 
 const createBookingSchema = z.object({
-  guestName: z.string().min(1),
+  guestName: z.string().min(3).refine(val => !/^\d+$/.test(val), { message: "Name cannot be just numbers" }),
   guestPhone: z.string().min(10),
   guestEmail: z.string().email().optional().nullable(),
   idProofType: z.string().optional().nullable(),
@@ -251,6 +251,9 @@ router.put('/:id/extend', async (req: AuthRequest, res) => {
     if (!booking) { res.status(404).json({ error: 'Booking not found' }); return; }
     if (booking.status !== 'CHECKED_IN') { res.status(400).json({ error: 'Booking is not active' }); return; }
 
+    if (new Date(newCheckout) <= new Date(booking.checkInDate)) {
+      res.status(400).json({ error: 'New checkout date must be after check-in date' }); return;
+    }
     const price = newPrice ?? Number(booking.roomPrice);
     const nights = Math.max(1, Math.ceil(
       (new Date(newCheckout).getTime() - new Date(booking.checkInDate).getTime()) / (1000 * 60 * 60 * 24)

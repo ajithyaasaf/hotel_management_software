@@ -42,7 +42,8 @@ export default function RoomsPage() {
   }
 
   async function handleAddRoom() {
-    if (!newRoom.roomNumber) { toast.error('Room number required'); return; }
+    if (!newRoom.roomNumber) { toast.error('Room number is required'); return; }
+    if (Number(newRoom.floor) <= 0) { toast.error('Please enter a valid floor number'); return; }
     try {
       const payload = { ...newRoom, floor: Number(newRoom.floor) || 1 };
       await roomsApi.create(payload);
@@ -62,7 +63,7 @@ export default function RoomsPage() {
   }
 
   async function handleBlock(id: string) {
-    if (!blockReason) { toast.error('Reason required'); return; }
+    if (!blockReason || blockReason.length < 5) { toast.error('Please provide a descriptive reason (min 5 characters)'); return; }
     try {
       await roomsApi.block(id, { reason: blockReason });
       toast.success('Room blocked');
