@@ -49,7 +49,7 @@ export default function SettingsPage() {
       const [rt, cats] = await Promise.all([menuApi.getRoomTypes(), menuApi.getCategories()]);
       setRoomTypes(rt.data);
       setCategories(cats.data);
-    } catch {} finally { setLoading(false); }
+    } catch { } finally { setLoading(false); }
   }
 
   // Room Type handlers
@@ -139,19 +139,19 @@ export default function SettingsPage() {
               <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Description</th>
               <th className="px-5 py-3"></th>
             </tr></thead>
-            <tbody className="divide-y divide-gray-50">
-              {roomTypes.map(rt => (
-                <tr key={rt.id} className="hover:bg-gray-50/50">
-                  <td className="px-5 py-3 text-sm font-medium text-gray-900">{rt.name}</td>
-                  <td className="px-5 py-3 text-sm font-semibold text-primary-600">₹{Number(rt.basePrice).toLocaleString()}/night</td>
-                  <td className="px-5 py-3 text-sm text-gray-500">{rt.description || '—'}</td>
-                  <td className="px-5 py-3 flex gap-1 justify-end">
-                    <button onClick={() => { setEditRt(rt); setRtForm({ name: rt.name, basePrice: Number(rt.basePrice), description: rt.description || '' }); setShowRtForm(true); }} className="btn btn-ghost btn-sm"><Pencil size={14} /></button>
-                    <button onClick={() => deleteRoomType(rt.id)} className="btn btn-ghost btn-sm text-red-500"><Trash2 size={14} /></button>
-                  </td>
-                </tr>
-              ))}
-            </tbody></table>
+              <tbody className="divide-y divide-gray-50">
+                {roomTypes.map(rt => (
+                  <tr key={rt.id} className="hover:bg-gray-50/50">
+                    <td className="px-5 py-3 text-sm font-medium text-gray-900">{rt.name}</td>
+                    <td className="px-5 py-3 text-sm font-semibold text-primary-600">₹{Number(rt.basePrice).toLocaleString()}/night</td>
+                    <td className="px-5 py-3 text-sm text-gray-500">{rt.description || '—'}</td>
+                    <td className="px-5 py-3 flex gap-1 justify-end">
+                      <button onClick={() => { setEditRt(rt); setRtForm({ name: rt.name, basePrice: Number(rt.basePrice), description: rt.description || '' }); setShowRtForm(true); }} className="btn btn-ghost btn-sm"><Pencil size={14} /></button>
+                      <button onClick={() => deleteRoomType(rt.id)} className="btn btn-ghost btn-sm text-red-500"><Trash2 size={14} /></button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody></table>
           </div>
         </div>
       )}
@@ -177,24 +177,24 @@ export default function SettingsPage() {
                   <th className="text-left px-5 py-2 text-xs font-semibold text-gray-500">Available</th>
                   <th className="px-5 py-2"></th>
                 </tr></thead>
-                <tbody className="divide-y divide-gray-50">
-                  {cat.items.map(item => (
-                    <tr key={item.id} className="hover:bg-gray-50/50">
-                      <td className="px-5 py-2.5 text-sm font-medium text-gray-900">{item.name}</td>
-                      <td className="px-5 py-2.5 text-sm font-semibold">₹{Number(item.price)}</td>
-                      <td className="px-5 py-2.5"><span className={`badge ${item.isVeg ? 'badge-green' : 'badge-red'}`}>{item.isVeg ? 'Veg' : 'Non-Veg'}</span></td>
-                      <td className="px-5 py-2.5">
-                        <button onClick={() => toggleItemAvailability(item)} className={`w-10 h-5 rounded-full transition-colors ${item.isAvailable ? 'bg-emerald-500' : 'bg-gray-300'}`}>
-                          <span className={`block w-4 h-4 bg-white rounded-full shadow transition-transform ${item.isAvailable ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                        </button>
-                      </td>
-                      <td className="px-5 py-2.5 flex gap-1 justify-end">
-                        <button onClick={() => { setEditItem(item); setItemForm({ name: item.name, price: Number(item.price), categoryId: item.categoryId, isVeg: item.isVeg, description: item.description || '' }); setShowItemForm(true); }} className="btn btn-ghost btn-sm"><Pencil size={14} /></button>
-                        <button onClick={() => deleteItem(item.id)} className="btn btn-ghost btn-sm text-red-500"><Trash2 size={14} /></button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody></table>
+                  <tbody className="divide-y divide-gray-50">
+                    {cat.items.map(item => (
+                      <tr key={item.id} className="hover:bg-gray-50/50">
+                        <td className="px-5 py-2.5 text-sm font-medium text-gray-900">{item.name}</td>
+                        <td className="px-5 py-2.5 text-sm font-semibold">₹{Number(item.price)}</td>
+                        <td className="px-5 py-2.5"><span className={`badge ${item.isVeg ? 'badge-green' : 'badge-red'}`}>{item.isVeg ? 'Veg' : 'Non-Veg'}</span></td>
+                        <td className="px-5 py-2.5">
+                          <button onClick={() => toggleItemAvailability(item)} className={`w-10 h-5 rounded-full transition-colors ${item.isAvailable ? 'bg-emerald-500' : 'bg-gray-300'}`}>
+                            <span className={`block w-4 h-4 bg-white rounded-full shadow transition-transform ${item.isAvailable ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                          </button>
+                        </td>
+                        <td className="px-5 py-2.5 flex gap-1 justify-end">
+                          <button onClick={() => { setEditItem(item); setItemForm({ name: item.name, price: Number(item.price), categoryId: item.categoryId, isVeg: item.isVeg, description: item.description || '' }); setShowItemForm(true); }} className="btn btn-ghost btn-sm"><Pencil size={14} /></button>
+                          <button onClick={() => deleteItem(item.id)} className="btn btn-ghost btn-sm text-red-500"><Trash2 size={14} /></button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody></table>
                 {cat.items.length === 0 && <p className="text-center text-gray-400 py-6 text-sm">No items in this category</p>}
               </div>
             </div>
