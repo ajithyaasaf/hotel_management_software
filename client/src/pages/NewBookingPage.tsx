@@ -6,6 +6,22 @@ import toast from 'react-hot-toast';
 import { ArrowLeft, Search, UserCheck } from 'lucide-react';
 import SearchableSelect from '../components/ui/SearchableSelect';
 
+interface BookingForm {
+  guestName: string;
+  guestPhone: string;
+  guestEmail: string;
+  idProofType: string;
+  idProofNumber: string;
+  roomId: string;
+  checkInDate: string;
+  expectedCheckout: string;
+  roomPrice: number | string;
+  numberOfGuests: number | string;
+  specialRequests: string;
+  advanceAmount: number | string;
+  advanceMethod: 'CASH' | 'UPI' | 'CARD';
+}
+
 export default function NewBookingPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -16,14 +32,14 @@ export default function NewBookingPage() {
   const [searchPhone, setSearchPhone] = useState('');
   const [guestFound, setGuestFound] = useState(false);
 
-  const [form, setForm] = useState<any>({
+  const [form, setForm] = useState<BookingForm>({
     guestName: '', guestPhone: '', guestEmail: '',
     idProofType: 'Aadhar', idProofNumber: '',
     roomId: preselected?.roomId || '',
     checkInDate: new Date().toISOString().split('T')[0],
     expectedCheckout: '', roomPrice: preselected?.roomPrice || 0,
     numberOfGuests: 1, specialRequests: '',
-    advanceAmount: 0, advanceMethod: 'CASH' as 'CASH' | 'UPI' | 'CARD',
+    advanceAmount: 0, advanceMethod: 'CASH',
   });
 
   useEffect(() => {

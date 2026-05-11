@@ -14,6 +14,12 @@ const statusConfig: Record<string, { label: string; badge: string; bg: string }>
   BLOCKED: { label: 'Blocked', badge: 'badge-red', bg: 'bg-status-blocked-bg border-status-blocked-text/20' },
 };
 
+interface NewRoomForm {
+  roomNumber: string;
+  floor: number | string;
+  roomTypeId: string;
+}
+
 export default function RoomsPage() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
@@ -27,7 +33,7 @@ export default function RoomsPage() {
   const [blockReason, setBlockReason] = useState('');
 
   // Add room form state
-  const [newRoom, setNewRoom] = useState<any>({ roomNumber: '', floor: 1, roomTypeId: '' });
+  const [newRoom, setNewRoom] = useState<NewRoomForm>({ roomNumber: '', floor: 1, roomTypeId: '' });
 
   useEffect(() => { loadData(); }, []);
 

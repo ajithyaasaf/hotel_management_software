@@ -96,7 +96,7 @@ export default function BookingDetailPage() {
   }
 
   async function handlePayment() {
-    if (payAmount <= 0) { toast.error('Enter valid amount'); return; }
+    if (Number(payAmount) <= 0) { toast.error('Enter valid amount'); return; }
     try {
       await paymentsApi.create({ bookingId: id, amount: Number(payAmount), method: payMethod, type: payType, notes: payNotes, reference: payRef });
       toast.success('Payment recorded');
@@ -137,7 +137,7 @@ export default function BookingDetailPage() {
   }
 
   async function handleAdjustment() {
-    if (adjAmount <= 0 || !adjReason) { toast.error('Fill all fields'); return; }
+    if (Number(adjAmount) <= 0 || !adjReason) { toast.error('Fill all fields'); return; }
     try {
       await invoicesApi.addAdjustment(invoice!.id, { type: adjType, amount: Number(adjAmount), reason: adjReason });
       toast.success('Adjustment added');

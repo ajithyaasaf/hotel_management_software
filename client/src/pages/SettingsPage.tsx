@@ -5,6 +5,25 @@ import toast from 'react-hot-toast';
 import { Plus, Pencil, Trash2, X, Save } from 'lucide-react';
 import SearchableSelect from '../components/ui/SearchableSelect';
 
+interface RoomTypeForm {
+  name: string;
+  basePrice: number | string;
+  description: string;
+}
+
+interface CategoryForm {
+  name: string;
+  sortOrder: number | string;
+}
+
+interface ItemForm {
+  name: string;
+  price: number | string;
+  categoryId: string;
+  isVeg: boolean;
+  description: string;
+}
+
 export default function SettingsPage() {
   const [tab, setTab] = useState<'roomTypes' | 'menu'>('roomTypes');
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
@@ -14,13 +33,13 @@ export default function SettingsPage() {
   // Forms
   const [showRtForm, setShowRtForm] = useState(false);
   const [editRt, setEditRt] = useState<RoomType | null>(null);
-  const [rtForm, setRtForm] = useState<any>({ name: '', basePrice: 0, description: '' });
+  const [rtForm, setRtForm] = useState<RoomTypeForm>({ name: '', basePrice: 0, description: '' });
 
   const [showCatForm, setShowCatForm] = useState(false);
-  const [catForm, setCatForm] = useState<any>({ name: '', sortOrder: 0 });
+  const [catForm, setCatForm] = useState<CategoryForm>({ name: '', sortOrder: 0 });
 
   const [showItemForm, setShowItemForm] = useState(false);
-  const [itemForm, setItemForm] = useState<any>({ name: '', price: 0, categoryId: '', isVeg: true, description: '' });
+  const [itemForm, setItemForm] = useState<ItemForm>({ name: '', price: 0, categoryId: '', isVeg: true, description: '' });
   const [editItem, setEditItem] = useState<MenuItem | null>(null);
 
   useEffect(() => { load(); }, []);
