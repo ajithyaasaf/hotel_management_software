@@ -30,7 +30,7 @@ router.get('/summary', async (req, res) => {
     // 1. Calculate Revenue (Invoiced basis)
     // Room Revenue: Only the room charge portion of finalized invoices
     const roomRevenue = checkouts.reduce((s, b) => s + (b.invoice ? Number(b.invoice.roomCharges) : 0), 0);
-    
+
     // Restaurant Revenue: Walk-ins + Room Service portion of finalized invoices
     const roomServiceRevenue = checkouts.reduce((s, b) => s + (b.invoice ? Number(b.invoice.foodCharges) : 0), 0);
     const walkInRevenue = walkInOrders.reduce((s, o) => s + Number(o.total), 0);
@@ -39,13 +39,13 @@ router.get('/summary', async (req, res) => {
     // Extra Charges and Discounts
     const extraCharges = checkouts.reduce((s, b) => s + (b.invoice ? Number(b.invoice.extraCharges) : 0), 0);
     const discounts = checkouts.reduce((s, b) => s + (b.invoice ? Number(b.invoice.discountAmount) : 0), 0);
-    
+
     const totalRevenue = roomRevenue + restaurantRevenue + extraCharges - discounts;
 
     // 2. Occupancy (Period-aware)
     // Total available room-nights in period
     const totalAvailableNights = totalRoomsCount * diffDays;
-    
+
     // Calculate occupied nights during this specific period
     const overlappingBookings = await prisma.booking.findMany({
       where: {
@@ -65,8 +65,8 @@ router.get('/summary', async (req, res) => {
       occupiedNightsInPeriod += nights;
     });
 
-    const occupancyPercent = totalAvailableNights > 0 
-      ? Math.min(100, Math.round((occupiedNightsInPeriod / totalAvailableNights) * 100)) 
+    const occupancyPercent = totalAvailableNights > 0
+      ? Math.min(100, Math.round((occupiedNightsInPeriod / totalAvailableNights) * 100))
       : 0;
 
     const currentCheckins = await prisma.booking.count({ where: { status: 'CHECKED_IN' } });
