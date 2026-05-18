@@ -61,6 +61,25 @@ enum AdjustmentType {
   EXTRA_CHARGE
 }
 
+enum ExpenseCategory {
+  ELECTRICITY
+  WATER
+  STAFF_SALARY
+  KITCHEN_SUPPLIES
+  LAUNDRY
+  MAINTENANCE
+  HOUSEKEEPING
+  MARKETING
+  MISCELLANEOUS
+}
+
+enum GroupBookingStatus {
+  ACTIVE
+  PARTIALLY_CHECKED_OUT
+  COMPLETED
+  CANCELLED
+}
+
 // ─── USERS ──────────────────────────────────────────────
 
 model User {
@@ -73,11 +92,13 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  bookings    Booking[]
-  orders      Order[]
-  payments    Payment[]
-  auditLogs   AuditLog[]
-  adjustments InvoiceAdjustment[]
+  bookings      Booking[]
+  orders        Order[]
+  payments      Payment[]
+  auditLogs     AuditLog[]
+  adjustments   InvoiceAdjustment[]
+  expenses      Expense[]
+  groupBookings GroupBooking[]
 
   @@map("users")
 }
@@ -124,19 +145,20 @@ model Room {
 // ─── GUESTS ─────────────────────────────────────────────
 
 model Guest {
-  id          String   @id @default(uuid())
-  name        String
-  phone       String   @unique
-  email       String?
-  idProofType String?
+  id            String   @id @default(uuid())
+  name          String
+  phone         String   @unique
+  email         String?
+  idProofType   String?
   idProofNumber String?
-  address     String?
-  visitCount  Int      @default(0)
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  address       String?
+  visitCount    Int      @default(0)
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  bookings Booking[]
+  bookings      Booking[]
+  groupBookings GroupBooking[]
 
   @@index([phone])
   @@map("guests")
@@ -158,6 +180,8 @@ model Booking {
   roomPrice         Decimal       @db.Decimal(10, 2)
   numberOfGuests    Int           @default(1)
   specialRequests   String?
+  groupBookingId    String?       // nullable — solo bookings have no group
+  groupBooking      GroupBooking? @relation(fields: [groupBookingId], references: [id])
   createdById       String
   createdBy         User          @relation(fields: [createdById], references: [id])
   createdAt         DateTime      @default(now())
@@ -169,7 +193,28 @@ model Booking {
 
   @@index([bookingNumber])
   @@index([status])
+  @@index([groupBookingId])
   @@map("bookings")
+}
+
+// ─── GROUP BOOKINGS ─────────────────────────────────
+
+model GroupBooking {
+  id            String             @id @default(uuid())
+  groupNumber   String             @unique
+  leadGuestId   String
+  leadGuest     Guest              @relation(fields: [leadGuestId], references: [id])
+  status        GroupBookingStatus @default(ACTIVE)
+  notes         String?
+  createdById   String
+  createdBy     User               @relation(fields: [createdById], references: [id])
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  bookings Booking[]
+
+  @@index([groupNumber])
+  @@map("group_bookings")
 }
 
 // ─── ROOM TRANSFERS ─────────────────────────────────────
@@ -345,6 +390,26 @@ model TaxConfig {
   isActive Boolean @default(true)
 
   @@map("tax_config")
+}
+
+// ─── EXPENSES ───────────────────────────────────────
+
+model Expense {
+  id          String          @id @default(uuid())
+  title       String
+  category    ExpenseCategory
+  amount      Decimal         @db.Decimal(10, 2)
+  paidDate    DateTime
+  method      PaymentMethod
+  notes       String?
+  createdById String
+  createdBy   User            @relation(fields: [createdById], references: [id])
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([paidDate])
+  @@index([category])
+  @@map("expenses")
 }
 
 // ─── AUDIT LOGS ─────────────────────────────────────────

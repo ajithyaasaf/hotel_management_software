@@ -10,6 +10,8 @@ import RoomsPage from './pages/RoomsPage';
 import BookingsPage from './pages/BookingsPage';
 import NewBookingPage from './pages/NewBookingPage';
 import BookingDetailPage from './pages/BookingDetailPage';
+import NewGroupBookingPage from './pages/NewGroupBookingPage';
+import GroupBookingDetailPage from './pages/GroupBookingDetailPage';
 import POSPage from './pages/POSPage';
 import OrdersPage from './pages/OrdersPage';
 import GuestsPage from './pages/GuestsPage';
@@ -17,6 +19,7 @@ import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
 import StaffPage from './pages/StaffPage';
 import AuditPage from './pages/AuditPage';
+import ExpensesPage from './pages/ExpensesPage';
 
 export default function App() {
   return (
@@ -34,6 +37,8 @@ export default function App() {
               <Route path="/rooms" element={<RoomsPage />} />
               <Route path="/bookings" element={<BookingsPage />} />
               <Route path="/bookings/new" element={<NewBookingPage />} />
+              <Route path="/bookings/group/new" element={<NewGroupBookingPage />} />
+              <Route path="/bookings/group/:id" element={<GroupBookingDetailPage />} />
               <Route path="/bookings/:id" element={<BookingDetailPage />} />
               <Route path="/guests" element={<GuestsPage />} />
             </Route>
@@ -45,6 +50,7 @@ export default function App() {
             {/* Admin Only */}
             <Route element={<ProtectedRoute roles={['ADMIN']} />}>
               <Route path="/reports" element={<ReportsPage />} />
+              <Route path="/expenses" element={<ExpensesPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/staff" element={<StaffPage />} />
               <Route path="/audit" element={<AuditPage />} />

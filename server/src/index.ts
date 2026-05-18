@@ -15,6 +15,8 @@ import paymentRoutes from './routes/payments';
 import menuRoutes from './routes/menu';
 import userRoutes from './routes/users';
 import reportRoutes from './routes/reports';
+import expenseRoutes from './routes/expenses';
+import groupBookingRoutes from './routes/groupBookings';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -36,6 +38,8 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/menu', menuRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/expenses', expenseRoutes);
+app.use('/api/group-bookings', groupBookingRoutes);
 
 // Global error handler
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

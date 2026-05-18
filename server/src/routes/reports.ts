@@ -42,7 +42,14 @@ router.get('/summary', async (req, res) => {
 
     const totalRevenue = roomRevenue + restaurantRevenue + extraCharges - discounts;
 
-    // 2. Occupancy (Period-aware)
+    // 3. Expenses and Net Profit for the same period
+    const periodExpenses = await prisma.expense.findMany({
+      where: { paidDate: { gte: from, lte: to } },
+    });
+    const totalExpenses = parseFloat(periodExpenses.reduce((s, e) => s + Number(e.amount), 0).toFixed(2));
+    const netProfit = parseFloat((totalRevenue - totalExpenses).toFixed(2));
+
+    // 4. Occupancy (Period-aware)
     // Total available room-nights in period
     const totalAvailableNights = totalRoomsCount * diffDays;
 
@@ -76,9 +83,11 @@ router.get('/summary', async (req, res) => {
       roomRevenue: parseFloat(roomRevenue.toFixed(2)),
       restaurantRevenue: parseFloat(restaurantRevenue.toFixed(2)),
       totalRevenue: parseFloat(totalRevenue.toFixed(2)),
+      totalExpenses,
+      netProfit,
       occupancyPercent,
-      occupiedRooms: occupiedNightsInPeriod, // Total room nights sold
-      totalRooms: totalAvailableNights, // Total room nights available
+      occupiedRooms: occupiedNightsInPeriod,
+      totalRooms: totalAvailableNights,
       currentCheckins,
       checkoutsInPeriod: checkouts.length,
       confirmedBookings,
@@ -112,22 +121,40 @@ router.get('/revenue-daily', async (req, res) => {
       byDay[day] = (byDay[day] || 0) + amount;
     });
 
-    // Group Walk-in Revenue by Order Date
-    walkInOrders.forEach(o => {
-      const day = o.createdAt.toISOString().split('T')[0];
-      byDay[day] = (byDay[day] || 0) + Number(o.total);
+    // 3. Get all expenses in period
+    const expenses = await prisma.expense.findMany({
+      where: { paidDate: { gte: from, lte: to } },
     });
 
-    // Fill in missing days with 0 for a continuous chart
-    const result = [];
-    const curr = new Date(from);
-    while (curr <= to) {
-      const day = curr.toISOString().split('T')[0];
-      result.push({ date: day, amount: parseFloat((byDay[day] || 0).toFixed(2)) });
-      curr.setDate(curr.getDate() + 1);
+    const dailyData = [];
+    let currentDate = new Date(from);
+
+    while (currentDate <= to) {
+      const dateStr = currentDate.toISOString().split('T')[0];
+      const nextDate = new Date(currentDate);
+      nextDate.setDate(nextDate.getDate() + 1);
+
+      // Revenue for this day
+      const revenue = byDay[dateStr] || 0;
+
+      // Expenses for this day
+      const dayExpenses = expenses.filter(e => {
+        const eDate = new Date(e.paidDate);
+        return eDate >= currentDate && eDate < nextDate;
+      });
+      const expense = dayExpenses.reduce((s, e) => s + Number(e.amount), 0);
+
+      dailyData.push({
+        date: dateStr,
+        revenue: parseFloat(revenue.toFixed(2)),
+        expense: parseFloat(expense.toFixed(2)),
+        profit: parseFloat((revenue - expense).toFixed(2)),
+      });
+
+      currentDate = nextDate;
     }
 
-    res.json(result);
+    res.json(dailyData);
   } catch { res.status(500).json({ error: 'Failed to generate daily revenue' }); }
 });
 

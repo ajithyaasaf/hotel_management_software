@@ -4,7 +4,7 @@ import { bookingsApi, invoicesApi, paymentsApi, roomsApi } from '../api';
 import type { Booking, Invoice, Room } from '../types';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
-import { ArrowLeft, ArrowRightLeft, CalendarPlus, LogOut as CheckOutIcon, CreditCard, Receipt, X, Ban } from 'lucide-react';
+import { ArrowLeft, ArrowRightLeft, CalendarPlus, LogOut as CheckOutIcon, CreditCard, Receipt, X, Ban, Users } from 'lucide-react';
 import SearchableSelect from '../components/ui/SearchableSelect';
 
 export default function BookingDetailPage() {
@@ -169,6 +169,14 @@ export default function BookingDetailPage() {
             <span className={`badge ${booking.status === 'CHECKED_IN' ? 'badge-green' : booking.status === 'CHECKED_OUT' ? 'badge-gray' : 'badge-red'}`}>{booking.status.replace('_', ' ')}</span>
           </h1>
           <p className="text-gray-500 mt-1">Room {booking.room.roomNumber} · {booking.room.roomType.name}</p>
+          {booking.groupBookingId && (
+            <button
+              onClick={() => navigate(`/bookings/group/${booking.groupBookingId}`)}
+              className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold bg-violet-50 text-violet-600 px-3 py-1 rounded-lg hover:bg-violet-100 transition-colors"
+            >
+              <Users size={12} /> Part of Group Booking {booking.groupBooking?.groupNumber ?? booking.groupBookingId.slice(0, 8)}
+            </button>
+          )}
         </div>
         {isActive && (
           <div className="flex gap-2">

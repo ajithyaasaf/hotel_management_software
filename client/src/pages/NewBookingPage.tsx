@@ -29,8 +29,8 @@ export default function NewBookingPage() {
 
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(false);
-  const [searchPhone, setSearchPhone] = useState('');
   const [guestFound, setGuestFound] = useState(false);
+  const [searching, setSearching] = useState(false);
 
   const [form, setForm] = useState<BookingForm>({
     guestName: '', guestPhone: '', guestEmail: '',
@@ -51,24 +51,33 @@ export default function NewBookingPage() {
     });
   }, []);
 
-  async function lookupGuest() {
-    if (searchPhone.length < 10) { toast.error('Enter valid phone number'); return; }
+  // Auto-lookup guest when phone reaches 10 digits
+  useEffect(() => {
+    if (form.guestPhone.length === 10) {
+      autoLookup(form.guestPhone);
+    } else {
+      setGuestFound(false);
+    }
+  }, [form.guestPhone]);
+
+  async function autoLookup(phone: string) {
+    setSearching(true);
     try {
-      const { data } = await guestsApi.search(searchPhone);
+      const { data } = await guestsApi.search(phone);
       if (data) {
         setForm(p => ({
-          ...p, guestName: data.name, guestPhone: data.phone,
+          ...p, guestName: data.name,
           guestEmail: data.email || '', idProofType: data.idProofType || 'Aadhar',
           idProofNumber: data.idProofNumber || '',
         }));
         setGuestFound(true);
-        toast.success(`Returning guest found! Visit #${data.visitCount + 1}`);
-      } else {
-        setForm(p => ({ ...p, guestPhone: searchPhone }));
-        setGuestFound(false);
-        toast('New guest — please fill in details', { icon: '👤' });
+        toast.success(`Welcome back, ${data.name}!`, { icon: '👋' });
       }
-    } catch { toast.error('Search failed'); }
+    } catch {
+      // Fail silently for auto-lookup
+    } finally {
+      setSearching(false);
+    }
   }
 
   function handleRoomChange(roomId: string) {
@@ -109,6 +118,9 @@ export default function NewBookingPage() {
         checkInDate: new Date(form.checkInDate).toISOString(),
         expectedCheckout: new Date(form.expectedCheckout).toISOString(),
         guestEmail: form.guestEmail || null,
+        // If it's a returning guest, the server logic usually handles the update/link
+        // but we pass the name anyway if they changed it
+        guestName: form.guestName
       };
       const { data } = await bookingsApi.create(payload);
       toast.success(`Guest checked into Room ${data.room.roomNumber}!`);
@@ -124,31 +136,41 @@ export default function NewBookingPage() {
       <h1 className="text-2xl font-bold text-gray-900 mb-1">New Check-in</h1>
       <p className="text-gray-500 text-sm mb-6">Register guest and assign room</p>
 
-      {/* Guest Lookup */}
-      <div className="card p-5 mb-6">
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">Quick Guest Lookup</h3>
-        <div className="flex gap-3">
-          <input className="input flex-1" placeholder="Enter phone number..." value={searchPhone} onChange={e => setSearchPhone(e.target.value)} />
-          <button onClick={lookupGuest} className="btn btn-outline"><Search size={16} /> Search</button>
-        </div>
-        {guestFound && <p className="text-sm text-emerald-600 mt-2 flex items-center gap-1"><UserCheck size={14} /> Returning guest found</p>}
-      </div>
-
       <form onSubmit={handleSubmit}>
         <div className="card p-5 mb-6">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">Guest Details</h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="flex items-center gap-2 mb-4">
+            <h3 className="text-sm font-semibold text-gray-700">Guest Details</h3>
+            {guestFound && <span className="text-emerald-600 text-xs font-medium flex items-center gap-1"><UserCheck size={14} /> Returning Guest</span>}
+            {searching && <div className="animate-spin h-3 w-3 border-2 border-primary-600 border-t-transparent rounded-full ml-2" />}
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Phone Number *</label>
+              <input 
+                className="input" 
+                placeholder="Enter 10-digit number..."
+                value={form.guestPhone} 
+                onChange={e => setForm(p => ({ ...p, guestPhone: e.target.value.replace(/\D/g, '').slice(0, 10) }))} 
+                required 
+              />
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Full Name *</label>
-              <input className="input" value={form.guestName} onChange={e => setForm(p => ({ ...p, guestName: e.target.value }))} required />
+              <input 
+                className="input" 
+                placeholder="Guest's full name"
+                value={form.guestName} 
+                onChange={e => {
+                  setForm(p => ({ ...p, guestName: e.target.value }));
+                  if (guestFound) setGuestFound(false);
+                }} 
+                required 
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Phone *</label>
-              <input className="input" value={form.guestPhone} onChange={e => setForm(p => ({ ...p, guestPhone: e.target.value }))} required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Email</label>
-              <input className="input" type="email" value={form.guestEmail} onChange={e => setForm(p => ({ ...p, guestEmail: e.target.value }))} />
+              <label className="block text-sm font-medium text-gray-600 mb-1">Email Address</label>
+              <input className="input" type="email" placeholder="email@example.com" value={form.guestEmail} onChange={e => setForm(p => ({ ...p, guestEmail: e.target.value }))} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Number of Guests</label>
@@ -161,8 +183,8 @@ export default function NewBookingPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">ID Number</label>
-              <input className="input" value={form.idProofNumber} onChange={e => setForm(p => ({ ...p, idProofNumber: e.target.value }))} />
+              <label className="block text-sm font-medium text-gray-600 mb-1">ID Proof Number</label>
+              <input className="input" placeholder="Enter ID number..." value={form.idProofNumber} onChange={e => setForm(p => ({ ...p, idProofNumber: e.target.value }))} />
             </div>
           </div>
         </div>

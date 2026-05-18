@@ -118,10 +118,29 @@ export const usersApi = {
   delete: (id: string) => api.delete(`/users/${id}`),
 };
 
-// ─── REPORTS ──────────────────────────────────────
+// ─── REPORTS ──────────────────────────────────────────
 export const reportsApi = {
   summary: (params?: any) => api.get('/reports/summary', { params }),
   revenueDaily: (params?: any) => api.get('/reports/revenue-daily', { params }),
   occupancy: () => api.get('/reports/occupancy'),
   audit: (params?: any) => api.get('/reports/audit', { params }),
+};
+
+// ─── EXPENSES ─────────────────────────────────────────
+export const expensesApi = {
+  getAll: (params?: any) => api.get('/expenses', { params }),
+  getSummary: (params?: any) => api.get('/expenses/summary', { params }),
+  create: (data: any) => api.post('/expenses', data),
+  update: (id: string, data: any) => api.put(`/expenses/${id}`, data),
+  delete: (id: string) => api.delete(`/expenses/${id}`),
+};
+
+// ─── GROUP BOOKINGS ───────────────────────────────────
+export const groupBookingsApi = {
+  getAll: (params?: any) => api.get('/group-bookings', { params }),
+  getById: (id: string) => api.get(`/group-bookings/${id}`),
+  getMasterInvoice: (id: string) => api.get(`/group-bookings/${id}/master-invoice`),
+  create: (data: any) => api.post('/group-bookings', data),
+  checkoutAll: (id: string) => api.post(`/group-bookings/${id}/checkout-all`),
+  unlinkBooking: (groupId: string, bookingId: string) => api.delete(`/group-bookings/${groupId}/unlink/${bookingId}`),
 };

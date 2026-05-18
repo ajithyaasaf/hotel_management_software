@@ -4,7 +4,7 @@ import type { Room, RoomType } from '../types';
 import { useAuthStore } from '../store/authStore';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Plus, BedDouble, Ban, Sparkles, Lock, Search, Filter } from 'lucide-react';
+import { Plus, BedDouble, Ban, Sparkles, Lock, Search, Filter, Users } from 'lucide-react';
 import SearchableSelect from '../components/ui/SearchableSelect';
 
 const statusConfig: Record<string, { label: string; badge: string; bg: string }> = {
@@ -30,6 +30,7 @@ export default function RoomsPage() {
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [showBlock, setShowBlock] = useState<string | null>(null);
+  const [showCheckInOptions, setShowCheckInOptions] = useState<Room | null>(null);
   const [blockReason, setBlockReason] = useState('');
 
   // Add room form state
@@ -148,7 +149,7 @@ export default function RoomsPage() {
                   key={room.id}
                   className={`card p-4 cursor-pointer border-l-4 transition-all hover:scale-[1.02] ${statusConfig[room.status]?.bg || ''}`}
                   onClick={() => {
-                    if (room.status === 'AVAILABLE') navigate('/bookings/new', { state: { roomId: room.id, roomNumber: room.roomNumber, roomPrice: Number(room.roomType.basePrice) } });
+                    if (room.status === 'AVAILABLE') setShowCheckInOptions(room);
                   }}
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -224,18 +225,44 @@ export default function RoomsPage() {
         </div>
       )}
 
-      {/* Block Modal */}
-      {showBlock && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowBlock(null)}>
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-lg animate-scaleIn" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold mb-4">Block Room</h3>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
-              <input className="input" value={blockReason} onChange={e => setBlockReason(e.target.value)} placeholder="Maintenance, reserved, etc." />
+      {/* Check-in Options Modal */}
+      {showCheckInOptions && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowCheckInOptions(null)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-lg animate-scaleIn" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center font-bold text-xl">
+                {showCheckInOptions.roomNumber}
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Check-in Room {showCheckInOptions.roomNumber}</h3>
+                <p className="text-sm text-gray-500">{showCheckInOptions.roomType.name}</p>
+              </div>
             </div>
-            <div className="flex gap-3 pt-4">
-              <button className="btn btn-outline flex-1" onClick={() => setShowBlock(null)}>Cancel</button>
-              <button className="btn btn-danger flex-1" onClick={() => handleBlock(showBlock)}>Block Room</button>
+            
+            <div className="space-y-3">
+              <button 
+                className="btn btn-primary w-full justify-start gap-3 py-4 h-auto"
+                onClick={() => navigate('/bookings/new', { state: { roomId: showCheckInOptions.id, roomNumber: showCheckInOptions.roomNumber, roomPrice: Number(showCheckInOptions.roomType.basePrice) } })}
+              >
+                <BedDouble size={20} />
+                <div className="text-left">
+                  <div className="font-bold">Single Booking</div>
+                  <div className="text-[11px] font-normal opacity-80 text-primary-100">Quick check-in for one room</div>
+                </div>
+              </button>
+              
+              <button 
+                className="btn btn-outline w-full justify-start gap-3 py-4 h-auto border-gray-200"
+                onClick={() => navigate('/bookings/group/new', { state: { roomId: showCheckInOptions.id } })}
+              >
+                <Users size={20} className="text-primary-600" />
+                <div className="text-left">
+                  <div className="font-bold text-gray-900">Group Booking</div>
+                  <div className="text-[11px] font-normal text-gray-500">Add multiple rooms to one bill</div>
+                </div>
+              </button>
+              
+              <button className="btn btn-ghost w-full text-gray-400 text-sm" onClick={() => setShowCheckInOptions(null)}>Cancel</button>
             </div>
           </div>
         </div>

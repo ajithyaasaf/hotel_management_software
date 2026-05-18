@@ -23,6 +23,7 @@ export async function createAuditLog(params: AuditParams) {
 let bookingCounter = 0;
 let orderCounter = 0;
 let invoiceCounter = 0;
+let groupCounter = 0;
 
 export function generateBookingNumber(): string {
   bookingCounter++;
@@ -45,11 +46,21 @@ export function generateInvoiceNumber(): string {
   return `${prefix}${String(invoiceCounter).padStart(4, '0')}`;
 }
 
-// Initialize counters from DB
+export function generateGroupNumber(): string {
+  groupCounter++;
+  const date = new Date();
+  const prefix = `GRP${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}`;
+  return `${prefix}${String(groupCounter).padStart(4, '0')}`;
+}
+
+// Initialize counters from DB on server start
 export async function initializeCounters() {
-  const lastBooking = await prisma.booking.findFirst({ orderBy: { createdAt: 'desc' } });
-  const lastOrder = await prisma.order.findFirst({ orderBy: { createdAt: 'desc' } });
-  const lastInvoice = await prisma.invoice.findFirst({ orderBy: { createdAt: 'desc' } });
+  const [lastBooking, lastOrder, lastInvoice, lastGroup] = await Promise.all([
+    prisma.booking.findFirst({ orderBy: { createdAt: 'desc' } }),
+    prisma.order.findFirst({ orderBy: { createdAt: 'desc' } }),
+    prisma.invoice.findFirst({ orderBy: { createdAt: 'desc' } }),
+    prisma.groupBooking.findFirst({ orderBy: { createdAt: 'desc' } }),
+  ]);
 
   if (lastBooking) {
     const num = parseInt(lastBooking.bookingNumber.slice(-4));
@@ -62,5 +73,9 @@ export async function initializeCounters() {
   if (lastInvoice) {
     const num = parseInt(lastInvoice.invoiceNumber.slice(-4));
     if (!isNaN(num)) invoiceCounter = num;
+  }
+  if (lastGroup) {
+    const num = parseInt(lastGroup.groupNumber.slice(-4));
+    if (!isNaN(num)) groupCounter = num;
   }
 }

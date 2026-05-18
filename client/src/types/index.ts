@@ -54,6 +54,8 @@ export interface Booking {
   roomPrice: number;
   numberOfGuests: number;
   specialRequests?: string | null;
+  groupBookingId?: string | null;
+  groupBooking?: GroupBooking | null;
   invoice?: Invoice | null;
   payments?: Payment[];
   transfers?: RoomTransfer[];
@@ -179,10 +181,85 @@ export interface ReportSummary {
   roomRevenue: number;
   restaurantRevenue: number;
   totalRevenue: number;
+  totalExpenses: number;
+  netProfit: number;
   occupancyPercent: number;
   occupiedRooms: number;
   totalRooms: number;
   currentCheckins: number;
   checkoutsInPeriod: number;
   confirmedBookings: number;
+}
+
+// ─── EXPENSE TYPES ──────────────────────────────────────
+
+export type ExpenseCategory =
+  | 'ELECTRICITY' | 'WATER' | 'STAFF_SALARY' | 'KITCHEN_SUPPLIES'
+  | 'LAUNDRY' | 'MAINTENANCE' | 'HOUSEKEEPING' | 'MARKETING' | 'MISCELLANEOUS';
+
+export interface Expense {
+  id: string;
+  title: string;
+  category: ExpenseCategory;
+  amount: number;
+  paidDate: string;
+  method: 'CASH' | 'UPI' | 'CARD';
+  notes?: string | null;
+  createdBy?: { name: string };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ExpenseSummary {
+  total: number;
+  byCategory: Record<string, number>;
+  count: number;
+}
+
+// ─── GROUP BOOKING TYPES ────────────────────────────────
+
+export type GroupBookingStatus = 'ACTIVE' | 'PARTIALLY_CHECKED_OUT' | 'COMPLETED' | 'CANCELLED';
+
+export interface GroupBooking {
+  id: string;
+  groupNumber: string;
+  leadGuestId: string;
+  leadGuest: Guest;
+  status: GroupBookingStatus;
+  notes?: string | null;
+  bookings: Booking[];
+  createdBy?: { name: string };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MasterInvoiceRoom {
+  bookingId: string;
+  bookingNumber: string;
+  roomNumber: string;
+  roomType: string;
+  checkInDate: string;
+  expectedCheckout: string;
+  status: string;
+  roomCharges: number;
+  foodCharges: number;
+  extraCharges: number;
+  discountAmount: number;
+  grandTotal: number;
+  amountPaid: number;
+  pendingAmount: number;
+}
+
+export interface MasterInvoice {
+  groupNumber: string;
+  status: string;
+  leadGuest: { name: string; phone: string };
+  rooms: MasterInvoiceRoom[];
+  totalRoomCharges: number;
+  totalFoodCharges: number;
+  totalExtraCharges: number;
+  totalDiscounts: number;
+  totalGrandTotal: number;
+  totalAmountPaid: number;
+  totalPending: number;
 }
