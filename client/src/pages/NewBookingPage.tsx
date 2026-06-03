@@ -1,9 +1,9 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { bookingsApi, roomsApi, guestsApi } from '../api';
+import { bookingsApi, roomsApi, guestsApi, companiesApi } from '../api';
 import type { Room } from '../types';
 import toast from 'react-hot-toast';
-import { ArrowLeft, Search, UserCheck } from 'lucide-react';
+import { ArrowLeft, Search, UserCheck, AlertTriangle } from 'lucide-react';
 import SearchableSelect from '../components/ui/SearchableSelect';
 
 interface BookingForm {
@@ -19,7 +19,9 @@ interface BookingForm {
   numberOfGuests: number | string;
   specialRequests: string;
   advanceAmount: number | string;
-  advanceMethod: 'CASH' | 'UPI' | 'CARD';
+  advanceMethod: 'CASH' | 'UPI' | 'CARD' | 'BTC';
+  companyId: string;
+  billingRule: 'GUEST' | 'COMPANY_ROOM_ONLY' | 'COMPANY_ALL';
 }
 
 export default function NewBookingPage() {
@@ -28,9 +30,11 @@ export default function NewBookingPage() {
   const preselected = location.state as { roomId?: string; roomNumber?: string; roomPrice?: number } | null;
 
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [companies, setCompanies] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [guestFound, setGuestFound] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [billingType, setBillingType] = useState<'INDIVIDUAL' | 'CORPORATE'>('INDIVIDUAL');
 
   const [form, setForm] = useState<BookingForm>({
     guestName: '', guestPhone: '', guestEmail: '',
@@ -40,7 +44,12 @@ export default function NewBookingPage() {
     expectedCheckout: '', roomPrice: preselected?.roomPrice || 0,
     numberOfGuests: 1, specialRequests: '',
     advanceAmount: 0, advanceMethod: 'CASH',
+    companyId: '', billingRule: 'GUEST',
   });
+
+  useEffect(() => {
+    companiesApi.getAll().then(res => setCompanies(res.data)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     roomsApi.getAvailable().then(r => {
@@ -118,8 +127,8 @@ export default function NewBookingPage() {
         checkInDate: new Date(form.checkInDate).toISOString(),
         expectedCheckout: new Date(form.expectedCheckout).toISOString(),
         guestEmail: form.guestEmail || null,
-        // If it's a returning guest, the server logic usually handles the update/link
-        // but we pass the name anyway if they changed it
+        companyId: form.companyId || null,
+        billingRule: form.billingRule,
         guestName: form.guestName
       };
       const { data } = await bookingsApi.create(payload);
@@ -129,6 +138,15 @@ export default function NewBookingPage() {
       toast.error(err.response?.data?.error || 'Booking failed');
     } finally { setLoading(false); }
   }
+
+  const selectedCompany = companies.find(c => c.id === form.companyId);
+  const checkIn = new Date(form.checkInDate);
+  const checkOut = form.expectedCheckout ? new Date(form.expectedCheckout) : null;
+  const nights = checkOut ? Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))) : 0;
+  const estimatedCost = (Number(form.roomPrice) || 0) * nights;
+  const creditLimitExceeded = selectedCompany 
+    ? (Number(selectedCompany.outstandingBalance) + estimatedCost > Number(selectedCompany.creditLimit))
+    : false;
 
   return (
     <div className="animate-fadeIn max-w-3xl">
@@ -221,6 +239,88 @@ export default function NewBookingPage() {
         </div>
 
         <div className="card p-5 mb-6">
+          <h3 className="text-sm font-semibold text-gray-700 mb-4">Billing Information</h3>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Billing Account Type</label>
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBillingType('INDIVIDUAL');
+                    setForm(p => ({ ...p, companyId: '', billingRule: 'GUEST' }));
+                  }}
+                  className={`flex-1 py-3 px-4 rounded-xl border text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+                    billingType === 'INDIVIDUAL'
+                      ? 'border-primary-600 bg-primary-50/50 text-primary-700 font-bold shadow-sm'
+                      : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  Individual Guest
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBillingType('CORPORATE');
+                    const firstCompId = companies[0]?.id || '';
+                    setForm(p => ({ ...p, companyId: firstCompId, billingRule: 'COMPANY_ROOM_ONLY' }));
+                  }}
+                  className={`flex-1 py-3 px-4 rounded-xl border text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+                    billingType === 'CORPORATE'
+                      ? 'border-primary-600 bg-primary-50/50 text-primary-700 font-bold shadow-sm'
+                      : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  Corporate Account (BTC)
+                </button>
+              </div>
+            </div>
+
+            {billingType === 'CORPORATE' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-dashed border-gray-100 animate-fadeIn">
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Company / Corporate Client</label>
+                  <select 
+                    className="input" 
+                    value={form.companyId} 
+                    onChange={e => setForm(p => ({ ...p, companyId: e.target.value }))}
+                  >
+                    {companies.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Billing Instruction</label>
+                  <select 
+                    className="input" 
+                    value={form.billingRule} 
+                    onChange={e => setForm(p => ({ ...p, billingRule: e.target.value as any }))}
+                  >
+                    <option value="COMPANY_ROOM_ONLY">Room Only to Company (Extras to Guest)</option>
+                    <option value="COMPANY_ALL">All Charges to Company</option>
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {billingType === 'CORPORATE' && creditLimitExceeded && selectedCompany && (
+            <div className="mt-4 p-4 bg-amber-50 border-l-4 border-amber-500 rounded-r-xl text-amber-700 text-xs font-semibold flex items-start gap-2">
+              <AlertTriangle className="shrink-0 mt-0.5" size={16} />
+              <div>
+                <p className="font-bold">Credit Limit Warning</p>
+                <p className="font-normal text-amber-800 mt-1">
+                  {selectedCompany.name} outstanding balance (₹{Number(selectedCompany.outstandingBalance).toLocaleString('en-IN')}) 
+                  plus estimated stay cost (₹{estimatedCost.toLocaleString('en-IN')}) will exceed its credit limit of ₹{Number(selectedCompany.creditLimit).toLocaleString('en-IN')}.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="card p-5 mb-6">
           <h3 className="text-sm font-semibold text-gray-700 mb-4">Advance Payment</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -230,7 +330,7 @@ export default function NewBookingPage() {
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Payment Method</label>
               <select className="input" value={form.advanceMethod} onChange={e => setForm(p => ({ ...p, advanceMethod: e.target.value as any }))}>
-                <option value="CASH">Cash</option><option value="UPI">UPI</option><option value="CARD">Card</option>
+                <option value="CASH">Cash</option><option value="UPI">UPI</option><option value="CARD">Card</option><option value="BTC">Bill to Company (BTC)</option>
               </select>
             </div>
           </div>

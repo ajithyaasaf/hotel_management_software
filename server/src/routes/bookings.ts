@@ -20,7 +20,9 @@ const createBookingSchema = z.object({
   numberOfGuests: z.number().int().min(1).default(1),
   specialRequests: z.string().optional().nullable(),
   advanceAmount: z.number().min(0).optional(),
-  advanceMethod: z.enum(['CASH', 'UPI', 'CARD']).optional(),
+  advanceMethod: z.enum(['CASH', 'UPI', 'CARD', 'BTC']).optional(),
+  companyId: z.string().uuid().optional().nullable(),
+  billingRule: z.enum(['GUEST', 'COMPANY_ROOM_ONLY', 'COMPANY_ALL']).default('GUEST'),
 });
 
 // GET /api/bookings
@@ -65,6 +67,7 @@ router.get('/:id', async (req, res) => {
       include: {
         guest: true,
         room: { include: { roomType: true } },
+        company: true,
         invoice: { include: { adjustments: { include: { createdBy: { select: { name: true } } } } } },
         payments: { include: { createdBy: { select: { name: true } } } },
         transfers: { include: { fromRoom: true, toRoom: true } },
@@ -79,6 +82,19 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req: AuthRequest, res) => {
   try {
     const data = createBookingSchema.parse(req.body);
+
+    if (data.billingRule !== 'GUEST' && !data.companyId) {
+      res.status(400).json({ error: 'Company must be specified for corporate billing rules' });
+      return;
+    }
+
+    if (data.companyId) {
+      const companyExists = await prisma.company.findUnique({ where: { id: data.companyId } });
+      if (!companyExists) {
+        res.status(404).json({ error: 'Selected corporate company does not exist' });
+        return;
+      }
+    }
 
     // Validate room availability
     const room = await prisma.room.findUnique({ where: { id: data.roomId } });
@@ -149,8 +165,10 @@ router.post('/', async (req: AuthRequest, res) => {
           numberOfGuests: data.numberOfGuests,
           specialRequests: data.specialRequests,
           createdById: req.user!.id,
+          companyId: data.companyId || null,
+          billingRule: data.billingRule || 'GUEST',
         },
-        include: { guest: true, room: { include: { roomType: true } } },
+        include: { guest: true, room: { include: { roomType: true } }, company: true },
       });
 
       // Mark room occupied only if it's checking in today
@@ -168,19 +186,60 @@ router.post('/', async (req: AuthRequest, res) => {
       );
       const roomCharges = data.roomPrice * nights;
       const invoiceNum = `INV${Date.now()}`;
+
+      const cgst = parseFloat((roomCharges * 0.06).toFixed(2));
+      const sgst = parseFloat((roomCharges * 0.06).toFixed(2));
+      const totalTax = cgst + sgst;
+      const grandTotal = parseFloat((roomCharges + totalTax).toFixed(2));
+
+      let companyAmount = 0;
+      let guestAmount = 0;
+
+      if (data.billingRule === 'COMPANY_ALL') {
+        companyAmount = grandTotal;
+        guestAmount = 0;
+      } else if (data.billingRule === 'COMPANY_ROOM_ONLY') {
+        companyAmount = parseFloat((roomCharges + totalTax).toFixed(2));
+        guestAmount = 0;
+      } else {
+        companyAmount = 0;
+        guestAmount = grandTotal;
+      }
+
       await tx.invoice.create({
         data: {
           invoiceNumber: invoiceNum,
           bookingId: booking.id,
           roomCharges,
           subtotal: roomCharges,
-          grandTotal: roomCharges,
-          pendingAmount: roomCharges,
+          cgst,
+          sgst,
+          totalTax,
+          grandTotal,
+          companyId: data.companyId || null,
+          companyAmount,
+          guestAmount,
+          pendingAmount: guestAmount,
+          isBtc: data.billingRule !== 'GUEST',
         },
       });
 
       // Advance payment
       if (data.advanceAmount && data.advanceAmount > 0) {
+        if (data.advanceMethod === 'BTC') {
+          if (!data.companyId) {
+            throw new Error('Cannot use BTC advance payment without a corporate account');
+          }
+          await tx.company.update({
+            where: { id: data.companyId },
+            data: {
+              outstandingBalance: {
+                increment: data.advanceAmount,
+              },
+            },
+          });
+        }
+
         await tx.payment.create({
           data: {
             bookingId: booking.id,
@@ -212,7 +271,7 @@ router.post('/', async (req: AuthRequest, res) => {
 
     res.status(201).json(result);
   } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
+    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as any).errors }); return; }
     console.error(err);
     res.status(500).json({ error: 'Failed to create booking' });
   }
@@ -245,9 +304,9 @@ router.put('/:id/extend', async (req: AuthRequest, res) => {
     }).parse(req.body);
 
     const booking = await prisma.booking.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       include: { invoice: true },
-    });
+    }) as any;
     if (!booking) { res.status(404).json({ error: 'Booking not found' }); return; }
     if (booking.status !== 'CHECKED_IN') { res.status(400).json({ error: 'Booking is not active' }); return; }
 
@@ -267,23 +326,57 @@ router.put('/:id/extend', async (req: AuthRequest, res) => {
       });
       if (booking.invoice) {
         const paid = Number(booking.invoice.amountPaid);
+        const foodCharges = Number(booking.invoice.foodCharges);
+        const extraCharges = Number(booking.invoice.extraCharges);
+        const discountAmount = Number(booking.invoice.discountAmount);
+        
+        const newSubtotal = newRoomCharges + foodCharges + extraCharges - discountAmount;
+        const taxableStayAmount = newRoomCharges + extraCharges - discountAmount;
+        const newCgst = parseFloat((taxableStayAmount * 0.06).toFixed(2));
+        const newSgst = parseFloat((taxableStayAmount * 0.06).toFixed(2));
+        const newTax = newCgst + newSgst;
+        const newGrand = parseFloat((newSubtotal + newTax).toFixed(2));
+
+        let companyAmount = 0;
+        let guestAmount = 0;
+
+        if (booking.billingRule === 'COMPANY_ALL') {
+          companyAmount = newGrand;
+          guestAmount = 0;
+        } else if (booking.billingRule === 'COMPANY_ROOM_ONLY') {
+          const roomSubtotal = newRoomCharges;
+          const roomCgst = parseFloat((roomSubtotal * 0.06).toFixed(2));
+          const roomSgst = parseFloat((roomSubtotal * 0.06).toFixed(2));
+          const roomTax = roomCgst + roomSgst;
+          companyAmount = parseFloat((roomSubtotal + roomTax).toFixed(2));
+          guestAmount = Math.max(0, parseFloat((newGrand - companyAmount).toFixed(2)));
+        } else {
+          companyAmount = 0;
+          guestAmount = newGrand;
+        }
+
         await tx.invoice.update({
           where: { id: booking.invoice.id },
           data: {
             roomCharges: newRoomCharges,
-            subtotal: newRoomCharges + Number(booking.invoice.foodCharges) + Number(booking.invoice.extraCharges) - Number(booking.invoice.discountAmount),
-            grandTotal: newRoomCharges + Number(booking.invoice.foodCharges) + Number(booking.invoice.extraCharges) - Number(booking.invoice.discountAmount) + Number(booking.invoice.totalTax),
-            pendingAmount: newRoomCharges + Number(booking.invoice.foodCharges) + Number(booking.invoice.extraCharges) - Number(booking.invoice.discountAmount) + Number(booking.invoice.totalTax) - paid,
+            subtotal: newSubtotal,
+            cgst: newCgst,
+            sgst: newSgst,
+            totalTax: newTax,
+            grandTotal: newGrand,
+            companyAmount,
+            guestAmount,
+            pendingAmount: guestAmount - paid,
           },
         });
       }
     });
 
-    await createAuditLog({ action: 'EXTEND_STAY', entity: 'booking', entityId: req.params.id, details: `Extended to ${newCheckout}`, userId: req.user!.id });
+    await createAuditLog({ action: 'EXTEND_STAY', entity: 'booking', entityId: req.params.id as string, details: `Extended to ${newCheckout}`, userId: req.user!.id });
     const updated = await prisma.booking.findUnique({ where: { id: req.params.id as any }, include: { guest: true, room: { include: { roomType: true } }, invoice: true } });
     res.json(updated);
   } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
+    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as any).errors }); return; }
     res.status(500).json({ error: 'Failed to extend stay' });
   }
 });
@@ -325,7 +418,7 @@ router.put('/:id/transfer', async (req: AuthRequest, res) => {
     const updated = await prisma.booking.findUnique({ where: { id: req.params.id as any }, include: { guest: true, room: { include: { roomType: true } } } });
     res.json(updated);
   } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
+    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as any).errors }); return; }
     res.status(500).json({ error: 'Room transfer failed' });
   }
 });
@@ -341,10 +434,91 @@ router.put('/:id/checkout', async (req: AuthRequest, res) => {
     if (booking.status !== 'CHECKED_IN') { res.status(400).json({ error: 'Booking not active' }); return; }
 
     await prisma.$transaction(async (tx) => {
-      await tx.booking.update({ where: { id: booking.id }, data: { status: 'CHECKED_OUT', actualCheckout: new Date() } });
+      const checkoutDate = new Date();
+      await tx.booking.update({ where: { id: booking.id }, data: { status: 'CHECKED_OUT', actualCheckout: checkoutDate } });
       await tx.room.update({ where: { id: booking.roomId }, data: { status: 'CLEANING' } });
+      
       if (booking.invoice) {
-        await tx.invoice.update({ where: { id: booking.invoice.id }, data: { isFinalized: true } });
+        // Calculate nights based on checkInDate and actual checkout date
+        const nights = Math.max(
+          1,
+          Math.ceil(
+            (checkoutDate.getTime() - new Date(booking.checkInDate).getTime()) /
+              (1000 * 60 * 60 * 24)
+          )
+        );
+        const roomCharges = Number(booking.roomPrice) * nights;
+
+        // Sum F&B charges
+        const roomOrders = await tx.order.findMany({
+          where: { roomId: booking.roomId, status: { not: 'CANCELLED' }, createdAt: { gte: booking.checkInDate } },
+          include: { items: { where: { isCancelled: false } } },
+        });
+        const foodCharges = roomOrders.reduce((sum, o) => sum + Number(o.total), 0);
+
+        const newSubtotal = roomCharges + foodCharges + Number(booking.invoice.extraCharges) - Number(booking.invoice.discountAmount);
+        const taxableStayAmount = roomCharges + Number(booking.invoice.extraCharges) - Number(booking.invoice.discountAmount);
+        const newCgst = parseFloat((taxableStayAmount * 0.06).toFixed(2));
+        const newSgst = parseFloat((taxableStayAmount * 0.06).toFixed(2));
+        const newTax = newCgst + newSgst;
+        const newGrand = parseFloat((newSubtotal + newTax).toFixed(2));
+
+        let companyAmount = 0;
+        let guestAmount = 0;
+
+        if (booking.billingRule === 'COMPANY_ALL') {
+          companyAmount = newGrand;
+          guestAmount = 0;
+        } else if (booking.billingRule === 'COMPANY_ROOM_ONLY') {
+          const roomSubtotal = roomCharges;
+          const roomCgst = parseFloat((roomSubtotal * 0.06).toFixed(2));
+          const roomSgst = parseFloat((roomSubtotal * 0.06).toFixed(2));
+          const roomTax = roomCgst + roomSgst;
+          companyAmount = parseFloat((roomSubtotal + roomTax).toFixed(2));
+          guestAmount = Math.max(0, parseFloat((newGrand - companyAmount).toFixed(2)));
+        } else {
+          companyAmount = 0;
+          guestAmount = newGrand;
+        }
+
+        const paid = Number(booking.invoice.amountPaid);
+
+        await tx.invoice.update({
+          where: { id: booking.invoice.id },
+          data: {
+            roomCharges,
+            foodCharges,
+            subtotal: newSubtotal,
+            cgst: newCgst,
+            sgst: newSgst,
+            totalTax: newTax,
+            grandTotal: newGrand,
+            companyAmount,
+            guestAmount,
+            pendingAmount: guestAmount - paid,
+            isFinalized: true,
+            isBtc: booking.billingRule !== 'GUEST',
+          },
+        });
+
+        if (booking.companyId && companyAmount > 0) {
+          const btcPayments = await tx.payment.findMany({
+            where: { bookingId: booking.id, method: 'BTC' },
+          });
+          const totalBtcPaid = btcPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+          const finalIncrement = Math.max(0, companyAmount - totalBtcPaid);
+
+          if (finalIncrement > 0) {
+            await tx.company.update({
+              where: { id: booking.companyId },
+              data: {
+                outstandingBalance: {
+                  increment: finalIncrement,
+                },
+              },
+            });
+          }
+        }
       }
     });
 

@@ -15,7 +15,7 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    if (err.response?.status === 401 && !err.config?.url?.includes('/auth/login')) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
@@ -143,4 +143,23 @@ export const groupBookingsApi = {
   create: (data: any) => api.post('/group-bookings', data),
   checkoutAll: (id: string) => api.post(`/group-bookings/${id}/checkout-all`),
   unlinkBooking: (groupId: string, bookingId: string) => api.delete(`/group-bookings/${groupId}/unlink/${bookingId}`),
+};
+
+// ─── NIGHT AUDIT ──────────────────────────────────────
+export const nightAuditApi = {
+  getStatus: () => api.get('/night-audit/status'),
+  getPreCheck: () => api.get('/night-audit/pre-check'),
+  run: (data: { notes?: string; password?: string }) => api.post('/night-audit/run', data),
+  getHistory: () => api.get('/night-audit/history'),
+  getById: (id: string) => api.get(`/night-audit/${id}`),
+};
+
+// ─── COMPANIES ────────────────────────────────────────
+export const companiesApi = {
+  getAll: () => api.get('/companies'),
+  getById: (id: string) => api.get(`/companies/${id}`),
+  create: (data: any) => api.post('/companies', data),
+  update: (id: string, data: any) => api.put(`/companies/${id}`, data),
+  recordPayment: (id: string, data: { amount: number; method: string; referenceNo: string }) => 
+    api.post(`/companies/${id}/payments`, data),
 };

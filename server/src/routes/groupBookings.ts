@@ -253,14 +253,22 @@ router.post('/', async (req: AuthRequest, res) => {
         const nights = computeNights(checkIn, checkOut);
         const roomCharges = entry.roomPrice * nights;
 
+        const cgst = parseFloat((roomCharges * 0.06).toFixed(2));
+        const sgst = parseFloat((roomCharges * 0.06).toFixed(2));
+        const totalTax = cgst + sgst;
+        const grandTotal = parseFloat((roomCharges + totalTax).toFixed(2));
+
         await tx.invoice.create({
           data: {
             invoiceNumber: `INV${Date.now()}${Math.floor(Math.random() * 100)}`,
             bookingId: booking.id,
             roomCharges,
             subtotal: roomCharges,
-            grandTotal: roomCharges,
-            pendingAmount: roomCharges,
+            cgst,
+            sgst,
+            totalTax,
+            grandTotal,
+            pendingAmount: grandTotal,
           },
         });
 
@@ -335,20 +343,97 @@ router.post('/:id/checkout-all', async (req: AuthRequest, res) => {
     const pendingRooms = activeBookings.filter(b => Number(b.invoice?.pendingAmount ?? 0) > 0);
 
     await prisma.$transaction(async (tx) => {
+      const checkoutDate = new Date();
       for (const booking of activeBookings) {
         await tx.booking.update({
           where: { id: booking.id },
-          data: { status: 'CHECKED_OUT', actualCheckout: new Date() },
+          data: { status: 'CHECKED_OUT', actualCheckout: checkoutDate },
         });
         await tx.room.update({
           where: { id: booking.roomId },
           data: { status: 'CLEANING' },
         });
+
         if (booking.invoice) {
+          const nights = Math.max(
+            1,
+            Math.ceil(
+              (checkoutDate.getTime() - new Date(booking.checkInDate).getTime()) /
+              (1000 * 60 * 60 * 24)
+            )
+          );
+          const roomCharges = Number(booking.roomPrice) * nights;
+
+          // Sum F&B charges
+          const roomOrders = await tx.order.findMany({
+            where: { roomId: booking.roomId, status: { not: 'CANCELLED' }, createdAt: { gte: booking.checkInDate } },
+            include: { items: { where: { isCancelled: false } } },
+          });
+          const foodCharges = roomOrders.reduce((sum, o) => sum + Number(o.total), 0);
+
+          const newSubtotal = roomCharges + foodCharges + Number(booking.invoice.extraCharges) - Number(booking.invoice.discountAmount);
+          const taxableStayAmount = roomCharges + Number(booking.invoice.extraCharges) - Number(booking.invoice.discountAmount);
+          const newCgst = parseFloat((taxableStayAmount * 0.06).toFixed(2));
+          const newSgst = parseFloat((taxableStayAmount * 0.06).toFixed(2));
+          const newTax = newCgst + newSgst;
+          const newGrand = parseFloat((newSubtotal + newTax).toFixed(2));
+
+          let companyAmount = 0;
+          let guestAmount = 0;
+
+          if (booking.billingRule === 'COMPANY_ALL') {
+            companyAmount = newGrand;
+            guestAmount = 0;
+          } else if (booking.billingRule === 'COMPANY_ROOM_ONLY') {
+            const roomSubtotal = roomCharges;
+            const roomCgst = parseFloat((roomSubtotal * 0.06).toFixed(2));
+            const roomSgst = parseFloat((roomSubtotal * 0.06).toFixed(2));
+            const roomTax = roomCgst + roomSgst;
+            companyAmount = parseFloat((roomSubtotal + roomTax).toFixed(2));
+            guestAmount = Math.max(0, parseFloat((newGrand - companyAmount).toFixed(2)));
+          } else {
+            companyAmount = 0;
+            guestAmount = newGrand;
+          }
+
+          const paid = Number(booking.invoice.amountPaid);
+
           await tx.invoice.update({
             where: { id: booking.invoice.id },
-            data: { isFinalized: true },
+            data: {
+              roomCharges,
+              foodCharges,
+              subtotal: newSubtotal,
+              cgst: newCgst,
+              sgst: newSgst,
+              totalTax: newTax,
+              grandTotal: newGrand,
+              companyAmount,
+              guestAmount,
+              pendingAmount: guestAmount - paid,
+              isFinalized: true,
+              isBtc: booking.billingRule !== 'GUEST',
+            },
           });
+
+          if (booking.companyId && companyAmount > 0) {
+            const btcPayments = await tx.payment.findMany({
+              where: { bookingId: booking.id, method: 'BTC' },
+            });
+            const totalBtcPaid = btcPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+            const finalIncrement = Math.max(0, companyAmount - totalBtcPaid);
+
+            if (finalIncrement > 0) {
+              await tx.company.update({
+                where: { id: booking.companyId },
+                data: {
+                  outstandingBalance: {
+                    increment: finalIncrement,
+                  },
+                },
+              });
+            }
+          }
         }
       }
 
@@ -404,7 +489,7 @@ router.delete('/:id/unlink/:bookingId', async (req: AuthRequest, res) => {
 
     // Check remaining bookings — if group now has <2, mark it completed
     const remaining = await prisma.booking.count({
-      where: { groupBookingId: req.params.id, status: { notIn: ['CANCELLED', 'NO_SHOW'] } },
+      where: { groupBookingId: id, status: { notIn: ['CANCELLED', 'NO_SHOW'] } },
     });
 
     if (remaining < 2) {

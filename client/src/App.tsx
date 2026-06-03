@@ -20,6 +20,8 @@ import SettingsPage from './pages/SettingsPage';
 import StaffPage from './pages/StaffPage';
 import AuditPage from './pages/AuditPage';
 import ExpensesPage from './pages/ExpensesPage';
+import NightAuditPage from './pages/NightAuditPage';
+import CorporateLedgerPage from './pages/CorporateLedgerPage';
 
 export default function App() {
   return (
@@ -41,6 +43,8 @@ export default function App() {
               <Route path="/bookings/group/:id" element={<GroupBookingDetailPage />} />
               <Route path="/bookings/:id" element={<BookingDetailPage />} />
               <Route path="/guests" element={<GuestsPage />} />
+              <Route path="/corporate" element={<CorporateLedgerPage />} />
+              <Route path="/night-audit" element={<NightAuditPage />} />
             </Route>
 
             {/* Restaurant POS (All roles) */}

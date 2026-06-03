@@ -92,6 +92,65 @@ async function seed() {
   await prisma.taxConfig.upsert({ where: { name: 'CGST' }, update: {}, create: { name: 'CGST', rate: 6 } });
   await prisma.taxConfig.upsert({ where: { name: 'SGST' }, update: {}, create: { name: 'SGST', rate: 6 } });
 
+  // System config — Business Date for Night Audit
+  const today = new Date().toISOString().split('T')[0]; // e.g. "2026-05-29"
+  await prisma.systemConfig.upsert({
+    where: { key: 'BUSINESS_DATE' },
+    update: {},
+    create: { key: 'BUSINESS_DATE', value: today },
+  });
+
+  // Create sample corporate accounts
+  const companies = [
+    {
+      name: 'Tata Consultancy Services (TCS)',
+      gstin: '33AAACT1234A1Z1',
+      address: 'TCS House, Raveline Street, Fort, Mumbai',
+      state: 'Tamil Nadu', // Local state
+      creditLimit: 150000.00,
+      outstandingBalance: 0.00,
+      email: 'travel.desk@tcs.com',
+      phone: '022-67789999',
+    },
+    {
+      name: 'Google India Pvt Ltd',
+      gstin: '36AAFCD5678B2Z2',
+      address: 'Signature Towers, Sector 30, Gurugram, Haryana',
+      state: 'Karnataka', // Out of state
+      creditLimit: 300000.00,
+      outstandingBalance: 0.00,
+      email: 'corp-lodging@google.com',
+      phone: '080-67218000',
+    },
+    {
+      name: 'Infosys Limited',
+      gstin: '29AAACI4567C3Z3',
+      address: 'Electronics City, Hosur Road, Bengaluru',
+      state: 'Karnataka',
+      creditLimit: 100000.00,
+      outstandingBalance: 0.00,
+      email: 'accommodation@infosys.com',
+      phone: '080-28520261',
+    }
+  ];
+
+  for (const comp of companies) {
+    await prisma.company.upsert({
+      where: { name: comp.name },
+      update: {},
+      create: {
+        name: comp.name,
+        gstin: comp.gstin,
+        address: comp.address,
+        state: comp.state,
+        creditLimit: comp.creditLimit,
+        outstandingBalance: comp.outstandingBalance,
+        email: comp.email,
+        phone: comp.phone,
+      }
+    });
+  }
+
   console.log('✅ Seed complete!');
   console.log('📧 Admin: admin@godivarooms.com / admin123');
   console.log('📧 Reception: reception@godivarooms.com / reception123');

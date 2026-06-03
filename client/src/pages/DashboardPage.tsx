@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { reportsApi, bookingsApi, ordersApi } from '../api';
+import { reportsApi, bookingsApi, ordersApi, nightAuditApi } from '../api';
 import type { ReportSummary, Booking, Order } from '../types';
 import { useAuthStore } from '../store/authStore';
 import {
   BedDouble, TrendingUp, Utensils, Users, ArrowUpRight,
-  CalendarCheck, Clock, DollarSign
+  CalendarCheck, Clock, DollarSign, Calendar, AlertTriangle
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -13,6 +13,7 @@ export default function DashboardPage() {
   const [summary, setSummary] = useState<ReportSummary | null>(null);
   const [recentBookings, setRecentBookings] = useState<Booking[]>([]);
   const [activeOrders, setActiveOrders] = useState<Order[]>([]);
+  const [businessDate, setBusinessDate] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,14 +22,16 @@ export default function DashboardPage() {
 
   async function loadData() {
     try {
-      const [sumRes, bookRes, ordRes] = await Promise.all([
+      const [sumRes, bookRes, ordRes, statusRes] = await Promise.all([
         reportsApi.summary(),
         bookingsApi.getActive(),
         ordersApi.getActive(),
+        nightAuditApi.getStatus(),
       ]);
       setSummary(sumRes.data);
       setRecentBookings(bookRes.data.slice(0, 5));
       setActiveOrders(ordRes.data.slice(0, 5));
+      setBusinessDate(statusRes.data.businessDate);
     } catch { /* silent */ } finally { setLoading(false); }
   }
 
@@ -58,14 +61,41 @@ export default function DashboardPage() {
     { label: 'Active Orders', value: activeOrders.length, icon: Utensils },
   ] : [];
 
+  const isAuditPending = () => {
+    if (!businessDate) return false;
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    return businessDate < todayStr;
+  };
+
   return (
     <div className="animate-fadeIn">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening'}, {user?.name}
-        </h1>
-        <p className="text-gray-500 mt-1">Here's what's happening at your hotel today</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening'}, {user?.name}
+          </h1>
+          <p className="text-gray-500 mt-1">Here's what's happening at your hotel today</p>
+        </div>
+
+        {businessDate && (
+          <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-2xl px-4 py-2.5 shadow-sm shadow-gray-100/50 shrink-0">
+            <Calendar size={18} className="text-primary-600" />
+            <div>
+              <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest block">Business Date</span>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-sm font-extrabold text-gray-900">
+                  {format(new Date(businessDate + 'T00:00:00'), 'dd MMM yyyy')}
+                </span>
+                {isAuditPending() && (
+                  <span className="inline-flex items-center gap-1 bg-yellow-50 border border-yellow-100 text-yellow-800 text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider animate-pulse">
+                    <AlertTriangle size={10} /> Pending Close
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Revenue Cards */}
@@ -115,7 +145,7 @@ export default function DashboardPage() {
           <div className="divide-y divide-gray-50">
             {recentBookings.length === 0 ? (
               <p className="text-sm text-gray-400 px-5 py-8 text-center">No active check-ins</p>
-            ) : recentBookings.map(b => (
+            ) : recentBookings.map((b: Booking) => (
               <div key={b.id} className="px-5 py-3 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-lg bg-primary-50 flex items-center justify-center text-primary-600 font-semibold text-sm">
@@ -146,7 +176,7 @@ export default function DashboardPage() {
           <div className="divide-y divide-gray-50">
             {activeOrders.length === 0 ? (
               <p className="text-sm text-gray-400 px-5 py-8 text-center">No active orders</p>
-            ) : activeOrders.map(o => (
+            ) : activeOrders.map((o: Order) => (
               <div key={o.id} className="px-5 py-3 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
                 <div>
                   <p className="text-sm font-medium text-gray-900">{o.orderNumber}</p>

@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import {
   LayoutDashboard, BedDouble, CalendarCheck, Users, Utensils,
-  FileText, CreditCard, Settings, Shield, LogOut, UserCog, TrendingDown
+  FileText, CreditCard, Settings, Shield, LogOut, UserCog, TrendingDown, Moon, Building
 } from 'lucide-react';
 
 const navItems = [
@@ -10,10 +10,12 @@ const navItems = [
   { to: '/rooms', icon: BedDouble, label: 'Rooms', roles: ['ADMIN', 'RECEPTION'] },
   { to: '/bookings', icon: CalendarCheck, label: 'Bookings', roles: ['ADMIN', 'RECEPTION'] },
   { to: '/guests', icon: Users, label: 'Guests', roles: ['ADMIN', 'RECEPTION'] },
+  { to: '/corporate', icon: Building, label: 'Corporate Ledger', roles: ['ADMIN', 'RECEPTION'] },
   { to: '/pos', icon: Utensils, label: 'Restaurant POS', roles: ['ADMIN', 'RECEPTION', 'RESTAURANT'] },
   { to: '/orders', icon: FileText, label: 'Orders', roles: ['ADMIN', 'RECEPTION', 'RESTAURANT'] },
   { to: '/reports', icon: CreditCard, label: 'Reports', roles: ['ADMIN'] },
   { to: '/expenses', icon: TrendingDown, label: 'Expenses', roles: ['ADMIN'] },
+  { to: '/night-audit', icon: Moon, label: 'Night Audit', roles: ['ADMIN', 'RECEPTION'] },
   { to: '/staff', icon: UserCog, label: 'Staff', roles: ['ADMIN'] },
   { to: '/settings', icon: Settings, label: 'Settings', roles: ['ADMIN'] },
   { to: '/audit', icon: Shield, label: 'Audit Log', roles: ['ADMIN'] },
@@ -28,7 +30,7 @@ export default function Sidebar() {
   const filtered = navItems.filter(item => user && item.roles.includes(user.role));
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-[260px] flex flex-col z-50"
+    <aside className="fixed left-0 top-0 bottom-0 w-[260px] flex flex-col z-50 print:hidden"
       style={{ background: 'var(--color-sidebar)' }}>
 
       {/* Brand */}

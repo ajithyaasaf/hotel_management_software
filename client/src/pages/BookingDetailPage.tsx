@@ -27,7 +27,7 @@ export default function BookingDetailPage() {
 
   // Payment state
   const [payAmount, setPayAmount] = useState<number | string>(0);
-  const [payMethod, setPayMethod] = useState<'CASH' | 'UPI' | 'CARD'>('CASH');
+  const [payMethod, setPayMethod] = useState<'CASH' | 'UPI' | 'CARD' | 'BTC'>('CASH');
   const [payType, setPayType] = useState<'PARTIAL' | 'FULL'>('FULL');
   const [payNotes, setPayNotes] = useState('');
   const [payRef, setPayRef] = useState('');
@@ -217,6 +217,24 @@ export default function BookingDetailPage() {
               <div><span className="text-gray-400">Room Rate</span><p className="font-medium">₹{Number(booking.roomPrice).toLocaleString()}/night</p></div>
               <div><span className="text-gray-400">Guests</span><p className="font-medium">{booking.numberOfGuests}</p></div>
             </div>
+            {booking.company && (
+              <div className="mt-4 pt-4 border-t border-dashed border-gray-200 grid grid-cols-2 gap-4 text-sm bg-blue-50/20 p-3 rounded-xl">
+                <div>
+                  <span className="text-gray-400 font-medium">Corporate Client</span>
+                  <p className="font-bold text-blue-700 mt-0.5">{booking.company.name}</p>
+                </div>
+                <div>
+                  <span className="text-gray-400 font-medium">Billing Instruction</span>
+                  <p className="font-bold text-blue-700 mt-0.5">
+                    {booking.billingRule === 'COMPANY_ALL' 
+                      ? 'All Charges to Company' 
+                      : booking.billingRule === 'COMPANY_ROOM_ONLY' 
+                      ? 'Room Only to Company' 
+                      : 'All Charges to Guest'}
+                  </p>
+                </div>
+              </div>
+            )}
             {booking.transfers && booking.transfers.length > 0 && (
               <div className="mt-4 pt-4 border-t border-gray-100">
                 <h4 className="text-sm font-semibold text-gray-700 mb-2">Room Transfers</h4>
@@ -271,8 +289,18 @@ export default function BookingDetailPage() {
                 {Number(invoice.cgst) > 0 && <div className="flex justify-between text-gray-400 text-xs"><span>CGST (6%)</span><span>₹{Number(invoice.cgst).toLocaleString()}</span></div>}
                 {Number(invoice.sgst) > 0 && <div className="flex justify-between text-gray-400 text-xs"><span>SGST (6%)</span><span>₹{Number(invoice.sgst).toLocaleString()}</span></div>}
                 <div className="border-t border-gray-200 pt-2 flex justify-between font-bold text-lg"><span>Total</span><span>₹{Number(invoice.grandTotal).toLocaleString()}</span></div>
-                <div className="flex justify-between text-emerald-600"><span>Paid</span><span>₹{Number(invoice.amountPaid).toLocaleString()}</span></div>
-                {Number(invoice.pendingAmount) > 0 && <div className="flex justify-between text-red-600 font-semibold"><span>Pending</span><span>₹{Number(invoice.pendingAmount).toLocaleString()}</span></div>}
+                
+                {/* Corporate routing details */}
+                {booking.companyId && booking.billingRule !== 'GUEST' && (
+                  <div className="mt-2 pt-2 border-t border-dashed border-gray-200 space-y-1 bg-blue-50/50 p-2.5 rounded-lg text-xs">
+                    <p className="font-bold text-blue-900 mb-1">Corporate Routing ({booking.billingRule.replace(/_/g, ' ')})</p>
+                    <div className="flex justify-between text-gray-600"><span>Company Folio</span><span className="font-semibold text-gray-900">₹{Number(invoice.companyAmount).toLocaleString()}</span></div>
+                    <div className="flex justify-between text-gray-600"><span>Guest Folio</span><span className="font-semibold text-gray-900">₹{Number(invoice.guestAmount).toLocaleString()}</span></div>
+                  </div>
+                )}
+
+                <div className="flex justify-between text-emerald-600"><span>Paid (Guest)</span><span>₹{Number(invoice.amountPaid).toLocaleString()}</span></div>
+                {Number(invoice.pendingAmount) > 0 && <div className="flex justify-between text-red-600 font-semibold"><span>Pending (Guest)</span><span>₹{Number(invoice.pendingAmount).toLocaleString()}</span></div>}
               </div>
 
               {invoice.adjustments && invoice.adjustments.length > 0 && (
@@ -386,13 +414,19 @@ export default function BookingDetailPage() {
                 <td className="py-4">Grand Total</td>
                 <td className="py-4 text-right">₹{Number(invoice.grandTotal).toLocaleString()}</td>
               </tr>
+              {booking.companyId && booking.billingRule !== 'GUEST' && (
+                <tr className="text-xs text-blue-900 bg-blue-50/50 font-semibold border-y border-dashed border-blue-200">
+                  <td className="py-2.5 px-2">Billed to Company ({booking.company?.name || 'Company'})</td>
+                  <td className="py-2.5 px-2 text-right">₹{Number(invoice.companyAmount).toLocaleString()}</td>
+                </tr>
+              )}
               <tr className="text-emerald-600">
-                <td className="py-2">Amount Paid</td>
+                <td className="py-2">Amount Paid (Guest)</td>
                 <td className="py-2 text-right">₹{Number(invoice.amountPaid).toLocaleString()}</td>
               </tr>
               {Number(invoice.pendingAmount) > 0 && (
                 <tr className="text-red-600 font-bold">
-                  <td className="py-2">Pending Balance</td>
+                  <td className="py-2">Pending Balance (Guest)</td>
                   <td className="py-2 text-right">₹{Number(invoice.pendingAmount).toLocaleString()}</td>
                 </tr>
               )}
@@ -430,7 +464,15 @@ export default function BookingDetailPage() {
           <div className="space-y-4">
             <div><label className="block text-sm font-medium text-gray-600 mb-1">Amount (₹)</label><input className="input" type="number" value={payAmount} onChange={e => setPayAmount(e.target.value)} /></div>
             <div className="grid grid-cols-2 gap-4">
-              <div><label className="block text-sm font-medium text-gray-600 mb-1">Method</label><select className="input" value={payMethod} onChange={e => setPayMethod(e.target.value as any)}><option value="CASH">Cash</option><option value="UPI">UPI</option><option value="CARD">Card</option></select></div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Method</label>
+                <select className="input" value={payMethod} onChange={e => setPayMethod(e.target.value as any)}>
+                  <option value="CASH">Cash</option>
+                  <option value="UPI">UPI</option>
+                  <option value="CARD">Card</option>
+                  {booking.companyId && <option value="BTC">Bill to Company (BTC)</option>}
+                </select>
+              </div>
               <div><label className="block text-sm font-medium text-gray-600 mb-1">Type</label><select className="input" value={payType} onChange={e => setPayType(e.target.value as any)}><option value="PARTIAL">Partial</option><option value="FULL">Full</option></select></div>
             </div>
             <div><label className="block text-sm font-medium text-gray-600 mb-1">Reference No (Optional)</label><input className="input" value={payRef} onChange={e => setPayRef(e.target.value)} placeholder="Transaction ID, Cheque No, etc." /></div>

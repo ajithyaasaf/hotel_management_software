@@ -46,6 +46,7 @@ enum PaymentMethod {
   CASH
   UPI
   CARD
+  BTC
 }
 
 enum PaymentType {
@@ -80,6 +81,18 @@ enum GroupBookingStatus {
   CANCELLED
 }
 
+enum NightAuditStatus {
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum BillingRule {
+  GUEST
+  COMPANY_ROOM_ONLY
+  COMPANY_ALL
+}
+
 // ─── USERS ──────────────────────────────────────────────
 
 model User {
@@ -99,6 +112,8 @@ model User {
   adjustments   InvoiceAdjustment[]
   expenses      Expense[]
   groupBookings GroupBooking[]
+  nightAudits   NightAudit[]
+  companyPayments CompanyPayment[]
 
   @@map("users")
 }
@@ -138,6 +153,7 @@ model Room {
   orders        Order[]
   transfersFrom RoomTransfer[] @relation("TransferFromRoom")
   transfersTo   RoomTransfer[] @relation("TransferToRoom")
+  nightAuditCharges NightAuditCharge[]
 
   @@map("rooms")
 }
@@ -190,6 +206,10 @@ model Booking {
   invoice       Invoice?
   transfers     RoomTransfer[]
   payments      Payment[]
+  nightAuditCharges NightAuditCharge[]
+  companyId         String?
+  company           Company?      @relation(fields: [companyId], references: [id])
+  billingRule       BillingRule   @default(GUEST)
 
   @@index([bookingNumber])
   @@index([status])
@@ -336,6 +356,11 @@ model Invoice {
   isFinalized    Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  companyId      String?
+  company        Company?   @relation(fields: [companyId], references: [id])
+  companyAmount  Decimal    @db.Decimal(10, 2) @default(0.00)
+  guestAmount    Decimal    @db.Decimal(10, 2) @default(0.00)
+  isBtc          Boolean    @default(false)
 
   adjustments InvoiceAdjustment[]
 
@@ -427,4 +452,132 @@ model AuditLog {
   @@index([entity, entityId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// ─── NIGHT AUDIT ────────────────────────────────────────
+
+model NightAudit {
+  id             String           @id @default(uuid())
+  businessDate   DateTime         // The hotel business date being closed
+  status         NightAuditStatus @default(IN_PROGRESS)
+
+  // Immutable revenue snapshot
+  roomRevenue    Decimal  @db.Decimal(10, 2) @default(0)
+  foodRevenue    Decimal  @db.Decimal(10, 2) @default(0)
+  totalRevenue   Decimal  @db.Decimal(10, 2) @default(0)
+
+  // Payment method breakdown
+  cashCollected  Decimal  @db.Decimal(10, 2) @default(0)
+  cardCollected  Decimal  @db.Decimal(10, 2) @default(0)
+  upiCollected   Decimal  @db.Decimal(10, 2) @default(0)
+
+  // Operational counts
+  roomsOccupied  Int      @default(0)
+  totalRooms     Int      @default(0)
+  newCheckins    Int      @default(0)
+  checkoutsToday Int      @default(0)
+  noShowsMarked  Int      @default(0)
+
+  // Who ran it
+  runById        String
+  runBy          User     @relation(fields: [runById], references: [id])
+  startedAt      DateTime @default(now())
+  completedAt    DateTime?
+  notes          String?
+
+  charges        NightAuditCharge[]
+  orders         NightAuditOrder[]
+
+  @@index([businessDate])
+  @@map("night_audits")
+}
+
+// ─── NIGHT AUDIT ORDERS (Immutable Ledger) ──────────────
+
+model NightAuditOrder {
+  id            String     @id @default(uuid())
+  nightAuditId  String
+  nightAudit    NightAudit @relation(fields: [nightAuditId], references: [id], onDelete: Cascade)
+  orderId       String
+  orderNumber   String
+  orderType     OrderType  // ROOM, WALK_IN, TAKEAWAY
+  totalAmount   Decimal    @db.Decimal(10, 2)
+  billingStatus String     // "PAID_DIRECT" or "CHARGED_TO_ROOM"
+  roomNumber    String?
+  guestName     String?
+  createdAt     DateTime   @default(now())
+
+  @@index([nightAuditId])
+  @@map("night_audit_orders")
+}
+
+// ─── NIGHT AUDIT CHARGES (Immutable Ledger) ─────────────
+
+model NightAuditCharge {
+  id           String     @id @default(uuid())
+  nightAuditId String
+  nightAudit   NightAudit @relation(fields: [nightAuditId], references: [id])
+  bookingId    String
+  booking      Booking    @relation(fields: [bookingId], references: [id])
+  roomId       String
+  room         Room       @relation(fields: [roomId], references: [id])
+
+  businessDate DateTime
+  roomRate     Decimal    @db.Decimal(10, 2)
+  cgst         Decimal    @db.Decimal(10, 2)
+  sgst         Decimal    @db.Decimal(10, 2)
+  totalCharge  Decimal    @db.Decimal(10, 2)
+
+  createdAt    DateTime   @default(now())
+
+  @@index([bookingId])
+  @@index([nightAuditId])
+  @@map("night_audit_charges")
+}
+
+// ─── SYSTEM CONFIG (Key-Value Store) ────────────────────
+
+model SystemConfig {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("system_config")
+}
+
+// ─── COMPANIES (Corporate Accounts) ──────────────────────
+model Company {
+  id                 String   @id @default(uuid())
+  name               String   @unique
+  gstin              String?  // Company GST Number
+  address            String?
+  state              String   @default("Tamil Nadu")
+  creditLimit        Decimal  @db.Decimal(10, 2) @default(100000.00)
+  outstandingBalance Decimal  @db.Decimal(10, 2) @default(0.00)
+  email              String?
+  phone              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  bookings  Booking[]
+  invoices  Invoice[]
+  payments  CompanyPayment[]
+
+  @@map("companies")
+}
+
+// ─── COMPANY BULK PAYMENTS (Corporate Reconciliation) ────
+model CompanyPayment {
+  id            String        @id @default(uuid())
+  companyId     String
+  company       Company       @relation(fields: [companyId], references: [id])
+  amount        Decimal       @db.Decimal(10, 2)
+  method        PaymentMethod @default(CASH)
+  referenceNo   String?       // NEFT/RTGS transaction reference
+  paymentDate   DateTime      @default(now())
+  createdById   String
+  createdBy     User          @relation(fields: [createdById], references: [id])
+  createdAt     DateTime      @default(now())
+
+  @@map("company_payments")
 }

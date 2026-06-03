@@ -11,7 +11,7 @@ const paymentSchema = z.object({
   bookingId: z.string().uuid().optional(),
   orderId: z.string().uuid().optional(),
   amount: z.number().positive(),
-  method: z.enum(['CASH', 'UPI', 'CARD']),
+  method: z.enum(['CASH', 'UPI', 'CARD', 'BTC']),
   type: z.enum(['ADVANCE', 'PARTIAL', 'FULL', 'REFUND']),
   reference: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
@@ -38,6 +38,26 @@ router.post('/', async (req: AuthRequest, res) => {
     }
 
     const payment = await prisma.$transaction(async (tx) => {
+      if (data.method === 'BTC') {
+        if (!data.bookingId) {
+          throw new Error('BTC payment method can only be used for bookings');
+        }
+        const b = await tx.booking.findUnique({ where: { id: data.bookingId } });
+        if (!b || !b.companyId) {
+          throw new Error('Cannot use BTC payment method for guests without a corporate account');
+        }
+
+        // Increment company outstanding balance
+        await tx.company.update({
+          where: { id: b.companyId },
+          data: {
+            outstandingBalance: {
+              increment: data.amount,
+            },
+          },
+        });
+      }
+
       const p = await tx.payment.create({
         data: {
           bookingId: data.bookingId,
@@ -47,7 +67,7 @@ router.post('/', async (req: AuthRequest, res) => {
           type: data.type,
           reference: data.reference,
           notes: data.notes,
-          createdById: req.user!.id
+          createdById: req.user!.id,
         },
         include: { createdBy: { select: { name: true } } },
       });
@@ -58,8 +78,25 @@ router.post('/', async (req: AuthRequest, res) => {
           const newPaid = Number(invoice.amountPaid) + data.amount;
           await tx.invoice.update({
             where: { id: invoice.id },
-            data: { amountPaid: newPaid, pendingAmount: Math.max(0, Number(invoice.grandTotal) - newPaid) },
+            data: { amountPaid: newPaid, pendingAmount: Math.max(0, Number(invoice.guestAmount) - newPaid) },
           });
+
+          if (invoice.companyId && data.method !== 'BTC') {
+            const oldCompanyPaid = Math.max(0, Number(invoice.amountPaid) - Number(invoice.guestAmount));
+            const newCompanyPaid = Math.max(0, newPaid - Number(invoice.guestAmount));
+            const companyPaidDiff = newCompanyPaid - oldCompanyPaid;
+            if (companyPaidDiff > 0) {
+              await tx.company.update({
+                where: { id: invoice.companyId },
+                data: { outstandingBalance: { decrement: companyPaidDiff } },
+              });
+            } else if (companyPaidDiff < 0) {
+              await tx.company.update({
+                where: { id: invoice.companyId },
+                data: { outstandingBalance: { increment: Math.abs(companyPaidDiff) } },
+              });
+            }
+          }
         }
       }
 
@@ -69,8 +106,25 @@ router.post('/', async (req: AuthRequest, res) => {
           const newPaid = Math.max(0, Number(invoice.amountPaid) - data.amount);
           await tx.invoice.update({
             where: { id: invoice.id },
-            data: { amountPaid: newPaid, pendingAmount: Number(invoice.grandTotal) - newPaid },
+            data: { amountPaid: newPaid, pendingAmount: Math.max(0, Number(invoice.guestAmount) - newPaid) },
           });
+
+          if (invoice.companyId && data.method !== 'BTC') {
+            const oldCompanyPaid = Math.max(0, Number(invoice.amountPaid) - Number(invoice.guestAmount));
+            const newCompanyPaid = Math.max(0, newPaid - Number(invoice.guestAmount));
+            const companyPaidDiff = newCompanyPaid - oldCompanyPaid;
+            if (companyPaidDiff > 0) {
+              await tx.company.update({
+                where: { id: invoice.companyId },
+                data: { outstandingBalance: { decrement: companyPaidDiff } },
+              });
+            } else if (companyPaidDiff < 0) {
+              await tx.company.update({
+                where: { id: invoice.companyId },
+                data: { outstandingBalance: { increment: Math.abs(companyPaidDiff) } },
+              });
+            }
+          }
         }
       }
 
@@ -87,7 +141,7 @@ router.post('/', async (req: AuthRequest, res) => {
 
     res.status(201).json(payment);
   } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
+    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as any).errors }); return; }
     res.status(500).json({ error: 'Payment failed' });
   }
 });
