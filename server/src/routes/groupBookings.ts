@@ -3,7 +3,6 @@ import { z } from 'zod';
 import prisma from '../utils/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { createAuditLog, generateBookingNumber, generateGroupNumber } from '../utils/helpers';
-import { threadCpuUsage } from 'node:process';
 
 const router = Router();
 router.use(authenticate);

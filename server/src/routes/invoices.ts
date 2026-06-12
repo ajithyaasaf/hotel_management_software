@@ -3,7 +3,6 @@ import { z } from 'zod';
 import prisma from '../utils/prisma';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { createAuditLog } from '../utils/helpers';
-import { initializeContext } from 'zod/v4/core';
 
 const router = Router();
 router.use(authenticate);
