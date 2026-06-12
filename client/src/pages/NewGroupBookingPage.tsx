@@ -1,6 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { groupBookingsApi, roomsApi, guestsApi } from '../api';
+import { groupBookingsApi, roomsApi, guestsApi, nightAuditApi } from '../api';
 import type { Room } from '../types';
 import toast from 'react-hot-toast';
 import { ArrowLeft, Plus, Trash2, Search, Users, UserCheck } from 'lucide-react';
@@ -33,6 +33,7 @@ export default function NewGroupBookingPage() {
   const location = useLocation();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(false);
+  const [businessDate, setBusinessDate] = useState<string>('');
 
   // Lead guest
   const [guestPhone, setGuestPhone] = useState('');
@@ -45,6 +46,13 @@ export default function NewGroupBookingPage() {
 
   // Room entries (minimum 2)
   const [roomEntries, setRoomEntries] = useState<RoomEntry[]>([emptyRoomEntry(), emptyRoomEntry()]);
+
+  useEffect(() => {
+    nightAuditApi.getStatus().then(res => {
+      setBusinessDate(res.data.businessDate);
+      setRoomEntries(prev => prev.map(e => ({ ...e, checkInDate: res.data.businessDate })));
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     roomsApi.getAvailable().then(r => {
@@ -104,7 +112,16 @@ export default function NewGroupBookingPage() {
   }
 
   function addRoom() {
-    setRoomEntries(prev => [...prev, emptyRoomEntry()]);
+    setRoomEntries(prev => [...prev, {
+      roomId: '',
+      checkInDate: businessDate || new Date().toISOString().split('T')[0],
+      expectedCheckout: '',
+      roomPrice: 0,
+      numberOfGuests: 1,
+      specialRequests: '',
+      advanceAmount: 0,
+      advanceMethod: 'CASH',
+    }]);
   }
 
   function removeRoom(index: number) {
@@ -123,7 +140,7 @@ export default function NewGroupBookingPage() {
       const entry = roomEntries[i];
       if (!entry.roomId) { toast.error(`Please select a room for entry ${i + 1}`); return; }
       if (!entry.expectedCheckout) { toast.error(`Please set a checkout date for room ${i + 1}`); return; }
-      if (new Date(entry.expectedCheckout) <= new Date(entry.checkInDate)) {
+      if (entry.expectedCheckout <= entry.checkInDate) {
         toast.error(`Room ${i + 1}: Checkout must be after check-in`); return;
       }
       if (Number(entry.roomPrice) <= 0) { toast.error(`Room ${i + 1}: Price must be positive`); return; }

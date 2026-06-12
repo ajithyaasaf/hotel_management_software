@@ -3,7 +3,7 @@ import { reportsApi, bookingsApi, ordersApi, nightAuditApi } from '../api';
 import type { ReportSummary, Booking, Order } from '../types';
 import { useAuthStore } from '../store/authStore';
 import {
-  BedDouble, TrendingUp, Utensils, Users, ArrowUpRight,
+  BedDouble, TrendingUp, Utensils, ArrowUpRight,
   CalendarCheck, Clock, DollarSign, Calendar, AlertTriangle
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -16,11 +16,7 @@ export default function DashboardPage() {
   const [businessDate, setBusinessDate] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  async function loadData() {
+  const loadData = async () => {
     try {
       const [sumRes, bookRes, ordRes, statusRes] = await Promise.all([
         reportsApi.summary(),
@@ -33,7 +29,14 @@ export default function DashboardPage() {
       setActiveOrders(ordRes.data.slice(0, 5));
       setBusinessDate(statusRes.data.businessDate);
     } catch { /* silent */ } finally { setLoading(false); }
-  }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadData();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   if (loading) return (
     <div className="flex items-center justify-center h-[60vh]">
@@ -47,13 +50,6 @@ export default function DashboardPage() {
     { label: 'Restaurant Revenue', value: `₹${summary.restaurantRevenue.toLocaleString()}`, icon: Utensils, color: 'bg-status-cleaning-bg text-status-cleaning-text' },
     { label: 'Occupancy', value: `${summary.occupancyPercent}%`, icon: TrendingUp, color: 'bg-status-occupied-bg text-status-occupied-text', sub: `${summary.occupiedRooms}/${summary.totalRooms} rooms` },
   ] : [];
-
-  const statusConfig: Record<string, { label: string; badge: string; bg: string }> = {
-    AVAILABLE: { label: 'Available', badge: 'badge-green', bg: 'bg-status-available-bg border-status-available-text/20' },
-    OCCUPIED: { label: 'Occupied', badge: 'badge-blue', bg: 'bg-status-occupied-bg border-status-occupied-text/20' },
-    CLEANING: { label: 'Cleaning', badge: 'badge-yellow', bg: 'bg-status-cleaning-bg border-status-cleaning-text/20' },
-    BLOCKED: { label: 'Blocked', badge: 'badge-red', bg: 'bg-status-blocked-bg border-status-blocked-text/20' },
-  };
 
   const quickStats = summary ? [
     { label: 'Current Check-ins', value: summary.currentCheckins, icon: CalendarCheck },
@@ -145,25 +141,33 @@ export default function DashboardPage() {
           <div className="divide-y divide-gray-50">
             {recentBookings.length === 0 ? (
               <p className="text-sm text-gray-400 px-5 py-8 text-center">No active check-ins</p>
-            ) : recentBookings.map((b: Booking) => (
-              <div key={b.id} className="px-5 py-3 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-primary-50 flex items-center justify-center text-primary-600 font-semibold text-sm">
-                    {b.room.roomNumber}
+            ) : recentBookings.map((b: Booking) => {
+              const referenceDate = businessDate || new Date().toISOString().split('T')[0];
+              const checkoutStr = new Date(b.expectedCheckout).toISOString().split('T')[0];
+              const isOverdue = b.status === 'CHECKED_IN' && checkoutStr < referenceDate;
+              return (
+                <div key={b.id} className={`px-5 py-3 flex items-center justify-between hover:bg-gray-50/50 transition-colors ${isOverdue ? 'bg-red-50/20' : ''}`}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-primary-50 flex items-center justify-center text-primary-600 font-semibold text-sm">
+                      {b.room.roomNumber}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{b.guest.name}</p>
+                      <p className="text-xs text-gray-400">{b.guest.phone}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{b.guest.name}</p>
-                    <p className="text-xs text-gray-400">{b.guest.phone}</p>
+                  <div className="text-right">
+                    <span className={`badge ${b.status === 'CHECKED_IN' ? 'badge-green' : 'badge-blue'}`}>
+                      {b.status.replace('_', ' ')}
+                    </span>
+                    <p className={`text-xs mt-1 flex items-center justify-end gap-1 ${isOverdue ? 'text-red-600 font-extrabold' : 'text-gray-400'}`}>
+                      {isOverdue && <AlertTriangle size={10} className="text-red-500 animate-pulse" />}
+                      Out: {format(new Date(b.expectedCheckout), 'dd MMM')}
+                    </p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <span className={`badge ${b.status === 'CHECKED_IN' ? 'badge-green' : 'badge-blue'}`}>
-                    {b.status.replace('_', ' ')}
-                  </span>
-                  <p className="text-xs text-gray-400 mt-1">Out: {format(new Date(b.expectedCheckout), 'dd MMM')}</p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 

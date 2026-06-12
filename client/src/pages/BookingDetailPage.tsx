@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { bookingsApi, invoicesApi, paymentsApi, roomsApi } from '../api';
+import { bookingsApi, invoicesApi, paymentsApi, roomsApi, nightAuditApi } from '../api';
 import type { Booking, Invoice, Room } from '../types';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
-import { ArrowLeft, ArrowRightLeft, CalendarPlus, LogOut as CheckOutIcon, CreditCard, Receipt, X, Ban, Users } from 'lucide-react';
+import { ArrowLeft, ArrowRightLeft, CalendarPlus, LogOut as CheckOutIcon, CreditCard, Receipt, X, Ban, Users, AlertTriangle } from 'lucide-react';
 import SearchableSelect from '../components/ui/SearchableSelect';
 
 export default function BookingDetailPage() {
@@ -13,6 +13,7 @@ export default function BookingDetailPage() {
   const [booking, setBooking] = useState<Booking | null>(null);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
+  const [businessDate, setBusinessDate] = useState<string>('');
 
   // Modals
   const [showPayment, setShowPayment] = useState(false);
@@ -45,12 +46,18 @@ export default function BookingDetailPage() {
   async function loadBooking() {
     if (!id) return;
     try {
-      const [bRes, iRes] = await Promise.all([
+      const [bRes, iRes, auditRes] = await Promise.all([
         bookingsApi.getById(id),
         invoicesApi.getByBooking(id).catch(() => null),
+        nightAuditApi.getStatus().catch(() => null),
       ]);
       setBooking(bRes.data);
       if (iRes) setInvoice(iRes.data);
+      if (auditRes) {
+        setBusinessDate(auditRes.data.businessDate);
+      } else {
+        setBusinessDate(format(new Date(), 'yyyy-MM-dd'));
+      }
     } catch { toast.error('Failed to load booking'); }
     finally { setLoading(false); }
   }
@@ -122,11 +129,16 @@ export default function BookingDetailPage() {
 
   async function handleExtend() {
     if (!newCheckout) { toast.error('Select new checkout date'); return; }
-    if (new Date(newCheckout) <= new Date(booking!.checkInDate)) {
+    
+    const newCheckoutStr = newCheckout; // already in "yyyy-MM-dd" format
+    const checkInStr = new Date(booking!.checkInDate).toISOString().split('T')[0];
+    const referenceDate = businessDate || new Date().toISOString().split('T')[0];
+
+    if (newCheckoutStr <= checkInStr) {
       toast.error('New checkout date must be after check-in date'); return;
     }
-    if (new Date(newCheckout) < new Date(new Date().setHours(0,0,0,0))) {
-      toast.error('New checkout date cannot be in the past'); return;
+    if (newCheckoutStr < referenceDate) {
+      toast.error("New checkout date cannot be in the past relative to the hotel's business date"); return;
     }
     try {
       await bookingsApi.extend(id!, { newCheckout: new Date(newCheckout).toISOString() });
@@ -156,10 +168,25 @@ export default function BookingDetailPage() {
   if (!booking) return <p className="text-gray-500">Booking not found</p>;
 
   const isActive = booking.status === 'CHECKED_IN';
+  const referenceDate = businessDate || new Date().toISOString().split('T')[0];
+  const checkoutStr = new Date(booking.expectedCheckout).toISOString().split('T')[0];
+  const isOverdue = booking.status === 'CHECKED_IN' && checkoutStr < referenceDate;
 
   return (
     <div className="animate-fadeIn max-w-5xl">
       <button onClick={() => navigate('/bookings')} className="btn btn-ghost mb-4"><ArrowLeft size={18} /> Bookings</button>
+
+      {isOverdue && (
+        <div className="bg-red-50 border border-red-100 text-red-800 p-4 rounded-2xl mb-6 flex items-start gap-3 shadow-sm shadow-red-100/50 animate-fadeIn print:hidden">
+          <AlertTriangle className="text-red-500 shrink-0 mt-0.5" size={20} />
+          <div>
+            <h4 className="font-bold text-red-950">Overdue Checkout</h4>
+            <p className="text-sm text-red-700 mt-0.5">
+              This guest was scheduled to check out on <strong>{format(new Date(booking.expectedCheckout), 'dd MMM yyyy')}</strong> but has not yet checked out. Please process their checkout or extend their stay.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex items-start justify-between mb-6 print:hidden">
@@ -213,7 +240,18 @@ export default function BookingDetailPage() {
             <h3 className="font-semibold text-gray-900 mb-4">Stay Details</h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div><span className="text-gray-400">Check-in</span><p className="font-medium">{format(new Date(booking.checkInDate), 'dd MMM yyyy')}</p></div>
-              <div><span className="text-gray-400">Expected Checkout</span><p className="font-medium">{format(new Date(booking.expectedCheckout), 'dd MMM yyyy')}</p></div>
+              <div>
+                <span className="text-gray-400">Expected Checkout</span>
+                <p className={`font-medium flex items-center gap-1 ${isOverdue ? 'text-red-600 font-bold' : ''}`}>
+                  {isOverdue && <AlertTriangle size={14} className="text-red-500 animate-pulse" />}
+                  {format(new Date(booking.expectedCheckout), 'dd MMM yyyy')}
+                  {isOverdue && (
+                    <span className="bg-red-50 text-red-700 border border-red-100 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider animate-pulse">
+                      Overdue
+                    </span>
+                  )}
+                </p>
+              </div>
               <div><span className="text-gray-400">Room Rate</span><p className="font-medium">₹{Number(booking.roomPrice).toLocaleString()}/night</p></div>
               <div><span className="text-gray-400">Guests</span><p className="font-medium">{booking.numberOfGuests}</p></div>
             </div>
@@ -293,7 +331,7 @@ export default function BookingDetailPage() {
                 {/* Corporate routing details */}
                 {booking.companyId && booking.billingRule !== 'GUEST' && (
                   <div className="mt-2 pt-2 border-t border-dashed border-gray-200 space-y-1 bg-blue-50/50 p-2.5 rounded-lg text-xs">
-                    <p className="font-bold text-blue-900 mb-1">Corporate Routing ({booking.billingRule.replace(/_/g, ' ')})</p>
+                    <p className="font-bold text-blue-900 mb-1">Corporate Routing ({booking.billingRule?.replace(/_/g, ' ')})</p>
                     <div className="flex justify-between text-gray-600"><span>Company Folio</span><span className="font-semibold text-gray-900">₹{Number(invoice.companyAmount).toLocaleString()}</span></div>
                     <div className="flex justify-between text-gray-600"><span>Guest Folio</span><span className="font-semibold text-gray-900">₹{Number(invoice.guestAmount).toLocaleString()}</span></div>
                   </div>

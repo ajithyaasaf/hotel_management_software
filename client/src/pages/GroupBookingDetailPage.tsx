@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { groupBookingsApi } from '../api';
+import { groupBookingsApi, nightAuditApi } from '../api';
 import type { GroupBooking, MasterInvoice } from '../types';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -29,18 +29,25 @@ export default function GroupBookingDetailPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'invoice'>('overview');
   const [loading, setLoading] = useState(true);
   const [checkingOut, setCheckingOut] = useState(false);
+  const [businessDate, setBusinessDate] = useState<string>('');
 
   useEffect(() => { loadGroup(); }, [id]);
 
   async function loadGroup() {
     if (!id) return;
     try {
-      const [gRes, miRes] = await Promise.all([
+      const [gRes, miRes, auditRes] = await Promise.all([
         groupBookingsApi.getById(id),
         groupBookingsApi.getMasterInvoice(id),
+        nightAuditApi.getStatus().catch(() => null),
       ]);
       setGroup(gRes.data);
       setMasterInvoice(miRes.data);
+      if (auditRes) {
+        setBusinessDate(auditRes.data.businessDate);
+      } else {
+        setBusinessDate(format(new Date(), 'yyyy-MM-dd'));
+      }
     } catch { toast.error('Failed to load group booking'); }
     finally { setLoading(false); }
   }
@@ -135,35 +142,42 @@ export default function GroupBookingDetailPage() {
       {/* Overview Tab */}
       {activeTab === 'overview' && (
         <div className="space-y-4">
-          {group.bookings.map(booking => (
-            <div key={booking.id} className="card p-5">
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center gap-3 mb-1">
-                    <span className="font-mono text-sm text-primary-600">{booking.bookingNumber}</span>
-                    <span className="font-semibold text-gray-900">Room {booking.room.roomNumber}</span>
-                    <span className="text-xs text-gray-400">{booking.room.roomType.name}</span>
-                    <span className={`badge ${bookingStatusColors[booking.status]}`}>{booking.status.replace('_', ' ')}</span>
+          {group.bookings.map(booking => {
+            const referenceDate = businessDate || new Date().toISOString().split('T')[0];
+            const checkoutStr = new Date(booking.expectedCheckout).toISOString().split('T')[0];
+            const isOverdue = booking.status === 'CHECKED_IN' && checkoutStr < referenceDate;
+            return (
+              <div key={booking.id} className={`card p-5 transition-colors ${isOverdue ? 'bg-red-50/20 border-l-4 border-l-red-500' : ''}`}>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="flex items-center gap-3 mb-1">
+                      <span className="font-mono text-sm text-primary-600">{booking.bookingNumber}</span>
+                      <span className="font-semibold text-gray-900">Room {booking.room.roomNumber}</span>
+                      <span className="text-xs text-gray-400">{booking.room.roomType.name}</span>
+                      <span className={`badge ${bookingStatusColors[booking.status]}`}>{booking.status.replace('_', ' ')}</span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-4 text-sm text-gray-600 mt-2">
+                      <div>
+                        <span className="text-gray-400 text-xs block">Check-in</span>
+                        {format(new Date(booking.checkInDate), 'dd MMM yyyy')}
+                      </div>
+                      <div>
+                        <span className="text-gray-400 text-xs block">Checkout</span>
+                        <span className={`font-medium flex items-center gap-1 ${isOverdue ? 'text-red-600 font-bold' : ''}`}>
+                          {isOverdue && <AlertCircle size={12} className="text-red-500 animate-pulse" />}
+                          {format(new Date(booking.expectedCheckout), 'dd MMM yyyy')}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 text-xs block">Rate / Night</span>
+                        ₹{Number(booking.roomPrice).toLocaleString()}
+                      </div>
+                      <div>
+                        <span className="text-gray-400 text-xs block">Guests</span>
+                        {booking.numberOfGuests}
+                      </div>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-4 gap-4 text-sm text-gray-600 mt-2">
-                    <div>
-                      <span className="text-gray-400 text-xs block">Check-in</span>
-                      {format(new Date(booking.checkInDate), 'dd MMM yyyy')}
-                    </div>
-                    <div>
-                      <span className="text-gray-400 text-xs block">Checkout</span>
-                      {format(new Date(booking.expectedCheckout), 'dd MMM yyyy')}
-                    </div>
-                    <div>
-                      <span className="text-gray-400 text-xs block">Rate / Night</span>
-                      ₹{Number(booking.roomPrice).toLocaleString()}
-                    </div>
-                    <div>
-                      <span className="text-gray-400 text-xs block">Guests</span>
-                      {booking.numberOfGuests}
-                    </div>
-                  </div>
-                </div>
                 <div className="flex items-center gap-2">
                   {booking.invoice && (
                     <div className="text-right text-sm mr-4">
@@ -186,7 +200,8 @@ export default function GroupBookingDetailPage() {
                 </div>
               </div>
             </div>
-          ))}
+          );
+        })}
         </div>
       )}
 

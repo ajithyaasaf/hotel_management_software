@@ -59,6 +59,9 @@ export interface Booking {
   invoice?: Invoice | null;
   payments?: Payment[];
   transfers?: RoomTransfer[];
+  companyId?: string | null;
+  company?: Company | null;
+  billingRule?: 'GUEST' | 'COMPANY_ROOM_ONLY' | 'COMPANY_ALL';
   createdAt: string;
 }
 
@@ -141,6 +144,11 @@ export interface Invoice {
   isFinalized: boolean;
   adjustments?: InvoiceAdjustment[];
   roomOrders?: Order[];
+  companyId?: string | null;
+  company?: Company | null;
+  companyAmount?: number;
+  guestAmount?: number;
+  isBtc?: boolean;
 }
 
 export interface InvoiceAdjustment {
@@ -262,4 +270,18 @@ export interface MasterInvoice {
   totalGrandTotal: number;
   totalAmountPaid: number;
   totalPending: number;
+}
+
+export interface Company {
+  id: string;
+  name: string;
+  gstin?: string | null;
+  address?: string | null;
+  state: string;
+  creditLimit: number;
+  outstandingBalance: number;
+  email?: string | null;
+  phone?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }

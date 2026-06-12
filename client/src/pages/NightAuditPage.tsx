@@ -115,6 +115,9 @@ interface AuditDetails {
   upiCollected: string;
   roomsOccupied: number;
   totalRooms: number;
+  noShowsMarked: number;
+  newCheckins?: number;
+  checkoutsToday?: number;
   runBy: { name: string; role: string };
   completedAt: string;
   notes: string | null;
@@ -339,11 +342,11 @@ export default function NightAuditPage() {
                     <div className="space-y-2 text-sm font-semibold">
                       <div className="flex justify-between text-gray-600">
                         <span>Room Revenue</span>
-                        <span className="text-gray-900">₹{Number(auditResult.roomRevenue ?? auditResult.totalRoomRevenue ?? 0).toLocaleString('en-IN')}</span>
+                        <span className="text-gray-900">₹{Number(auditResult.roomRevenue ?? 0).toLocaleString('en-IN')}</span>
                       </div>
                       <div className="flex justify-between text-gray-600 border-t border-gray-200/50 pt-2">
                         <span>Restaurant Revenue</span>
-                        <span className="text-gray-900">₹{Number(auditResult.foodRevenue ?? auditResult.totalFoodRevenue ?? 0).toLocaleString('en-IN')}</span>
+                        <span className="text-gray-900">₹{Number(auditResult.foodRevenue ?? 0).toLocaleString('en-IN')}</span>
                       </div>
                     </div>
                   </div>
@@ -387,7 +390,7 @@ export default function NightAuditPage() {
                       </div>
                       <div className="flex justify-between text-gray-600 border-t border-gray-200/50 pt-2">
                         <span>No-Shows Handled</span>
-                        <span className="text-gray-900">{auditResult.noShowsMarked ?? auditResult.noShowsProcessed}</span>
+                        <span className="text-gray-900">{auditResult.noShowsMarked}</span>
                       </div>
                     </div>
                   </div>

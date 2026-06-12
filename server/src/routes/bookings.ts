@@ -119,7 +119,12 @@ router.post('/', async (req: AuthRequest, res) => {
     });
     if (conflict) { res.status(400).json({ error: 'Room already has an overlapping booking for these dates' }); return; }
 
-    const today = new Date();
+    const config = await prisma.systemConfig.findUnique({
+      where: { key: 'BUSINESS_DATE' },
+    });
+    const businessDateStr = config?.value || new Date().toISOString().split('T')[0];
+
+    const today = new Date(businessDateStr);
     today.setHours(0,0,0,0);
     const inDate = new Date(data.checkInDate);
     inDate.setHours(0,0,0,0);
@@ -285,8 +290,18 @@ router.put('/:id/checkin', async (req: AuthRequest, res) => {
     if (booking.status !== 'CONFIRMED') { res.status(400).json({ error: 'Booking is not in CONFIRMED state' }); return; }
     if (booking.room.status !== 'AVAILABLE') { res.status(400).json({ error: 'Room is not currently available for check-in' }); return; }
 
+    const config = await prisma.systemConfig.findUnique({
+      where: { key: 'BUSINESS_DATE' },
+    });
+    const businessDateStr = config?.value || new Date().toISOString().split('T')[0];
+    const checkInDate = new Date();
+    const [year, month, day] = businessDateStr.split('-').map(Number);
+    checkInDate.setFullYear(year);
+    checkInDate.setMonth(month - 1);
+    checkInDate.setDate(day);
+
     await prisma.$transaction(async (tx) => {
-      await tx.booking.update({ where: { id: booking.id }, data: { status: 'CHECKED_IN', checkInDate: new Date() } });
+      await tx.booking.update({ where: { id: booking.id }, data: { status: 'CHECKED_IN', checkInDate } });
       await tx.room.update({ where: { id: booking.roomId }, data: { status: 'OCCUPIED' } });
     });
 
@@ -433,8 +448,17 @@ router.put('/:id/checkout', async (req: AuthRequest, res) => {
     if (!booking) { res.status(404).json({ error: 'Booking not found' }); return; }
     if (booking.status !== 'CHECKED_IN') { res.status(400).json({ error: 'Booking not active' }); return; }
 
+    const config = await prisma.systemConfig.findUnique({
+      where: { key: 'BUSINESS_DATE' },
+    });
+    const businessDateStr = config?.value || new Date().toISOString().split('T')[0];
+    const checkoutDate = new Date();
+    const [year, month, day] = businessDateStr.split('-').map(Number);
+    checkoutDate.setFullYear(year);
+    checkoutDate.setMonth(month - 1);
+    checkoutDate.setDate(day);
+
     await prisma.$transaction(async (tx) => {
-      const checkoutDate = new Date();
       await tx.booking.update({ where: { id: booking.id }, data: { status: 'CHECKED_OUT', actualCheckout: checkoutDate } });
       await tx.room.update({ where: { id: booking.roomId }, data: { status: 'CLEANING' } });
       

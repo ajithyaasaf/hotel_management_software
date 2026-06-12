@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { bookingsApi, groupBookingsApi } from '../api';
+import { bookingsApi, groupBookingsApi, nightAuditApi } from '../api';
 import type { Booking, GroupBooking } from '../types';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
-import { Plus, Search, CalendarCheck, Eye, Users } from 'lucide-react';
+import { Plus, Search, CalendarCheck, Eye, Users, AlertTriangle } from 'lucide-react';
 
 const statusBadge: Record<string, string> = {
   CONFIRMED: 'badge-blue', CHECKED_IN: 'badge-green', CHECKED_OUT: 'badge-gray',
@@ -24,28 +24,47 @@ export default function BookingsPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
   const [search, setSearch] = useState('');
+  const [businessDate, setBusinessDate] = useState<string>('');
 
-  useEffect(() => { tab === 'individual' ? loadBookings() : loadGroups(); }, [tab, filter]);
+  useEffect(() => {
+    nightAuditApi.getStatus().then(res => {
+      setBusinessDate(res.data.businessDate);
+    }).catch(() => {
+      setBusinessDate(format(new Date(), 'yyyy-MM-dd'));
+    });
+  }, []);
 
-  async function loadBookings() {
+  const loadBookings = async () => {
     setLoading(true);
     try {
-      const params: any = {};
+      const params: { status?: string } = {};
       if (filter) params.status = filter;
       const { data } = await bookingsApi.getAll(params);
       setBookings(data);
     } catch { toast.error('Failed to load bookings'); }
     finally { setLoading(false); }
-  }
+  };
 
-  async function loadGroups() {
+  const loadGroups = async () => {
     setLoading(true);
     try {
       const { data } = await groupBookingsApi.getAll();
       setGroups(data);
     } catch { toast.error('Failed to load group bookings'); }
     finally { setLoading(false); }
-  }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (tab === 'individual') {
+        loadBookings();
+      } else {
+        loadGroups();
+      }
+    }, 0);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, filter]);
 
   const filtered = bookings.filter(b =>
     !search || b.guest.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -140,33 +159,47 @@ export default function BookingsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {filtered.map(b => (
-                <tr key={b.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-5 py-3">
-                    <span className="text-sm font-mono text-primary-600">{b.bookingNumber}</span>
-                    {b.groupBookingId && (
-                      <span className="ml-2 text-xs bg-violet-50 text-violet-600 px-2 py-0.5 rounded font-medium">Group</span>
-                    )}
-                  </td>
-                  <td className="px-5 py-3">
-                    <p className="text-sm font-medium text-gray-900">{b.guest.name}</p>
-                    <p className="text-xs text-gray-400">{b.guest.phone}</p>
-                  </td>
-                  <td className="px-5 py-3">
-                    <span className="inline-flex items-center gap-1 text-sm font-medium text-gray-900">
-                      <CalendarCheck size={14} className="text-gray-400" /> {b.room.roomNumber}
-                    </span>
-                    <p className="text-xs text-gray-400">{b.room.roomType.name}</p>
-                  </td>
-                  <td className="px-5 py-3 text-sm text-gray-600">{format(new Date(b.checkInDate), 'dd MMM yyyy')}</td>
-                  <td className="px-5 py-3 text-sm text-gray-600">{format(new Date(b.expectedCheckout), 'dd MMM yyyy')}</td>
-                  <td className="px-5 py-3 text-sm font-medium text-gray-900">₹{Number(b.roomPrice).toLocaleString()}</td>
-                  <td className="px-5 py-3"><span className={`badge ${statusBadge[b.status]}`}>{b.status.replace('_', ' ')}</span></td>
-                  <td className="px-5 py-3">
-                    <button onClick={() => navigate(`/bookings/${b.id}`)} className="btn btn-ghost btn-sm"><Eye size={16} /></button>
-                  </td>
-                </tr>
-              ))}
+              {filtered.map(b => {
+                const referenceDate = businessDate || new Date().toISOString().split('T')[0];
+                const checkoutStr = new Date(b.expectedCheckout).toISOString().split('T')[0];
+                const isOverdue = b.status === 'CHECKED_IN' && checkoutStr < referenceDate;
+                return (
+                  <tr key={b.id} className={`transition-colors ${isOverdue ? 'bg-red-50/30 hover:bg-red-50/40' : 'hover:bg-gray-50/50'}`}>
+                    <td className="px-5 py-3">
+                      <span className="text-sm font-mono text-primary-600">{b.bookingNumber}</span>
+                      {b.groupBookingId && (
+                        <span className="ml-2 text-xs bg-violet-50 text-violet-600 px-2 py-0.5 rounded font-medium">Group</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3">
+                      <p className="text-sm font-medium text-gray-900">{b.guest.name}</p>
+                      <p className="text-xs text-gray-400">{b.guest.phone}</p>
+                    </td>
+                    <td className="px-5 py-3">
+                      <span className="inline-flex items-center gap-1 text-sm font-medium text-gray-900">
+                        <CalendarCheck size={14} className="text-gray-400" /> {b.room.roomNumber}
+                      </span>
+                      <p className="text-xs text-gray-400">{b.room.roomType.name}</p>
+                    </td>
+                    <td className="px-5 py-3 text-sm text-gray-600">{format(new Date(b.checkInDate), 'dd MMM yyyy')}</td>
+                    <td className="px-5 py-3 text-sm">
+                      <span className={isOverdue ? 'text-red-600 font-bold' : 'text-gray-600'}>
+                        {format(new Date(b.expectedCheckout), 'dd MMM yyyy')}
+                      </span>
+                      {isOverdue && (
+                        <span className="block text-[10px] font-bold text-red-500 uppercase tracking-wider mt-0.5 flex items-center gap-0.5 animate-pulse">
+                          <AlertTriangle size={10} /> Overdue
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3 text-sm font-medium text-gray-900">₹{Number(b.roomPrice).toLocaleString()}</td>
+                    <td className="px-5 py-3"><span className={`badge ${statusBadge[b.status]}`}>{b.status.replace('_', ' ')}</span></td>
+                    <td className="px-5 py-3">
+                      <button onClick={() => navigate(`/bookings/${b.id}`)} className="btn btn-ghost btn-sm"><Eye size={16} /></button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           {filtered.length === 0 && <p className="text-center text-gray-400 py-12">No bookings found</p>}

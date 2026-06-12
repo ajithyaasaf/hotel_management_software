@@ -1,6 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { bookingsApi, roomsApi, guestsApi, companiesApi } from '../api';
+import { bookingsApi, roomsApi, guestsApi, companiesApi, nightAuditApi } from '../api';
 import type { Room } from '../types';
 import toast from 'react-hot-toast';
 import { ArrowLeft, Search, UserCheck, AlertTriangle } from 'lucide-react';
@@ -49,6 +49,9 @@ export default function NewBookingPage() {
 
   useEffect(() => {
     companiesApi.getAll().then(res => setCompanies(res.data)).catch(() => {});
+    nightAuditApi.getStatus().then(res => {
+      setForm(p => ({ ...p, checkInDate: res.data.businessDate }));
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -111,7 +114,7 @@ export default function NewBookingPage() {
     if (form.guestEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.guestEmail)) {
       toast.error('Please enter a valid email address'); return;
     }
-    if (new Date(form.expectedCheckout) <= new Date(form.checkInDate)) {
+    if (form.expectedCheckout <= form.checkInDate) {
       toast.error('Checkout date must be after check-in date'); return;
     }
     if (Number(form.roomPrice) <= 0) {

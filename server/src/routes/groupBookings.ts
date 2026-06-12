@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '../utils/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { createAuditLog, generateBookingNumber, generateGroupNumber } from '../utils/helpers';
+import { threadCpuUsage } from 'node:process';
 
 const router = Router();
 router.use(authenticate);
@@ -219,7 +220,11 @@ router.post('/', async (req: AuthRequest, res) => {
         },
       });
 
-      const today = new Date();
+      const config = await tx.systemConfig.findUnique({
+        where: { key: 'BUSINESS_DATE' },
+      });
+      const businessDateStr = config?.value || new Date().toISOString().split('T')[0];
+      const today = new Date(businessDateStr);
       today.setHours(0, 0, 0, 0);
 
       // Create each booking + invoice
@@ -342,8 +347,17 @@ router.post('/:id/checkout-all', async (req: AuthRequest, res) => {
     // Warn if any room has a pending balance (informational — not blocking)
     const pendingRooms = activeBookings.filter(b => Number(b.invoice?.pendingAmount ?? 0) > 0);
 
+    const config = await prisma.systemConfig.findUnique({
+      where: { key: 'BUSINESS_DATE' },
+    });
+    const businessDateStr = config?.value || new Date().toISOString().split('T')[0];
+    const checkoutDate = new Date();
+    const [year, month, day] = businessDateStr.split('-').map(Number);
+    checkoutDate.setFullYear(year);
+    checkoutDate.setMonth(month - 1);
+    checkoutDate.setDate(day);
+
     await prisma.$transaction(async (tx) => {
-      const checkoutDate = new Date();
       for (const booking of activeBookings) {
         await tx.booking.update({
           where: { id: booking.id },
