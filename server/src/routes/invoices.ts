@@ -136,7 +136,7 @@ router.post('/:id/adjustments', authorize('ADMIN', 'RECEPTION'), async (req: Aut
     const updated = await prisma.invoice.findUnique({ where: { id: invoice.id }, include: { adjustments: { include: { createdBy: { select: { name: true } } } } } });
     res.json(updated);
   } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
+    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as any).errors }); return; }
     res.status(500).json({ error: 'Failed to add adjustment' });
   }
 });

@@ -103,7 +103,7 @@ router.post('/', authorize('ADMIN'), async (req: AuthRequest, res) => {
     res.status(201).json(room);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'Invalid input', details: (error as z.ZodError).errors });
+      res.status(400).json({ error: 'Invalid input', details: (error as any).errors });
       return;
     }
     res.status(500).json({ error: 'Failed to create room' });
@@ -122,7 +122,7 @@ router.put('/:id', authorize('ADMIN'), async (req: AuthRequest, res) => {
     res.json(room);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'Invalid input', details: (error as z.ZodError).errors });
+      res.status(400).json({ error: 'Invalid input', details: (error as any).errors });
       return;
     }
     res.status(500).json({ error: 'Failed to update room' });
@@ -144,7 +144,7 @@ router.put('/:id/status', authorize('ADMIN', 'RECEPTION'), async (req: AuthReque
     res.json(room);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'Invalid input', details: (error as z.ZodError).errors });
+      res.status(400).json({ error: 'Invalid input', details: (error as any).errors });
       return;
     }
     res.status(500).json({ error: 'Failed to update room status' });
@@ -177,7 +177,7 @@ router.put('/:id/block', authorize('ADMIN', 'RECEPTION'), async (req: AuthReques
     res.json(updated);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'Invalid input', details: (error as z.ZodError).errors });
+      res.status(400).json({ error: 'Invalid input', details: (error as any).errors });
       return;
     }
     res.status(500).json({ error: 'Failed to block room' });

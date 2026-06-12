@@ -31,7 +31,7 @@ router.post('/categories', authorize('ADMIN'), async (req: AuthRequest, res) => 
     });
     res.status(201).json(cat);
   } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
+    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as any).errors }); return; }
     res.status(500).json({ error: 'Failed to create category' });
   }
 });
@@ -40,10 +40,10 @@ router.post('/categories', authorize('ADMIN'), async (req: AuthRequest, res) => 
 router.put('/categories/:id', authorize('ADMIN'), async (req: AuthRequest, res) => {
   try {
     const data = z.object({ name: z.string().min(1).optional(), sortOrder: z.number().int().optional(), isActive: z.boolean().optional() }).parse(req.body);
-    const cat = await prisma.menuCategory.update({ where: { id: req.params.id }, data });
+    const cat = await prisma.menuCategory.update({ where: { id: req.params.id as string }, data });
     res.json(cat);
   } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
+    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as any).errors }); return; }
     res.status(500).json({ error: 'Failed to update category' });
   }
 });
@@ -51,7 +51,7 @@ router.put('/categories/:id', authorize('ADMIN'), async (req: AuthRequest, res) 
 // DELETE /api/menu/categories/:id
 router.delete('/categories/:id', authorize('ADMIN'), async (_req, res) => {
   try {
-    await prisma.menuCategory.delete({ where: { id: _req.params.id } });
+    await prisma.menuCategory.delete({ where: { id: _req.params.id as string } });
     res.json({ message: 'Category deleted' });
   } catch { res.status(500).json({ error: 'Failed to delete category' }); }
 });
@@ -97,7 +97,7 @@ router.post('/items', authorize('ADMIN'), async (req: AuthRequest, res) => {
     });
     res.status(201).json(item);
   } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
+    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as any).errors }); return; }
     res.status(500).json({ error: 'Failed to create item' });
   }
 });
@@ -113,10 +113,10 @@ router.put('/items/:id', authorize('ADMIN'), async (req: AuthRequest, res) => {
       isVeg: z.boolean().optional(),
       isAvailable: z.boolean().optional(),
     }).parse(req.body);
-    const item = await prisma.menuItem.update({ where: { id: req.params.id }, data, include: { category: true } });
+    const item = await prisma.menuItem.update({ where: { id: req.params.id as string }, data, include: { category: true } });
     res.json(item);
   } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
+    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as any).errors }); return; }
     res.status(500).json({ error: 'Failed to update item' });
   }
 });
@@ -124,7 +124,7 @@ router.put('/items/:id', authorize('ADMIN'), async (req: AuthRequest, res) => {
 // DELETE /api/menu/items/:id
 router.delete('/items/:id', authorize('ADMIN'), async (_req, res) => {
   try {
-    await prisma.menuItem.delete({ where: { id: _req.params.id } });
+    await prisma.menuItem.delete({ where: { id: _req.params.id as string } });
     res.json({ message: 'Item deleted' });
   } catch { res.status(500).json({ error: 'Failed to delete item' }); }
 });
@@ -152,7 +152,7 @@ router.post('/room-types', authorize('ADMIN'), async (req: AuthRequest, res) => 
     });
     res.status(201).json(rt);
   } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
+    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as any).errors }); return; }
     res.status(500).json({ error: 'Failed to create room type' });
   }
 });
@@ -161,10 +161,10 @@ router.post('/room-types', authorize('ADMIN'), async (req: AuthRequest, res) => 
 router.put('/room-types/:id', authorize('ADMIN'), async (req: AuthRequest, res) => {
   try {
     const data = z.object({ name: z.string().min(1).optional(), basePrice: z.number().positive().optional(), description: z.string().optional() }).parse(req.body);
-    const rt = await prisma.roomType.update({ where: { id: req.params.id }, data });
+    const rt = await prisma.roomType.update({ where: { id: req.params.id as string }, data });
     res.json(rt);
   } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
+    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as any).errors }); return; }
     res.status(500).json({ error: 'Failed to update room type' });
   }
 });
@@ -172,7 +172,7 @@ router.put('/room-types/:id', authorize('ADMIN'), async (req: AuthRequest, res) 
 // DELETE /api/menu/room-types/:id
 router.delete('/room-types/:id', authorize('ADMIN'), async (_req, res) => {
   try {
-    await prisma.roomType.delete({ where: { id: _req.params.id } });
+    await prisma.roomType.delete({ where: { id: _req.params.id as string } });
     res.json({ message: 'Room type deleted' });
   } catch { res.status(500).json({ error: 'Failed to delete room type' }); }
 });

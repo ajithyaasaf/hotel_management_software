@@ -43,7 +43,7 @@ router.post('/', async (req: AuthRequest, res) => {
     });
     res.status(201).json(user);
   } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
+    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as any).errors }); return; }
     res.status(500).json({ error: 'Failed to create user' });
   }
 });
@@ -70,7 +70,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
     });
     res.json(user);
   } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
+    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as any).errors }); return; }
     res.status(500).json({ error: 'Failed to update user' });
   }
 });

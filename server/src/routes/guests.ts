@@ -79,7 +79,7 @@ router.put('/:id', async (req, res) => {
     const guest = await prisma.guest.update({ where: { id: req.params.id as string }, data });
     res.json(guest);
   } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
+    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as any).errors }); return; }
     res.status(500).json({ error: 'Failed to update guest' });
   }
 });

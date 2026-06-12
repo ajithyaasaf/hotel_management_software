@@ -62,7 +62,7 @@ router.get('/active', async (_req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const order = await prisma.order.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       include: {
         items: { include: { menuItem: { include: { category: true } } } },
         room: true,
@@ -177,7 +177,7 @@ router.post('/', async (req: AuthRequest, res) => {
 
     res.status(201).json(order);
   } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
+    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as any).errors }); return; }
     console.error(err);
     res.status(500).json({ error: 'Failed to create order' });
   }
@@ -191,7 +191,7 @@ router.post('/:id/items', async (req: AuthRequest, res) => {
       quantity: z.number().int().positive(),
     }).parse(req.body);
 
-    const order = await prisma.order.findUnique({ where: { id: req.params.id } });
+    const order = await prisma.order.findUnique({ where: { id: req.params.id as string } });
     if (!order || order.status !== 'ACTIVE') { res.status(400).json({ error: 'Order not active' }); return; }
 
     const menuItem = await prisma.menuItem.findUnique({ where: { id: menuItemId } });
@@ -255,10 +255,10 @@ router.post('/:id/items', async (req: AuthRequest, res) => {
       }
     });
 
-    const updated = await prisma.order.findUnique({ where: { id: req.params.id }, include: { items: { include: { menuItem: true } } } });
+    const updated = await prisma.order.findUnique({ where: { id: req.params.id as string }, include: { items: { include: { menuItem: true } } } });
     res.json(updated);
   } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as z.ZodError).errors }); return; }
+    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as any).errors }); return; }
     res.status(500).json({ error: 'Failed to add item' });
   }
 });
@@ -267,7 +267,7 @@ router.post('/:id/items', async (req: AuthRequest, res) => {
 router.delete('/:id/items/:itemId', async (req: AuthRequest, res) => {
   try {
     const { reason } = z.object({ reason: z.string().optional() }).parse(req.body);
-    const item = await prisma.orderItem.findUnique({ where: { id: req.params.itemId }, include: { order: true } }) as any;
+    const item = await prisma.orderItem.findUnique({ where: { id: req.params.itemId as string }, include: { order: true } }) as any;
     if (!item || item.isCancelled) { res.status(400).json({ error: 'Item not found or already cancelled' }); return; }
     if (item.order.status !== 'ACTIVE') { res.status(400).json({ error: 'Order is not active' }); return; }
 
@@ -336,7 +336,7 @@ router.delete('/:id/items/:itemId', async (req: AuthRequest, res) => {
 // PUT /api/orders/:id/complete
 router.put('/:id/complete', async (req: AuthRequest, res) => {
   try {
-    const order = await prisma.order.findUnique({ where: { id: req.params.id } });
+    const order = await prisma.order.findUnique({ where: { id: req.params.id as string } });
     if (!order || order.status !== 'ACTIVE') { res.status(400).json({ error: 'Order not active' }); return; }
     const updated = await prisma.order.update({ where: { id: order.id }, data: { status: 'COMPLETED' } });
     res.json(updated);
@@ -347,7 +347,7 @@ router.put('/:id/complete', async (req: AuthRequest, res) => {
 router.put('/:id/cancel', async (req: AuthRequest, res) => {
   try {
     const { reason } = z.object({ reason: z.string().optional() }).parse(req.body);
-    const order = await prisma.order.findUnique({ where: { id: req.params.id } });
+    const order = await prisma.order.findUnique({ where: { id: req.params.id as string } });
     if (!order || order.status !== 'ACTIVE') { res.status(400).json({ error: 'Order not active' }); return; }
     
     await prisma.$transaction(async (tx) => {
