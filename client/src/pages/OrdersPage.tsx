@@ -135,6 +135,7 @@ export default function OrdersPage() {
 
   return (
     <div className="animate-fadeIn">
+      <div className="print:hidden">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
         <p className="text-gray-500 text-sm mt-1">Manage restaurant orders and room service billing</p>
@@ -310,12 +311,20 @@ export default function OrdersPage() {
                     </>
                   )}
                   {selectedOrder.status !== 'ACTIVE' && (
-                    <button 
-                      onClick={() => setSelectedOrder(null)} 
-                      className="btn btn-outline btn-sm w-full"
-                    >
-                      Close Details
-                    </button>
+                    <>
+                      <button 
+                        onClick={() => window.print()} 
+                        className="btn btn-primary btn-sm flex-1"
+                      >
+                        Print Bill / Receipt
+                      </button>
+                      <button 
+                        onClick={() => setSelectedOrder(null)} 
+                        className="btn btn-outline btn-sm flex-1"
+                      >
+                        Close Details
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
@@ -400,6 +409,62 @@ export default function OrdersPage() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+      </div>
+      {/* Hidden Print Layout for Receipt */}
+      {selectedOrder && (
+        <div className="hidden print:block bg-white p-6 absolute top-0 left-0 w-full min-h-screen text-black font-sans">
+          <div className="text-center border-b pb-4 mb-4">
+            <h1 className="text-2xl font-bold">GODIVA RESTAURANT</h1>
+            <p className="text-xs text-gray-500">Unit of Godiva Rooms</p>
+            <p className="text-xs text-gray-500 mt-1">Receipt / Tax Invoice</p>
+          </div>
+          
+          <div className="space-y-1 text-xs mb-4">
+            <div className="flex justify-between"><span>Bill No:</span><span className="font-semibold">{selectedOrder.orderNumber}</span></div>
+            <div className="flex justify-between"><span>Date:</span><span>{format(new Date(selectedOrder.createdAt), 'dd MMM yyyy, hh:mm a')}</span></div>
+            <div className="flex justify-between"><span>Type:</span><span className="font-semibold">{selectedOrder.type}</span></div>
+            {selectedOrder.room && <div className="flex justify-between"><span>Room:</span><span className="font-semibold">Room {selectedOrder.room.roomNumber}</span></div>}
+            {selectedOrder.customerName && <div className="flex justify-between"><span>Customer:</span><span>{selectedOrder.customerName}</span></div>}
+            {selectedOrder.createdBy && <div className="flex justify-between"><span>Cashier:</span><span>{selectedOrder.createdBy.name}</span></div>}
+          </div>
+
+          <table className="w-full text-xs border-t border-b border-dashed border-gray-400 py-2 my-2">
+            <thead>
+              <tr className="border-b border-dashed border-gray-300">
+                <th className="text-left py-1">Item Description</th>
+                <th className="text-center py-1">Qty</th>
+                <th className="text-right py-1">Rate (₹)</th>
+                <th className="text-right py-1">Amount (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {selectedOrder.items.map(item => !item.isCancelled && (
+                <tr key={item.id}>
+                  <td className="py-1">{item.menuItem.name}</td>
+                  <td className="text-center py-1">{item.quantity}</td>
+                  <td className="text-right py-1">{Number(item.unitPrice).toFixed(2)}</td>
+                  <td className="text-right py-1">{Number(item.totalPrice).toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="space-y-1 text-xs border-b border-dashed border-gray-400 pb-2 mb-2">
+            <div className="flex justify-between"><span>Subtotal:</span><span>₹{Number(selectedOrder.subtotal).toFixed(2)}</span></div>
+            <div className="flex justify-between"><span>CGST (5%):</span><span>₹{(Number(selectedOrder.tax) / 2).toFixed(2)}</span></div>
+            <div className="flex justify-between"><span>SGST (5%):</span><span>₹{(Number(selectedOrder.tax) / 2).toFixed(2)}</span></div>
+            <div className="flex justify-between font-bold text-sm pt-1 border-t border-dashed border-gray-300">
+              <span>Grand Total:</span>
+              <span>₹{Number(selectedOrder.total).toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div className="text-center text-[10px] text-gray-500 mt-6 pt-4 border-t border-dashed">
+            <p>Thank you for dining with us!</p>
+            <p>Please visit again.</p>
           </div>
         </div>
       )}
