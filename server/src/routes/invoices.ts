@@ -44,7 +44,7 @@ router.get('/booking/:bookingId', async (req, res) => {
     const roomOrders = await prisma.order.findMany({
       where: {
         roomId: invoice.booking.roomId,
-        status: { not: 'CANCELLED' },
+        status: 'COMPLETED',
         createdAt: { gte: invoice.booking.checkInDate }
       },
       include: { items: { where: { isCancelled: false }, include: { menuItem: true } } },
@@ -153,7 +153,7 @@ router.post('/:id/recalculate', authorize('ADMIN', 'RECEPTION'), async (req, res
     const roomCharges = Number(booking.roomPrice) * nights;
 
     const roomOrders = await prisma.order.findMany({
-      where: { roomId: booking.roomId, status: { not: 'CANCELLED' }, createdAt: { gte: booking.checkInDate } },
+      where: { roomId: booking.roomId, status: 'COMPLETED', createdAt: { gte: booking.checkInDate } },
       include: { items: { where: { isCancelled: false } } },
     });
     const foodCharges = roomOrders.reduce((sum, o) => sum + Number(o.total), 0);

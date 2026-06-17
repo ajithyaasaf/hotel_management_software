@@ -436,6 +436,11 @@ router.put('/:id/transfer', async (req: AuthRequest, res) => {
         where: { id: booking.id as any },
         data: { roomId: toRoomId, ...(newRoomPrice && { roomPrice: newRoomPrice }) },
       });
+      // Migrate active restaurant orders to the new room so they post to the correct stay invoice upon completion
+      await tx.order.updateMany({
+        where: { roomId: booking.roomId, status: 'ACTIVE' },
+        data: { roomId: toRoomId },
+      });
     });
 
     await createAuditLog({ action: 'ROOM_TRANSFER', entity: 'booking', entityId: booking.id, details: `Transferred from room ${booking.roomId} to ${toRoomId}`, userId: req.user!.id });

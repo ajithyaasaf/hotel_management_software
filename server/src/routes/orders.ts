@@ -219,8 +219,12 @@ router.put('/:id/complete', async (req: AuthRequest, res) => {
           const newSubtotal = Number(activeBooking.invoice.roomCharges) + newFoodCharges + Number(activeBooking.invoice.extraCharges) - Number(activeBooking.invoice.discountAmount);
           
           const roomCharges = Number(activeBooking.invoice.roomCharges);
-          const cgst = parseFloat((roomCharges * 0.06).toFixed(2));
-          const sgst = parseFloat((roomCharges * 0.06).toFixed(2));
+          const extraCharges = Number(activeBooking.invoice.extraCharges);
+          const discountAmount = Number(activeBooking.invoice.discountAmount);
+
+          const taxableStayAmount = roomCharges + extraCharges - discountAmount;
+          const cgst = parseFloat((taxableStayAmount * 0.06).toFixed(2));
+          const sgst = parseFloat((taxableStayAmount * 0.06).toFixed(2));
           const roomTax = cgst + sgst;
           
           const newGrand = parseFloat((newSubtotal + roomTax).toFixed(2));
@@ -232,7 +236,11 @@ router.put('/:id/complete', async (req: AuthRequest, res) => {
             companyAmount = newGrand;
             guestAmount = 0;
           } else if (activeBooking.billingRule === 'COMPANY_ROOM_ONLY') {
-            companyAmount = parseFloat((roomCharges + roomTax).toFixed(2));
+            const roomSubtotal = roomCharges + extraCharges - discountAmount;
+            const roomCgst = parseFloat((roomSubtotal * 0.06).toFixed(2));
+            const roomSgst = parseFloat((roomSubtotal * 0.06).toFixed(2));
+            const roomTaxVal = roomCgst + roomSgst;
+            companyAmount = parseFloat((roomSubtotal + roomTaxVal).toFixed(2));
             guestAmount = Math.max(0, parseFloat((newGrand - companyAmount).toFixed(2)));
           } else {
             companyAmount = 0;
