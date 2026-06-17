@@ -24,6 +24,7 @@ let bookingCounter = 0;
 let orderCounter = 0;
 let invoiceCounter = 0;
 let groupCounter = 0;
+let banquetCounter = 0;
 
 export function generateBookingNumber(): string {
   bookingCounter++;
@@ -53,13 +54,21 @@ export function generateGroupNumber(): string {
   return `${prefix}${String(groupCounter).padStart(4, '0')}`;
 }
 
+export function generateBanquetNumber(): string {
+  banquetCounter++;
+  const date = new Date();
+  const prefix = `BQ${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}`;
+  return `${prefix}${String(banquetCounter).padStart(4, '0')}`;
+}
+
 // Initialize counters from DB on server start
 export async function initializeCounters() {
-  const [lastBooking, lastOrder, lastInvoice, lastGroup] = await Promise.all([
+  const [lastBooking, lastOrder, lastInvoice, lastGroup, lastBanquet] = await Promise.all([
     prisma.booking.findFirst({ orderBy: { createdAt: 'desc' } }),
     prisma.order.findFirst({ orderBy: { createdAt: 'desc' } }),
     prisma.invoice.findFirst({ orderBy: { createdAt: 'desc' } }),
     prisma.groupBooking.findFirst({ orderBy: { createdAt: 'desc' } }),
+    prisma.banquetBooking.findFirst({ orderBy: { createdAt: 'desc' } }),
   ]);
 
   if (lastBooking) {
@@ -78,4 +87,9 @@ export async function initializeCounters() {
     const num = parseInt(lastGroup.groupNumber.slice(-4));
     if (!isNaN(num)) groupCounter = num;
   }
+  if (lastBanquet) {
+    const num = parseInt(lastBanquet.bookingNumber.slice(-4));
+    if (!isNaN(num)) banquetCounter = num;
+  }
 }
+

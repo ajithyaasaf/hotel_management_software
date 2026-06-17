@@ -19,6 +19,7 @@ import expenseRoutes from './routes/expenses';
 import groupBookingRoutes from './routes/groupBookings';
 import nightAuditRoutes from './routes/nightAudit';
 import companyRoutes from './routes/companies';
+import banquetRoutes from './routes/banquets';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -44,6 +45,7 @@ app.use('/api/expenses', expenseRoutes);
 app.use('/api/group-bookings', groupBookingRoutes);
 app.use('/api/night-audit', nightAuditRoutes);
 app.use('/api/companies', companyRoutes);
+app.use('/api/banquets', banquetRoutes);
 
 // Global error handler
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

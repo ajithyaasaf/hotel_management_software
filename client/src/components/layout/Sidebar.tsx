@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import {
   LayoutDashboard, BedDouble, CalendarCheck, Users, Utensils,
-  FileText, CreditCard, Settings, Shield, LogOut, UserCog, TrendingDown, Moon, Building
+  FileText, CreditCard, Settings, Shield, LogOut, UserCog, TrendingDown, Moon, Building, Wine
 } from 'lucide-react';
 
 const navItems = [
@@ -15,6 +15,7 @@ const navItems = [
   { to: '/orders', icon: FileText, label: 'Orders', roles: ['ADMIN', 'RECEPTION', 'RESTAURANT'] },
   { to: '/reports', icon: CreditCard, label: 'Reports', roles: ['ADMIN'] },
   { to: '/expenses', icon: TrendingDown, label: 'Expenses', roles: ['ADMIN'] },
+  { to: '/banquets', icon: Wine, label: 'Banquets', roles: ['ADMIN', 'RECEPTION'] },
   { to: '/night-audit', icon: Moon, label: 'Night Audit', roles: ['ADMIN', 'RECEPTION'] },
   { to: '/staff', icon: UserCog, label: 'Staff', roles: ['ADMIN'] },
   { to: '/settings', icon: Settings, label: 'Settings', roles: ['ADMIN'] },

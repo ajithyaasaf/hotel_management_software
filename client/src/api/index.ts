@@ -163,3 +163,23 @@ export const companiesApi = {
   recordPayment: (id: string, data: { amount: number; method: string; referenceNo: string }) => 
     api.post(`/companies/${id}/payments`, data),
 };
+
+// ─── BANQUETS ─────────────────────────────────────────
+export const banquetsApi = {
+  getHalls: (params?: any) => api.get('/banquets/halls', { params }),
+  getHallById: (id: string) => api.get(`/banquets/halls/${id}`),
+  createHall: (data: any) => api.post('/banquets/halls', data),
+  updateHall: (id: string, data: any) => api.put(`/banquets/halls/${id}`, data),
+  // Availability
+  checkAvailability: (hallId: string, date: string) =>
+    api.get('/banquets/bookings/availability', { params: { hallId, date } }),
+  // Bookings
+  getBookings: (params?: any) => api.get('/banquets/bookings', { params }),
+  getBookingById: (id: string) => api.get(`/banquets/bookings/${id}`),
+  createBooking: (data: any) => api.post('/banquets/bookings', data),
+  confirmBooking: (id: string) => api.put(`/banquets/bookings/${id}/confirm`),
+  completeBooking: (id: string) => api.put(`/banquets/bookings/${id}/complete`),
+  cancelBooking: (id: string, reason?: string) => api.put(`/banquets/bookings/${id}/cancel`, { reason }),
+  // Payments
+  recordPayment: (id: string, data: any) => api.post(`/banquets/bookings/${id}/payments`, data),
+};

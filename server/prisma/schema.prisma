@@ -93,6 +93,26 @@ enum BillingRule {
   COMPANY_ALL
 }
 
+enum BanquetSlot {
+  MORNING   // Breakfast slot (e.g. 7AM - 12PM)
+  AFTERNOON // Lunch slot    (e.g. 12PM - 5PM)
+  EVENING   // Dinner slot   (e.g. 6PM - 11PM)
+  CUSTOM    // Hourly flex — uses startTime / endTime fields
+}
+
+enum BanquetStatus {
+  PROVISIONAL // Slot held, awaiting deposit
+  CONFIRMED   // Deposit paid, event locked
+  COMPLETED   // Event ended, folio settled
+  CANCELLED   // Event cancelled
+}
+
+enum BanquetPaymentType {
+  ADVANCE    // Initial booking deposit
+  SETTLEMENT // Remaining balance payment
+  REFUND     // Cancellation refund
+}
+
 // ─── USERS ──────────────────────────────────────────────
 
 model User {
@@ -105,15 +125,17 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  bookings      Booking[]
-  orders        Order[]
-  payments      Payment[]
-  auditLogs     AuditLog[]
-  adjustments   InvoiceAdjustment[]
-  expenses      Expense[]
-  groupBookings GroupBooking[]
-  nightAudits   NightAudit[]
+  bookings        Booking[]
+  orders          Order[]
+  payments        Payment[]
+  auditLogs       AuditLog[]
+  adjustments     InvoiceAdjustment[]
+  expenses        Expense[]
+  groupBookings   GroupBooking[]
+  nightAudits     NightAudit[]
   companyPayments CompanyPayment[]
+  banquetPayments BanquetPayment[] @relation("BanquetPaymentCreator")
+  banquetBookings BanquetBooking[] @relation("BanquetBookingCreator")
 
   @@map("users")
 }
@@ -174,8 +196,9 @@ model Guest {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  bookings      Booking[]
-  groupBookings GroupBooking[]
+  bookings        Booking[]
+  groupBookings   GroupBooking[]
+  banquetBookings BanquetBooking[]
 
   @@index([phone])
   @@map("guests")
@@ -581,4 +604,91 @@ model CompanyPayment {
   createdAt     DateTime      @default(now())
 
   @@map("company_payments")
+}
+
+// ─── BANQUET HALLS ────────────────────────────────────────
+
+model BanquetHall {
+  id           String   @id @default(uuid())
+  name         String   @unique
+  maxCapacity  Int
+  baseRental   Decimal  @db.Decimal(10, 2)
+  description  String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  bookings BanquetBooking[]
+
+  @@map("banquet_halls")
+}
+
+// ─── BANQUET BOOKINGS ─────────────────────────────────────
+
+model BanquetBooking {
+  id            String         @id @default(uuid())
+  bookingNumber String         @unique // BQ2026060001
+  guestId       String
+  guest         Guest          @relation(fields: [guestId], references: [id])
+  hallId        String
+  hall          BanquetHall    @relation(fields: [hallId], references: [id])
+  createdById   String
+  createdBy     User           @relation("BanquetBookingCreator", fields: [createdById], references: [id])
+
+  eventDate     DateTime       // Date of the event
+  slot          BanquetSlot
+  startTime     DateTime?      // Only populated when slot = CUSTOM
+  endTime       DateTime?      // Only populated when slot = CUSTOM
+  status        BanquetStatus  @default(PROVISIONAL)
+
+  eventType     String         // "Wedding", "Birthday", "Seminar", etc.
+  estimatedPax  Int            // Strictly validated ≤ hall.maxCapacity
+
+  // Pricing breakdown stored at booking time for immutability
+  hallRentalPrice  Decimal @db.Decimal(10, 2)
+  perHeadFoodPrice Decimal @db.Decimal(10, 2) @default(0)
+  extraCharges     Decimal @db.Decimal(10, 2) @default(0)
+
+  // Computed totals (pre-tax)
+  subtotal      Decimal @db.Decimal(10, 2)
+  cgst          Decimal @db.Decimal(10, 2) @default(0)
+  sgst          Decimal @db.Decimal(10, 2) @default(0)
+  totalAmount   Decimal @db.Decimal(10, 2)
+
+  // Running ledger balances
+  advancePaid   Decimal @db.Decimal(10, 2) @default(0)
+  pendingAmount Decimal @db.Decimal(10, 2)
+
+  notes         String?
+  cancelReason  String?
+  cancelledAt   DateTime?
+
+  payments BanquetPayment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([eventDate])
+  @@index([status])
+  @@index([hallId, eventDate])
+  @@map("banquet_bookings")
+}
+
+// ─── BANQUET PAYMENTS ─────────────────────────────────────
+
+model BanquetPayment {
+  id          String             @id @default(uuid())
+  bookingId   String
+  booking     BanquetBooking     @relation(fields: [bookingId], references: [id])
+  amount      Decimal            @db.Decimal(10, 2)
+  method      PaymentMethod
+  type        BanquetPaymentType
+  reference   String?
+  notes       String?
+  createdById String
+  createdBy   User               @relation("BanquetPaymentCreator", fields: [createdById], references: [id])
+  createdAt   DateTime           @default(now())
+
+  @@index([bookingId])
+  @@map("banquet_payments")
 }

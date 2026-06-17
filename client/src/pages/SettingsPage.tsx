@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { menuApi } from '../api';
-import type { RoomType, MenuCategory, MenuItem } from '../types';
+import { menuApi, banquetsApi } from '../api';
+import type { RoomType, MenuCategory, MenuItem, BanquetHall } from '../types';
 import toast from 'react-hot-toast';
 import { Plus, Pencil, Trash2, X, Save } from 'lucide-react';
 import SearchableSelect from '../components/ui/SearchableSelect';
@@ -24,10 +24,18 @@ interface ItemForm {
   description: string;
 }
 
+interface BanquetHallForm {
+  name: string;
+  maxCapacity: number | string;
+  baseRental: number | string;
+  description: string;
+}
+
 export default function SettingsPage() {
-  const [tab, setTab] = useState<'roomTypes' | 'menu'>('roomTypes');
+  const [tab, setTab] = useState<'roomTypes' | 'menu' | 'banquetHalls'>('roomTypes');
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [categories, setCategories] = useState<MenuCategory[]>([]);
+  const [banquetHalls, setBanquetHalls] = useState<BanquetHall[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Forms
@@ -42,13 +50,22 @@ export default function SettingsPage() {
   const [itemForm, setItemForm] = useState<ItemForm>({ name: '', price: 0, categoryId: '', isVeg: true, description: '' });
   const [editItem, setEditItem] = useState<MenuItem | null>(null);
 
+  const [showHallForm, setShowHallForm] = useState(false);
+  const [editHall, setEditHall] = useState<BanquetHall | null>(null);
+  const [hallForm, setHallForm] = useState<BanquetHallForm>({ name: '', maxCapacity: '', baseRental: '', description: '' });
+
   useEffect(() => { load(); }, []);
 
   async function load() {
     try {
-      const [rt, cats] = await Promise.all([menuApi.getRoomTypes(), menuApi.getCategories()]);
+      const [rt, cats, hallsRes] = await Promise.all([
+        menuApi.getRoomTypes(),
+        menuApi.getCategories(),
+        banquetsApi.getHalls({ all: true })
+      ]);
       setRoomTypes(rt.data);
       setCategories(cats.data);
+      setBanquetHalls(hallsRes.data);
     } catch { } finally { setLoading(false); }
   }
 
@@ -111,19 +128,58 @@ export default function SettingsPage() {
     catch { toast.error('Failed'); }
   }
 
+  // Banquet Hall handlers
+  async function saveBanquetHall() {
+    if (!hallForm.name) { toast.error('Hall name is required'); return; }
+    if (Number(hallForm.maxCapacity) <= 0) { toast.error('Max capacity must be a positive number'); return; }
+    if (Number(hallForm.baseRental) < 0) { toast.error('Base rental cannot be negative'); return; }
+    try {
+      const payload = {
+        name: hallForm.name,
+        maxCapacity: Number(hallForm.maxCapacity),
+        baseRental: Number(hallForm.baseRental),
+        description: hallForm.description || null,
+      };
+      if (editHall) {
+        await banquetsApi.updateHall(editHall.id, payload);
+        toast.success('Banquet hall updated');
+      } else {
+        await banquetsApi.createHall(payload);
+        toast.success('Banquet hall created');
+      }
+      setShowHallForm(false);
+      setEditHall(null);
+      setHallForm({ name: '', maxCapacity: '', baseRental: '', description: '' });
+      load();
+    } catch (e: any) {
+      toast.error(e.response?.data?.error || 'Failed to save banquet hall');
+    }
+  }
+
+  async function toggleHallAvailability(hall: BanquetHall) {
+    try {
+      await banquetsApi.updateHall(hall.id, { isActive: !hall.isActive });
+      toast.success(`${hall.name} status updated`);
+      load();
+    } catch {
+      toast.error('Failed to update status');
+    }
+  }
+
   if (loading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-600 border-t-transparent" /></div>;
 
   return (
     <div className="animate-fadeIn">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-500 text-sm mt-1">Manage room types, pricing & menu</p>
+        <p className="text-gray-500 text-sm mt-1">Manage rooms, pricing, menus, and event halls</p>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-2 mb-6">
         <button onClick={() => setTab('roomTypes')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'roomTypes' ? 'bg-gray-900 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}>Room Types & Pricing</button>
         <button onClick={() => setTab('menu')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'menu' ? 'bg-gray-900 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}>Menu Items</button>
+        <button onClick={() => setTab('banquetHalls')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'banquetHalls' ? 'bg-gray-900 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}>Banquet Halls</button>
       </div>
 
       {/* Room Types Tab */}
@@ -202,6 +258,86 @@ export default function SettingsPage() {
         </div>
       )}
 
+      {/* Banquet Halls Tab */}
+      {tab === 'banquetHalls' && (
+        <div>
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={() => {
+                setEditHall(null);
+                setHallForm({ name: '', maxCapacity: '', baseRental: '', description: '' });
+                setShowHallForm(true);
+              }}
+              className="btn btn-primary btn-sm"
+            >
+              <Plus size={16} /> Add Banquet Hall
+            </button>
+          </div>
+          <div className="card overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50/50">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Hall Name</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Max Capacity</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Base Rental</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Description</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Active</th>
+                  <th className="px-5 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {banquetHalls.map(hall => (
+                  <tr key={hall.id} className="hover:bg-gray-50/50">
+                    <td className="px-5 py-3 text-sm font-medium text-gray-900">{hall.name}</td>
+                    <td className="px-5 py-3 text-sm text-gray-700">{hall.maxCapacity} Pax</td>
+                    <td className="px-5 py-3 text-sm font-semibold text-primary-600">₹{Number(hall.baseRental).toLocaleString()}</td>
+                    <td className="px-5 py-3 text-sm text-gray-500">{hall.description || '—'}</td>
+                    <td className="px-5 py-3 text-sm">
+                      <button
+                        onClick={() => toggleHallAvailability(hall)}
+                        className={`w-10 h-5 rounded-full transition-colors relative flex items-center ${
+                          hall.isActive ? 'bg-emerald-500' : 'bg-gray-300'
+                        }`}
+                      >
+                        <span
+                          className={`block w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                            hall.isActive ? 'translate-x-5' : 'translate-x-0.5'
+                          }`}
+                        />
+                      </button>
+                    </td>
+                    <td className="px-5 py-3 flex gap-1 justify-end">
+                      <button
+                        onClick={() => {
+                          setEditHall(hall);
+                          setHallForm({
+                            name: hall.name,
+                            maxCapacity: hall.maxCapacity,
+                            baseRental: Number(hall.baseRental),
+                            description: hall.description || '',
+                          });
+                          setShowHallForm(true);
+                        }}
+                        className="btn btn-ghost btn-sm"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {banquetHalls.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="text-center text-gray-400 py-8 text-sm">
+                      No banquet halls configured. Add one to get started.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Room Type Modal */}
       {showRtForm && (
         <Modal onClose={() => setShowRtForm(false)} title={editRt ? 'Edit Room Type' : 'Add Room Type'}>
@@ -246,6 +382,63 @@ export default function SettingsPage() {
               </button>
             </div>
             <div className="flex gap-3 pt-2"><button className="btn btn-outline flex-1" onClick={() => setShowItemForm(false)}>Cancel</button><button className="btn btn-primary flex-1" onClick={saveItem}><Save size={16} /> Save</button></div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Banquet Hall Modal */}
+      {showHallForm && (
+        <Modal onClose={() => setShowHallForm(false)} title={editHall ? 'Edit Banquet Hall' : 'Add Banquet Hall'}>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Hall Name *</label>
+              <input
+                className="input"
+                value={hallForm.name}
+                onChange={e => setHallForm(p => ({ ...p, name: e.target.value }))}
+                placeholder="e.g. Grand Ballroom"
+                required
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Max Capacity (Pax) *</label>
+                <input
+                  className="input"
+                  type="number"
+                  min="1"
+                  value={hallForm.maxCapacity}
+                  onChange={e => setHallForm(p => ({ ...p, maxCapacity: e.target.value }))}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Base Rental (₹) *</label>
+                <input
+                  className="input"
+                  type="number"
+                  min="0"
+                  value={hallForm.baseRental}
+                  onChange={e => setHallForm(p => ({ ...p, baseRental: e.target.value }))}
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Description</label>
+              <input
+                className="input"
+                value={hallForm.description}
+                onChange={e => setHallForm(p => ({ ...p, description: e.target.value }))}
+                placeholder="e.g. Ground floor event hall with stage"
+              />
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button className="btn btn-outline flex-1" onClick={() => setShowHallForm(false)}>Cancel</button>
+              <button className="btn btn-primary flex-1" onClick={saveBanquetHall}>
+                <Save size={16} /> Save
+              </button>
+            </div>
           </div>
         </Modal>
       )}

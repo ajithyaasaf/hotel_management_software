@@ -286,3 +286,62 @@ export interface Company {
   createdAt: string;
   updatedAt: string;
 }
+
+// ─── BANQUET TYPES ────────────────────────────────────────
+
+export interface BanquetHall {
+  id: string;
+  name: string;
+  maxCapacity: number;
+  baseRental: number;
+  description?: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export type BanquetSlot = 'MORNING' | 'AFTERNOON' | 'EVENING' | 'CUSTOM';
+export type BanquetStatus = 'PROVISIONAL' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
+export type BanquetPaymentType = 'ADVANCE' | 'SETTLEMENT' | 'REFUND';
+
+export interface BanquetPayment {
+  id: string;
+  bookingId: string;
+  amount: number;
+  method: 'CASH' | 'UPI' | 'CARD';
+  type: BanquetPaymentType;
+  reference?: string | null;
+  notes?: string | null;
+  createdBy?: { name: string };
+  createdAt: string;
+}
+
+export interface BanquetBooking {
+  id: string;
+  bookingNumber: string;
+  guestId: string;
+  guest: Guest;
+  hallId: string;
+  hall: BanquetHall;
+  eventDate: string;
+  slot: BanquetSlot;
+  startTime?: string | null;
+  endTime?: string | null;
+  status: BanquetStatus;
+  eventType: string;
+  estimatedPax: number;
+  hallRentalPrice: number;
+  perHeadFoodPrice: number;
+  extraCharges: number;
+  subtotal: number;
+  cgst: number;
+  sgst: number;
+  totalAmount: number;
+  advancePaid: number;
+  pendingAmount: number;
+  notes?: string | null;
+  cancelReason?: string | null;
+  cancelledAt?: string | null;
+  payments?: BanquetPayment[];
+  createdBy?: { name: string };
+  createdAt: string;
+}
