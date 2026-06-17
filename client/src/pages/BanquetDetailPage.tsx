@@ -20,6 +20,13 @@ const SLOT_LABELS: Record<string, { label: string; icon: string }> = {
   CUSTOM: { label: 'Custom Hours', icon: '🕐' },
 };
 
+const FOOD_PREF_LABELS: Record<string, string> = {
+  VEG: '🥬 Pure Vegetarian',
+  NON_VEG: '🍗 Non-Vegetarian',
+  BOTH: '🍽️ Veg & Non-Veg (Both)',
+  NONE: '❌ No Catering',
+};
+
 const PAYMENT_TYPE_STYLES: Record<string, string> = {
   ADVANCE: 'text-primary-600 font-semibold',
   SETTLEMENT: 'text-emerald-700 font-semibold',
@@ -223,6 +230,10 @@ export default function BanquetDetailPage() {
               </div>
               <div><span className="text-gray-400 text-xs block">Guest Count</span><p className="font-semibold">{booking.estimatedPax} pax</p></div>
               <div><span className="text-gray-400 text-xs block">Hall Capacity</span><p className="font-semibold">{booking.hall.maxCapacity} pax</p></div>
+              <div>
+                <span className="text-gray-400 text-xs block">Food Preference</span>
+                <p className="font-semibold">{FOOD_PREF_LABELS[booking.foodPreference] || booking.foodPreference}</p>
+              </div>
               {booking.notes && (
                 <div className="col-span-2"><span className="text-gray-400 text-xs block">Notes</span><p className="font-semibold text-gray-700">{booking.notes}</p></div>
               )}
@@ -332,6 +343,7 @@ export default function BanquetDetailPage() {
         <p className="text-gray-500">{booking.hall.name} · {format(new Date(booking.eventDate), 'dd MMMM yyyy')} · {slotInfo.icon} {slotInfo.label}</p>
         <p className="mt-2"><strong>Organiser:</strong> {booking.guest.name} ({booking.guest.phone})</p>
         <p><strong>Event:</strong> {booking.eventType} for {booking.estimatedPax} guests</p>
+        <p><strong>Catering:</strong> {FOOD_PREF_LABELS[booking.foodPreference] || booking.foodPreference}</p>
         <table className="w-full mt-6 border-collapse text-sm">
           <tbody>
             <tr className="border-b"><td className="py-1 text-gray-600">Hall Rental</td><td className="text-right">₹{Number(booking.hallRentalPrice).toLocaleString()}</td></tr>

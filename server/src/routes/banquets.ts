@@ -34,6 +34,7 @@ const createBookingSchema = z.object({
   // Event Details
   eventType: z.string().min(2),
   estimatedPax: z.number().int().positive(),
+  foodPreference: z.enum(['VEG', 'NON_VEG', 'BOTH', 'NONE']).optional().default('NONE'),
   // Pricing
   hallRentalPrice: z.number().nonnegative(),
   perHeadFoodPrice: z.number().nonnegative().default(0),
@@ -249,6 +250,12 @@ router.post('/bookings', async (req: AuthRequest, res) => {
   const parsed = createBookingSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.errors[0].message });
   const data = parsed.data;
+  if (data.foodPreference === 'NONE' && data.perHeadFoodPrice !== 0) {
+    return res.status(400).json({ error: 'Per-head food price must be 0 if no catering is selected.' });
+  }
+  if (data.foodPreference !== 'NONE' && data.perHeadFoodPrice <= 0) {
+    return res.status(400).json({ error: 'Per-head food price must be greater than 0 if catering is selected.' });
+  }
 
   try {
     // 1. Past Date check
@@ -326,6 +333,7 @@ router.post('/bookings', async (req: AuthRequest, res) => {
           advancePaid: initialAdvance,
           pendingAmount,
           notes: data.notes,
+          foodPreference: data.foodPreference,
         },
         include: { guest: true, hall: true },
       });

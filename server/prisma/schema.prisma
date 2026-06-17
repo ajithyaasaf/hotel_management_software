@@ -660,6 +660,7 @@ model BanquetBooking {
   pendingAmount Decimal @db.Decimal(10, 2)
 
   notes         String?
+  foodPreference FoodPreference @default(NONE)
   cancelReason  String?
   cancelledAt   DateTime?
 
@@ -691,4 +692,11 @@ model BanquetPayment {
 
   @@index([bookingId])
   @@map("banquet_payments")
+}
+
+enum FoodPreference {
+  VEG
+  NON_VEG
+  BOTH
+  NONE
 }

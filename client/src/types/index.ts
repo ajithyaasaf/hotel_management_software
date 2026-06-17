@@ -339,6 +339,7 @@ export interface BanquetBooking {
   advancePaid: number;
   pendingAmount: number;
   notes?: string | null;
+  foodPreference: 'VEG' | 'NON_VEG' | 'BOTH' | 'NONE';
   cancelReason?: string | null;
   cancelledAt?: string | null;
   payments?: BanquetPayment[];

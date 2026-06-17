@@ -21,6 +21,7 @@ interface BanquetForm {
   perHeadFoodPrice: number | string;
   extraCharges: number | string;
   notes: string;
+  foodPreference: 'VEG' | 'NON_VEG' | 'BOTH' | 'NONE';
   advanceAmount: number | string;
   advanceMethod: 'CASH' | 'UPI' | 'CARD';
   advanceReference: string;
@@ -43,6 +44,7 @@ export default function NewBanquetPage() {
     eventType: 'Wedding',
     estimatedPax: '', hallRentalPrice: '', perHeadFoodPrice: 0,
     extraCharges: 0, notes: '',
+    foodPreference: 'NONE',
     advanceAmount: 0, advanceMethod: 'CASH', advanceReference: '',
   });
 
@@ -124,7 +126,10 @@ export default function NewBanquetPage() {
     : null;
   const customTooShort = form.slot === 'CUSTOM' && customDurationHours !== null && customDurationHours < 4;
 
-  const canSubmit = !isPastDate && !customTooShort && form.guestName && form.guestPhone && form.hallId && form.eventDate && pax > 0;
+  const foodPriceInvalid = form.foodPreference !== 'NONE' && (Number(form.perHeadFoodPrice) <= 0 || !form.perHeadFoodPrice);
+  const foodPriceNoneInvalid = form.foodPreference === 'NONE' && Number(form.perHeadFoodPrice) !== 0;
+
+  const canSubmit = !isPastDate && !customTooShort && !foodPriceInvalid && !foodPriceNoneInvalid && form.guestName && form.guestPhone && form.hallId && form.eventDate && pax > 0;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -143,6 +148,7 @@ export default function NewBanquetPage() {
         perHeadFoodPrice: Number(form.perHeadFoodPrice),
         extraCharges: Number(form.extraCharges),
         notes: form.notes || null,
+        foodPreference: form.foodPreference,
         advanceAmount: Number(form.advanceAmount) || 0,
         advanceMethod: form.advanceMethod,
         advanceReference: form.advanceReference || null,
@@ -338,7 +344,7 @@ export default function NewBanquetPage() {
         {/* Event Details */}
         <div className="card p-5 space-y-4">
           <h3 className="font-semibold text-gray-900">Event Details</h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Event Type *</label>
               <select className="input" value={form.eventType} onChange={e => setField('eventType', e.target.value)}>
@@ -365,6 +371,26 @@ export default function NewBanquetPage() {
                 </p>
               )}
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Food Preference *</label>
+              <select
+                className="input"
+                value={form.foodPreference}
+                onChange={e => {
+                  const val = e.target.value as any;
+                  setForm(p => ({
+                    ...p,
+                    foodPreference: val,
+                    perHeadFoodPrice: val === 'NONE' ? 0 : p.perHeadFoodPrice || '',
+                  }));
+                }}
+              >
+                <option value="NONE">None (No Catering)</option>
+                <option value="VEG">Pure Vegetarian</option>
+                <option value="NON_VEG">Non-Vegetarian</option>
+                <option value="BOTH">Veg & Non-Veg (Both)</option>
+              </select>
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-1">Notes / Special Requests</label>
@@ -381,8 +407,19 @@ export default function NewBanquetPage() {
               <input className="input" type="number" min="0" value={form.hallRentalPrice} onChange={e => setField('hallRentalPrice', e.target.value)} required />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Per-Head Food Price (₹)</label>
-              <input className="input" type="number" min="0" value={form.perHeadFoodPrice} onChange={e => setField('perHeadFoodPrice', e.target.value)} />
+              <label className="block text-sm font-medium text-gray-600 mb-1">
+                Per-Head Food Price (₹) {form.foodPreference !== 'NONE' && '*'}
+              </label>
+              <input
+                className="input disabled:bg-gray-100 disabled:text-gray-400"
+                type="number"
+                min={form.foodPreference !== 'NONE' ? "1" : "0"}
+                value={form.perHeadFoodPrice}
+                onChange={e => setField('perHeadFoodPrice', e.target.value)}
+                disabled={form.foodPreference === 'NONE'}
+                required={form.foodPreference !== 'NONE'}
+                placeholder={form.foodPreference === 'NONE' ? "No Catering" : "Enter Price"}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Extra Charges (₹)</label>
