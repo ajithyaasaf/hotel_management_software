@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { bookingsApi, invoicesApi, paymentsApi, roomsApi, nightAuditApi } from '../api';
+import { bookingsApi, invoicesApi, paymentsApi, roomsApi, nightAuditApi, guestsApi } from '../api';
 import type { Booking, Invoice, Room } from '../types';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
-import { ArrowLeft, ArrowRightLeft, CalendarPlus, LogOut as CheckOutIcon, CreditCard, Receipt, X, Ban, Users, AlertTriangle, FileText } from 'lucide-react';
+import { ArrowLeft, ArrowRightLeft, CalendarPlus, LogOut as CheckOutIcon, CreditCard, Receipt, X, Ban, Users, AlertTriangle, FileText, Edit, Upload, UserCheck, Image as ImageIcon } from 'lucide-react';
 import SearchableSelect from '../components/ui/SearchableSelect';
 
 export default function BookingDetailPage() {
@@ -40,6 +40,18 @@ export default function BookingDetailPage() {
   const [adjType, setAdjType] = useState<'DISCOUNT_FLAT' | 'DISCOUNT_PERCENT' | 'EXTRA_CHARGE'>('DISCOUNT_FLAT');
   const [adjAmount, setAdjAmount] = useState<number | string>(0);
   const [adjReason, setAdjReason] = useState('');
+
+  // Edit Guest state
+  const [showEditGuest, setShowEditGuest] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editAddress, setEditAddress] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [editIdType, setEditIdType] = useState('Aadhar');
+  const [editIdNumber, setEditIdNumber] = useState('');
+  const [editIdImage, setEditIdImage] = useState('');
+  const [editExistingIdUrl, setEditExistingIdUrl] = useState('');
 
   useEffect(() => { loadBooking(); }, [id]);
 
@@ -81,6 +93,67 @@ export default function BookingDetailPage() {
       toast.success('Guest checked in successfully');
       loadBooking();
     } catch (e: any) { toast.error(e.response?.data?.error || 'Check-in failed'); }
+  }
+
+  const openEditGuestModal = () => {
+    if (!booking) return;
+    setEditName(booking.guest.name || '');
+    setEditPhone(booking.guest.phone || '');
+    setEditEmail(booking.guest.email || '');
+    setEditAddress(booking.guest.address || '');
+    setEditNotes(booking.guest.notes || '');
+    setEditIdType(booking.guest.idProofType || 'Aadhar');
+    setEditIdNumber(booking.guest.idProofNumber || '');
+    setEditIdImage('');
+    setEditExistingIdUrl(booking.guest.idProofUrl || '');
+    setShowEditGuest(true);
+  };
+
+  function handleEditFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size exceeds 5MB limit');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setEditIdImage(reader.result as string);
+      setEditExistingIdUrl('');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function handleEditGuestSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!editName || !editPhone) {
+      toast.error('Please enter name and phone number');
+      return;
+    }
+    if (editPhone.length < 10) {
+      toast.error('Phone number must be at least 10 digits');
+      return;
+    }
+    setLoading(true);
+    try {
+      await guestsApi.update(booking!.guest.id, {
+        name: editName,
+        phone: editPhone,
+        email: editEmail || null,
+        address: editAddress || null,
+        notes: editNotes || null,
+        idProofType: editIdType,
+        idProofNumber: editIdNumber || null,
+        idProofImage: editIdImage || null,
+      });
+      toast.success('Guest details updated successfully');
+      setShowEditGuest(false);
+      loadBooking();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to update guest details');
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleNoShow() {
@@ -227,7 +300,16 @@ export default function BookingDetailPage() {
         {/* Guest + Stay Info */}
         <div className="lg:col-span-2 space-y-6">
           <div className="card p-5">
-            <h3 className="font-semibold text-gray-900 mb-4">Guest Information</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-gray-900">Guest Information</h3>
+              <button 
+                type="button" 
+                onClick={openEditGuestModal} 
+                className="text-xs font-semibold text-primary-600 hover:text-primary-700 flex items-center gap-1 bg-primary-50 px-2.5 py-1.5 rounded-lg border border-primary-100 transition-colors"
+              >
+                <Edit size={12} /> Edit Details
+              </button>
+            </div>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div><span className="text-gray-400">Name</span><p className="font-medium">{booking.guest.name}</p></div>
               <div><span className="text-gray-400">Phone</span><p className="font-medium">{booking.guest.phone}</p></div>
@@ -574,6 +656,111 @@ export default function BookingDetailPage() {
             <div><label className="block text-sm font-medium text-gray-600 mb-1">Reason</label><input className="input" value={adjReason} onChange={e => setAdjReason(e.target.value)} placeholder="Late checkout, extra bed, etc." /></div>
             <div className="flex gap-3 pt-2"><button className="btn btn-outline flex-1" onClick={() => setShowAdjustment(false)}>Cancel</button><button className="btn btn-primary flex-1" onClick={handleAdjustment}>Add</button></div>
           </div>
+        </Modal>
+      )}
+
+      {/* Edit Guest Modal */}
+      {showEditGuest && (
+        <Modal onClose={() => setShowEditGuest(false)} title="Edit Guest Details">
+          <form onSubmit={handleEditGuestSubmit} className="space-y-4 max-h-[75vh] overflow-y-auto pr-1 py-1">
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Full Name *</label>
+              <input className="input" value={editName} onChange={e => setEditName(e.target.value)} required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Phone Number *</label>
+              <input className="input" value={editPhone} onChange={e => setEditPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Email Address</label>
+              <input className="input" type="email" value={editEmail} onChange={e => setEditEmail(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Address</label>
+              <input className="input" value={editAddress} onChange={e => setEditAddress(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Notes</label>
+              <textarea className="input" rows={2} value={editNotes} onChange={e => setEditNotes(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">ID Proof Type</label>
+                <select className="input" value={editIdType} onChange={e => setEditIdType(e.target.value)}>
+                  <option>Aadhar</option><option>Passport</option><option>Driving License</option><option>Voter ID</option><option>Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">ID Proof Number</label>
+                <input className="input" value={editIdNumber} onChange={e => setEditIdNumber(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <label className="block text-sm font-medium text-gray-600 mb-2">ID Proof Document (Aadhar / PAN Scan)</label>
+              {editExistingIdUrl ? (
+                <div className="flex items-center justify-between p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-emerald-100/50 rounded-lg text-emerald-600">
+                      <UserCheck size={20} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-emerald-800">Saved ID Found</p>
+                      <p className="text-xs text-emerald-600">An ID scan is already saved.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <a 
+                      href={editExistingIdUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-xs font-semibold text-primary-600 hover:text-primary-700 bg-white border border-gray-200 py-1.5 px-3 rounded-lg shadow-sm"
+                    >
+                      View ID
+                    </a>
+                    <button 
+                      type="button" 
+                      onClick={() => setEditExistingIdUrl('')} 
+                      className="text-xs font-semibold text-red-600 hover:text-red-700 bg-white border border-gray-200 py-1.5 px-3 rounded-lg shadow-sm"
+                    >
+                      Replace ID
+                    </button>
+                  </div>
+                </div>
+              ) : editIdImage ? (
+                <div className="flex items-center justify-between p-3 bg-primary-50/50 border border-primary-100 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-lg bg-gray-100 border overflow-hidden flex items-center justify-center">
+                      <img src={editIdImage} alt="Selected ID" className="w-full h-full object-cover" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-primary-800">New ID Selected</p>
+                      <p className="text-xs text-primary-600">Will be uploaded on save.</p>
+                    </div>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => setEditIdImage('')} 
+                    className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-red-500 transition-colors"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center border border-dashed border-gray-200 hover:border-primary-400 rounded-xl p-6 cursor-pointer bg-white hover:bg-primary-50/5 transition-all group">
+                  <Upload size={24} className="text-gray-400 group-hover:text-primary-500 mb-2 transition-colors" />
+                  <span className="text-sm font-medium text-gray-700">Click to upload photo or scan</span>
+                  <span className="text-xs text-gray-400 mt-1">PNG, JPG, WEBP up to 5MB</span>
+                  <input type="file" accept="image/*" onChange={handleEditFileChange} className="hidden" />
+                </label>
+              )}
+            </div>
+
+            <div className="flex gap-3 pt-4 border-t">
+              <button type="button" className="btn btn-outline flex-1" onClick={() => setShowEditGuest(false)}>Cancel</button>
+              <button type="submit" className="btn btn-primary flex-1" disabled={loading}>Save Changes</button>
+            </div>
+          </form>
         </Modal>
       )}
     </div>

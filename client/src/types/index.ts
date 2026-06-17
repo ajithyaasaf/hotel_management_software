@@ -37,6 +37,7 @@ export interface Guest {
   address?: string | null;
   visitCount: number;
   notes?: string | null;
+  idProofUrl?: string | null;
   bookings?: Booking[];
 }
 
