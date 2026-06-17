@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '../utils/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { createAuditLog, generateBookingNumber, generateGroupNumber } from '../utils/helpers';
+import { uploadToCloudinary } from '../utils/cloudinary';
 
 const router = Router();
 router.use(authenticate);
@@ -18,6 +19,12 @@ const roomEntrySchema = z.object({
   specialRequests: z.string().optional().nullable(),
   advanceAmount: z.number().min(0).optional().default(0),
   advanceMethod: z.enum(['CASH', 'UPI', 'CARD']).optional().default('CASH'),
+  guestName: z.string().optional().nullable(),
+  guestPhone: z.string().optional().nullable(),
+  guestEmail: z.string().optional().nullable(),
+  idProofType: z.string().optional().nullable(),
+  idProofNumber: z.string().optional().nullable(),
+  idProofImage: z.string().optional().nullable(),
 });
 
 const createGroupSchema = z.object({
@@ -184,12 +191,21 @@ router.post('/', async (req: AuthRequest, res) => {
         },
       });
       if (conflict) {
-        res.status(400).json({ error: `Room ${room.roomNumber} already has a booking for the selected dates` });
+        res.status(400).json({ error: `Room ${room.roomNumber} is already booked/occupied during the selected dates. Please choose another room or change the dates.` });
         return;
       }
     }
 
-    // All validations passed — run atomic transaction
+    // All validations passed — upload any custom guest ID images to Cloudinary first
+    const roomsWithUrls = await Promise.all(data.rooms.map(async (room) => {
+      let idProofUrl: string | undefined = undefined;
+      if (room.idProofImage) {
+        idProofUrl = await uploadToCloudinary(room.idProofImage);
+      }
+      return { ...room, idProofUrl };
+    }));
+
+    // Run atomic transaction
     const result = await prisma.$transaction(async (tx) => {
       // Find or create lead guest
       let leadGuest = await tx.guest.findFirst({ where: { phone: data.leadGuestPhone } });
@@ -227,17 +243,49 @@ router.post('/', async (req: AuthRequest, res) => {
       today.setHours(0, 0, 0, 0);
 
       // Create each booking + invoice
-      for (const entry of data.rooms) {
+      for (const entry of roomsWithUrls) {
         const checkIn = new Date(entry.checkInDate);
         const checkOut = new Date(entry.expectedCheckout);
         const inDate = new Date(checkIn); inDate.setHours(0, 0, 0, 0);
         const isAdvance = inDate > today;
         const status = isAdvance ? 'CONFIRMED' : 'CHECKED_IN';
 
+        // Resolve guest for this specific room
+        let guestId = leadGuest.id;
+        if (entry.guestPhone) {
+          let roomGuest = await tx.guest.findFirst({ where: { phone: entry.guestPhone } });
+          if (!roomGuest) {
+            if (!entry.guestName) throw new Error(`Guest name is required for new guest phone: ${entry.guestPhone}`);
+            roomGuest = await tx.guest.create({
+              data: {
+                name: entry.guestName,
+                phone: entry.guestPhone,
+                email: entry.guestEmail,
+                idProofType: entry.idProofType,
+                idProofNumber: entry.idProofNumber,
+                idProofUrl: entry.idProofUrl || null,
+                visitCount: 1,
+              },
+            });
+          } else {
+            roomGuest = await tx.guest.update({
+              where: { id: roomGuest.id },
+              data: {
+                name: entry.guestName || roomGuest.name,
+                visitCount: { increment: 1 },
+                ...(entry.idProofType && { idProofType: entry.idProofType }),
+                ...(entry.idProofNumber && { idProofNumber: entry.idProofNumber }),
+                ...(entry.idProofUrl && { idProofUrl: entry.idProofUrl }),
+              },
+            });
+          }
+          guestId = roomGuest.id;
+        }
+
         const booking = await tx.booking.create({
           data: {
             bookingNumber: generateBookingNumber(),
-            guestId: leadGuest.id,
+            guestId,
             roomId: entry.roomId,
             groupBookingId: group.id,
             status,

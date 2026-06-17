@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '../utils/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { createAuditLog, generateBookingNumber } from '../utils/helpers';
+import { uploadToCloudinary } from '../utils/cloudinary';
 
 const router = Router();
 router.use(authenticate);
@@ -13,6 +14,7 @@ const createBookingSchema = z.object({
   guestEmail: z.string().email().optional().nullable(),
   idProofType: z.string().optional().nullable(),
   idProofNumber: z.string().optional().nullable(),
+  idProofImage: z.string().optional().nullable(),
   roomId: z.string().uuid(),
   checkInDate: z.string().datetime(),
   expectedCheckout: z.string().datetime(),
@@ -117,7 +119,7 @@ router.post('/', async (req: AuthRequest, res) => {
         ]
       },
     });
-    if (conflict) { res.status(400).json({ error: 'Room already has an overlapping booking for these dates' }); return; }
+    if (conflict) { res.status(400).json({ error: 'This room is already booked/occupied during the selected dates. Please choose another room or change the dates.' }); return; }
 
     const config = await prisma.systemConfig.findUnique({
       where: { key: 'BUSINESS_DATE' },
@@ -131,6 +133,11 @@ router.post('/', async (req: AuthRequest, res) => {
     const isAdvance = inDate > today;
     const initialStatus = isAdvance ? 'CONFIRMED' : 'CHECKED_IN';
 
+    let idProofUrl: string | undefined = undefined;
+    if (data.idProofImage) {
+      idProofUrl = await uploadToCloudinary(data.idProofImage);
+    }
+
     const result = await prisma.$transaction(async (tx) => {
       // Upsert guest
       let guest = await tx.guest.findFirst({ where: { phone: data.guestPhone } });
@@ -142,6 +149,7 @@ router.post('/', async (req: AuthRequest, res) => {
             email: data.guestEmail,
             idProofType: data.idProofType,
             idProofNumber: data.idProofNumber,
+            idProofUrl: idProofUrl || null,
             visitCount: 1,
           },
         });
@@ -153,6 +161,7 @@ router.post('/', async (req: AuthRequest, res) => {
             visitCount: { increment: 1 },
             ...(data.idProofType && { idProofType: data.idProofType }),
             ...(data.idProofNumber && { idProofNumber: data.idProofNumber }),
+            ...(idProofUrl && { idProofUrl }),
           },
         });
       }

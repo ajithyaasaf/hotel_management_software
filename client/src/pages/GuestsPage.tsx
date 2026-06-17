@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { guestsApi } from '../api';
 import type { Guest } from '../types';
-import { Search, Users } from 'lucide-react';
+import { Search, Users, FileText } from 'lucide-react';
 
 export default function GuestsPage() {
   const [guests, setGuests] = useState<Guest[]>([]);
@@ -43,7 +43,16 @@ export default function GuestsPage() {
                 <tr key={g.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-5 py-3 text-sm font-medium text-gray-900">{g.name}</td>
                   <td className="px-5 py-3 text-sm text-gray-600">{g.phone}</td>
-                  <td className="px-5 py-3 text-sm text-gray-500">{g.idProofType ? `${g.idProofType} — ${g.idProofNumber}` : '—'}</td>
+                  <td className="px-5 py-3 text-sm text-gray-500">
+                    <div className="flex items-center gap-2">
+                      <span>{g.idProofType ? `${g.idProofType} — ${g.idProofNumber || 'N/A'}` : '—'}</span>
+                      {(g as any).idProofUrl && (
+                        <a href={(g as any).idProofUrl} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-700" title="View ID Proof">
+                          <FileText size={16} />
+                        </a>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-5 py-3"><span className="badge badge-blue">{g.visitCount}</span></td>
                 </tr>
               ))}

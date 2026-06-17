@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import prisma from '../utils/prisma';
 import { authenticate } from '../middleware/auth';
+import { uploadToCloudinary } from '../utils/cloudinary';
 
 const router = Router();
 router.use(authenticate);
@@ -73,10 +74,28 @@ router.put('/:id', async (req, res) => {
       email: z.string().email().optional().nullable(),
       idProofType: z.string().optional().nullable(),
       idProofNumber: z.string().optional().nullable(),
+      idProofImage: z.string().optional().nullable(),
       address: z.string().optional().nullable(),
       notes: z.string().optional().nullable(),
     }).parse(req.body);
-    const guest = await prisma.guest.update({ where: { id: req.params.id as string }, data });
+
+    let idProofUrl: string | undefined = undefined;
+    if (data.idProofImage) {
+      idProofUrl = await uploadToCloudinary(data.idProofImage);
+    }
+
+    const guest = await prisma.guest.update({
+      where: { id: req.params.id as string },
+      data: {
+        name: data.name,
+        email: data.email,
+        idProofType: data.idProofType,
+        idProofNumber: data.idProofNumber,
+        address: data.address,
+        notes: data.notes,
+        ...(idProofUrl && { idProofUrl }),
+      },
+    });
     res.json(guest);
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as any).errors }); return; }

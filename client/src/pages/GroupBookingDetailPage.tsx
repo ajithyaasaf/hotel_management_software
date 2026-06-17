@@ -177,6 +177,24 @@ export default function GroupBookingDetailPage() {
                         {booking.numberOfGuests}
                       </div>
                     </div>
+                    <div className="mt-3 pt-2 border-t border-gray-50 flex items-center justify-between text-xs text-gray-500">
+                      <div>
+                        <span className="font-medium text-gray-400">Occupant: </span>
+                        <span className="font-semibold text-gray-700">{booking.guest.name}</span>
+                        <span className="text-gray-400 mx-1.5">·</span>
+                        <span className="text-gray-600">{booking.guest.phone}</span>
+                      </div>
+                      {(booking.guest as any).idProofUrl && (
+                        <a
+                          href={(booking.guest as any).idProofUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary-600 hover:text-primary-700 font-semibold flex items-center gap-1"
+                        >
+                          <FileText size={12} /> View ID Document
+                        </a>
+                      )}
+                    </div>
                   </div>
                 <div className="flex items-center gap-2">
                   {booking.invoice && (

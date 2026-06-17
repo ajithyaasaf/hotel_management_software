@@ -167,6 +167,7 @@ model Guest {
   email         String?
   idProofType   String?
   idProofNumber String?
+  idProofUrl    String?
   address       String?
   visitCount    Int      @default(0)
   notes         String?

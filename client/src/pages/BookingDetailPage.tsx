@@ -4,7 +4,7 @@ import { bookingsApi, invoicesApi, paymentsApi, roomsApi, nightAuditApi } from '
 import type { Booking, Invoice, Room } from '../types';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
-import { ArrowLeft, ArrowRightLeft, CalendarPlus, LogOut as CheckOutIcon, CreditCard, Receipt, X, Ban, Users, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, ArrowRightLeft, CalendarPlus, LogOut as CheckOutIcon, CreditCard, Receipt, X, Ban, Users, AlertTriangle, FileText } from 'lucide-react';
 import SearchableSelect from '../components/ui/SearchableSelect';
 
 export default function BookingDetailPage() {
@@ -233,6 +233,19 @@ export default function BookingDetailPage() {
               <div><span className="text-gray-400">Phone</span><p className="font-medium">{booking.guest.phone}</p></div>
               <div><span className="text-gray-400">ID Proof</span><p className="font-medium">{booking.guest.idProofType} — {booking.guest.idProofNumber || 'N/A'}</p></div>
               <div><span className="text-gray-400">Visit Count</span><p className="font-medium">{booking.guest.visitCount}</p></div>
+              {booking.guest.idProofUrl && (
+                <div className="col-span-2 mt-2 pt-2 border-t border-gray-100 flex items-center justify-between">
+                  <span className="text-gray-500 font-medium">ID Document</span>
+                  <a
+                    href={booking.guest.idProofUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-semibold text-primary-600 hover:text-primary-700 flex items-center gap-1.5 bg-primary-50 px-3 py-1.5 rounded-lg border border-primary-100 transition-colors"
+                  >
+                    <FileText size={14} /> View Attached ID Document
+                  </a>
+                </div>
+              )}
             </div>
           </div>
 

@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { groupBookingsApi, roomsApi, guestsApi, nightAuditApi } from '../api';
 import type { Room } from '../types';
 import toast from 'react-hot-toast';
-import { ArrowLeft, Plus, Trash2, Search, Users, UserCheck } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Search, Users, UserCheck, Upload, X, Image as ImageIcon } from 'lucide-react';
 import SearchableSelect from '../components/ui/SearchableSelect';
 
 interface RoomEntry {
@@ -15,17 +15,33 @@ interface RoomEntry {
   specialRequests: string;
   advanceAmount: number | string;
   advanceMethod: 'CASH' | 'UPI' | 'CARD';
+  guestName?: string;
+  guestPhone?: string;
+  guestEmail?: string;
+  idProofType?: string;
+  idProofNumber?: string;
+  idProofImage?: string;
+  existingIdProofUrl?: string;
+  showGuestForm?: boolean;
 }
 
-const emptyRoomEntry = (): RoomEntry => ({
+const emptyRoomEntry = (businessDate?: string): RoomEntry => ({
   roomId: '',
-  checkInDate: new Date().toISOString().split('T')[0],
+  checkInDate: businessDate || new Date().toISOString().split('T')[0],
   expectedCheckout: '',
   roomPrice: 0,
   numberOfGuests: 1,
   specialRequests: '',
   advanceAmount: 0,
   advanceMethod: 'CASH',
+  guestName: '',
+  guestPhone: '',
+  guestEmail: '',
+  idProofType: 'Aadhar',
+  idProofNumber: '',
+  idProofImage: '',
+  existingIdProofUrl: '',
+  showGuestForm: false,
 });
 
 export default function NewGroupBookingPage() {
@@ -112,21 +128,45 @@ export default function NewGroupBookingPage() {
   }
 
   function addRoom() {
-    setRoomEntries(prev => [...prev, {
-      roomId: '',
-      checkInDate: businessDate || new Date().toISOString().split('T')[0],
-      expectedCheckout: '',
-      roomPrice: 0,
-      numberOfGuests: 1,
-      specialRequests: '',
-      advanceAmount: 0,
-      advanceMethod: 'CASH',
-    }]);
+    setRoomEntries(prev => [...prev, emptyRoomEntry(businessDate)]);
   }
 
   function removeRoom(index: number) {
     if (roomEntries.length <= 2) { toast.error('A group booking requires at least 2 rooms'); return; }
     setRoomEntries(prev => prev.filter((_, i) => i !== index));
+  }
+
+  async function autoLookupRoomGuest(index: number, phone: string) {
+    if (phone.length !== 10) return;
+    try {
+      const { data } = await guestsApi.search(phone);
+      if (data) {
+        updateEntry(index, {
+          guestName: data.name,
+          guestEmail: data.email || '',
+          idProofType: data.idProofType || 'Aadhar',
+          idProofNumber: data.idProofNumber || '',
+          existingIdProofUrl: data.idProofUrl || '',
+        });
+        toast.success(`Returning guest found for room: ${data.name}`, { icon: '👋', duration: 2000 });
+      }
+    } catch {
+      // Fail silently
+    }
+  }
+
+  function handleRoomGuestFileChange(index: number, e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size exceeds 5MB limit');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      updateEntry(index, { idProofImage: reader.result as string, existingIdProofUrl: '' });
+    };
+    reader.readAsDataURL(file);
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -144,6 +184,16 @@ export default function NewGroupBookingPage() {
         toast.error(`Room ${i + 1}: Checkout must be after check-in`); return;
       }
       if (Number(entry.roomPrice) <= 0) { toast.error(`Room ${i + 1}: Price must be positive`); return; }
+      if (entry.showGuestForm) {
+        if (!entry.guestPhone || entry.guestPhone.length < 10) {
+          toast.error(`Room ${i + 1}: Please enter a valid 10-digit guest phone number`);
+          return;
+        }
+        if (!entry.guestName || entry.guestName.length < 3) {
+          toast.error(`Room ${i + 1}: Guest name must be at least 3 characters`);
+          return;
+        }
+      }
     }
 
     // Guard: duplicate room selection
@@ -168,6 +218,12 @@ export default function NewGroupBookingPage() {
           specialRequests: entry.specialRequests || undefined,
           advanceAmount: Number(entry.advanceAmount) || 0,
           advanceMethod: entry.advanceMethod,
+          guestName: entry.showGuestForm ? entry.guestName : undefined,
+          guestPhone: entry.showGuestForm ? entry.guestPhone : undefined,
+          guestEmail: entry.showGuestForm && entry.guestEmail ? entry.guestEmail : undefined,
+          idProofType: entry.showGuestForm ? entry.idProofType : undefined,
+          idProofNumber: entry.showGuestForm ? entry.idProofNumber : undefined,
+          idProofImage: entry.showGuestForm ? (entry.idProofImage || null) : undefined,
         })),
       };
 
@@ -311,6 +367,144 @@ export default function NewGroupBookingPage() {
                   placeholder="Any special requirements for this room..."
                   onChange={e => updateEntry(index, { specialRequests: e.target.value })}
                 />
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-500 font-medium">Assign different guest for Room {index + 1}?</span>
+                  <button
+                    type="button"
+                    onClick={() => updateEntry(index, { showGuestForm: !entry.showGuestForm })}
+                    className={`btn btn-sm ${entry.showGuestForm ? 'btn-primary' : 'btn-outline'}`}
+                  >
+                    {entry.showGuestForm ? 'Use Lead Guest Details' : 'Assign Different Guest'}
+                  </button>
+                </div>
+
+                {entry.showGuestForm && (
+                  <div className="mt-4 bg-gray-50/50 p-4 rounded-xl border border-gray-100 space-y-4">
+                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Room Guest Details</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">Phone Number *</label>
+                        <input
+                          className="input bg-white"
+                          placeholder="10-digit number..."
+                          value={entry.guestPhone || ''}
+                          onChange={e => {
+                            const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                            updateEntry(index, { guestPhone: val });
+                            if (val.length === 10) {
+                              autoLookupRoomGuest(index, val);
+                            }
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">Full Name *</label>
+                        <input
+                          className="input bg-white"
+                          placeholder="Guest's name"
+                          value={entry.guestName || ''}
+                          onChange={e => updateEntry(index, { guestName: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">Email Address</label>
+                        <input
+                          className="input bg-white"
+                          placeholder="email@example.com"
+                          value={entry.guestEmail || ''}
+                          onChange={e => updateEntry(index, { guestEmail: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">ID Proof Type</label>
+                        <select
+                          className="input bg-white"
+                          value={entry.idProofType || 'Aadhar'}
+                          onChange={e => updateEntry(index, { idProofType: e.target.value })}
+                        >
+                          <option>Aadhar</option><option>Passport</option><option>Driving License</option><option>Voter ID</option><option>Other</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">ID Proof Number</label>
+                        <input
+                          className="input bg-white"
+                          placeholder="ID number..."
+                          value={entry.idProofNumber || ''}
+                          onChange={e => updateEntry(index, { idProofNumber: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="border-t pt-4">
+                      <label className="block text-sm font-medium text-gray-600 mb-2">ID Proof Document (Aadhar / PAN Scan)</label>
+                      {entry.existingIdProofUrl ? (
+                        <div className="flex items-center justify-between p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-emerald-100/50 rounded-lg text-emerald-600">
+                              <UserCheck size={20} />
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-emerald-800">Saved ID Found</p>
+                              <p className="text-xs text-emerald-600">A saved ID proof is already available for this guest.</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <a
+                              href={entry.existingIdProofUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs font-semibold text-primary-600 hover:text-primary-700 bg-white border border-gray-200 py-1.5 px-3 rounded-lg shadow-sm"
+                            >
+                              View Saved ID
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => updateEntry(index, { existingIdProofUrl: '' })}
+                              className="text-xs font-semibold text-red-600 hover:text-red-700 bg-white border border-gray-200 py-1.5 px-3 rounded-lg shadow-sm"
+                            >
+                              Replace ID
+                            </button>
+                          </div>
+                        </div>
+                      ) : entry.idProofImage ? (
+                        <div className="flex items-center justify-between p-3 bg-primary-50/50 border border-primary-100 rounded-xl">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-lg bg-gray-100 border overflow-hidden flex items-center justify-center">
+                              <img src={entry.idProofImage} alt="Selected ID" className="w-full h-full object-cover" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-primary-800">ID Document Selected</p>
+                              <p className="text-xs text-primary-600 font-medium">Will be uploaded on confirmation.</p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => updateEntry(index, { idProofImage: '' })}
+                            className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-red-500 transition-colors"
+                          >
+                            <X size={18} />
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="flex flex-col items-center justify-center border border-dashed border-gray-200 hover:border-primary-400 rounded-xl p-6 cursor-pointer bg-white hover:bg-primary-50/5 transition-all group">
+                          <Upload size={24} className="text-gray-400 group-hover:text-primary-500 mb-2 transition-colors" />
+                          <span className="text-sm font-medium text-gray-700">Click to upload photo or scan</span>
+                          <span className="text-xs text-gray-400 mt-1">PNG, JPG, WEBP up to 5MB</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={e => handleRoomGuestFileChange(index, e)}
+                            className="hidden"
+                          />
+                        </label>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ))}

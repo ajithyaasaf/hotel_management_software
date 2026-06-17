@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { bookingsApi, roomsApi, guestsApi, companiesApi, nightAuditApi } from '../api';
 import type { Room } from '../types';
 import toast from 'react-hot-toast';
-import { ArrowLeft, Search, UserCheck, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Search, UserCheck, AlertTriangle, Upload, FileText, X, Image as ImageIcon } from 'lucide-react';
 import SearchableSelect from '../components/ui/SearchableSelect';
 
 interface BookingForm {
@@ -12,6 +12,7 @@ interface BookingForm {
   guestEmail: string;
   idProofType: string;
   idProofNumber: string;
+  idProofImage?: string;
   roomId: string;
   checkInDate: string;
   expectedCheckout: string;
@@ -35,10 +36,11 @@ export default function NewBookingPage() {
   const [guestFound, setGuestFound] = useState(false);
   const [searching, setSearching] = useState(false);
   const [billingType, setBillingType] = useState<'INDIVIDUAL' | 'CORPORATE'>('INDIVIDUAL');
+  const [existingIdProofUrl, setExistingIdProofUrl] = useState('');
 
   const [form, setForm] = useState<BookingForm>({
     guestName: '', guestPhone: '', guestEmail: '',
-    idProofType: 'Aadhar', idProofNumber: '',
+    idProofType: 'Aadhar', idProofNumber: '', idProofImage: '',
     roomId: preselected?.roomId || '',
     checkInDate: new Date().toISOString().split('T')[0],
     expectedCheckout: '', roomPrice: preselected?.roomPrice || 0,
@@ -83,6 +85,7 @@ export default function NewBookingPage() {
           idProofNumber: data.idProofNumber || '',
         }));
         setGuestFound(true);
+        setExistingIdProofUrl(data.idProofUrl || '');
         toast.success(`Welcome back, ${data.name}!`, { icon: '👋' });
       }
     } catch {
@@ -95,6 +98,28 @@ export default function NewBookingPage() {
   function handleRoomChange(roomId: string) {
     const room = rooms.find(r => r.id === roomId);
     setForm(p => ({ ...p, roomId, roomPrice: room ? Number(room.roomType.basePrice) : 0 }));
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check size limit: keep it compressed (max 5MB for safety, but we recommend smaller)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size exceeds 5MB limit');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setForm(p => ({ ...p, idProofImage: reader.result as string }));
+      setExistingIdProofUrl('');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function removeSelectedFile() {
+    setForm(p => ({ ...p, idProofImage: '' }));
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -132,7 +157,8 @@ export default function NewBookingPage() {
         guestEmail: form.guestEmail || null,
         companyId: form.companyId || null,
         billingRule: form.billingRule,
-        guestName: form.guestName
+        guestName: form.guestName,
+        idProofImage: form.idProofImage || null,
       };
       const { data } = await bookingsApi.create(payload);
       toast.success(`Guest checked into Room ${data.room.roomNumber}!`);
@@ -206,6 +232,67 @@ export default function NewBookingPage() {
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">ID Proof Number</label>
               <input className="input" placeholder="Enter ID number..." value={form.idProofNumber} onChange={e => setForm(p => ({ ...p, idProofNumber: e.target.value }))} />
+            </div>
+
+            <div className="md:col-span-2 mt-4 border-t pt-4">
+              <label className="block text-sm font-medium text-gray-600 mb-2">ID Proof Document (Aadhar / PAN Scan)</label>
+              
+              {existingIdProofUrl ? (
+                <div className="flex items-center justify-between p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-emerald-100/50 rounded-lg text-emerald-600">
+                      <UserCheck size={20} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-emerald-800">Saved ID Found</p>
+                      <p className="text-xs text-emerald-600">This returning guest already has an ID proof uploaded.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <a 
+                      href={existingIdProofUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-xs font-semibold text-primary-600 hover:text-primary-700 bg-white border border-gray-200 py-1.5 px-3 rounded-lg shadow-sm"
+                    >
+                      View Saved ID
+                    </a>
+                    <button 
+                      type="button" 
+                      onClick={() => setExistingIdProofUrl('')} 
+                      className="text-xs font-semibold text-red-600 hover:text-red-700 bg-white border border-gray-200 py-1.5 px-3 rounded-lg shadow-sm"
+                    >
+                      Replace ID
+                    </button>
+                  </div>
+                </div>
+              ) : form.idProofImage ? (
+                <div className="flex items-center justify-between p-3 bg-primary-50/50 border border-primary-100 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-lg bg-gray-100 border overflow-hidden flex items-center justify-center">
+                      <img src={form.idProofImage} alt="Selected ID Preview" className="w-full h-full object-cover" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-primary-800">ID Document Selected</p>
+                      <p className="text-xs text-primary-600">Will be uploaded on confirmation.</p>
+                    </div>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={removeSelectedFile} 
+                    className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-red-500 transition-colors"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 hover:border-primary-400 rounded-xl p-6 cursor-pointer bg-gray-50/50 hover:bg-primary-50/10 transition-all group">
+                  <Upload size={24} className="text-gray-400 group-hover:text-primary-500 mb-2 transition-colors" />
+                  <span className="text-sm font-medium text-gray-700">Click to upload photo or scan</span>
+                  <span className="text-xs text-gray-400 mt-1">PNG, JPG, WEBP up to 5MB</span>
+                  <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                </label>
+              )}
             </div>
           </div>
         </div>
