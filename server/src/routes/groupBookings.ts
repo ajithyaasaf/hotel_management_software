@@ -391,6 +391,17 @@ router.post('/:id/checkout-all', async (req: AuthRequest, res) => {
       return;
     }
 
+    // Check if any room in the group has active orders
+    for (const booking of activeBookings) {
+      const activeOrders = await prisma.order.findMany({
+        where: { roomId: booking.roomId, status: 'ACTIVE' },
+      });
+      if (activeOrders.length > 0) {
+        res.status(400).json({ error: `Cannot checkout. Room ${booking.room.roomNumber} has active restaurant orders.` });
+        return;
+      }
+    }
+
     // Warn if any room has a pending balance (informational — not blocking)
     const pendingRooms = activeBookings.filter(b => Number(b.invoice?.pendingAmount ?? 0) > 0);
 

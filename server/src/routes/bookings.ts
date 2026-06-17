@@ -457,6 +457,15 @@ router.put('/:id/checkout', async (req: AuthRequest, res) => {
     if (!booking) { res.status(404).json({ error: 'Booking not found' }); return; }
     if (booking.status !== 'CHECKED_IN') { res.status(400).json({ error: 'Booking not active' }); return; }
 
+    // Check for active POS orders
+    const activeOrders = await prisma.order.findMany({
+      where: { roomId: booking.roomId, status: 'ACTIVE' },
+    });
+    if (activeOrders.length > 0) {
+      res.status(400).json({ error: `Cannot check out. Room ${booking.room.roomNumber} has active restaurant orders.` });
+      return;
+    }
+
     const config = await prisma.systemConfig.findUnique({
       where: { key: 'BUSINESS_DATE' },
     });

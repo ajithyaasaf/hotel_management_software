@@ -127,53 +127,7 @@ router.post('/', async (req: AuthRequest, res) => {
       include: { items: { include: { menuItem: true } }, room: true },
     });
 
-    // If room order, update the invoice food charges
-    if (data.type === 'ROOM' && data.roomId) {
-      const activeBooking = await prisma.booking.findFirst({
-        where: { roomId: data.roomId, status: 'CHECKED_IN' },
-        include: { invoice: true },
-      });
-      if (activeBooking?.invoice) {
-        const newFoodCharges = Number(activeBooking.invoice.foodCharges) + total;
-        const newSubtotal = Number(activeBooking.invoice.roomCharges) + newFoodCharges + Number(activeBooking.invoice.extraCharges) - Number(activeBooking.invoice.discountAmount);
-        
-        const roomCharges = Number(activeBooking.invoice.roomCharges);
-        const cgst = parseFloat((roomCharges * 0.06).toFixed(2));
-        const sgst = parseFloat((roomCharges * 0.06).toFixed(2));
-        const roomTax = cgst + sgst;
-        
-        const newGrand = parseFloat((newSubtotal + roomTax).toFixed(2));
-
-        let companyAmount = 0;
-        let guestAmount = 0;
-
-        if (activeBooking.billingRule === 'COMPANY_ALL') {
-          companyAmount = newGrand;
-          guestAmount = 0;
-        } else if (activeBooking.billingRule === 'COMPANY_ROOM_ONLY') {
-          companyAmount = parseFloat((roomCharges + roomTax).toFixed(2));
-          guestAmount = Math.max(0, parseFloat((newGrand - companyAmount).toFixed(2)));
-        } else {
-          companyAmount = 0;
-          guestAmount = newGrand;
-        }
-
-        await prisma.invoice.update({
-          where: { id: activeBooking.invoice.id },
-          data: {
-            foodCharges: newFoodCharges,
-            subtotal: newSubtotal,
-            cgst,
-            sgst,
-            totalTax: roomTax,
-            grandTotal: newGrand,
-            companyAmount,
-            guestAmount,
-            pendingAmount: guestAmount - Number(activeBooking.invoice.amountPaid),
-          },
-        });
-      }
-    }
+    // Real-time invoice sync is deferred until the order status is updated to COMPLETED.
 
     res.status(201).json(order);
   } catch (err) {
@@ -208,51 +162,7 @@ router.post('/:id/items', async (req: AuthRequest, res) => {
       const newTotal = parseFloat((newSubtotal + newTax).toFixed(2));
       await tx.order.update({ where: { id: order.id }, data: { subtotal: newSubtotal, tax: newTax, total: newTotal } });
 
-      // Sync invoice if room order
-      if (order.type === 'ROOM' && order.roomId) {
-        const booking = await tx.booking.findFirst({ where: { roomId: order.roomId, status: 'CHECKED_IN' }, include: { invoice: true } });
-        if (booking?.invoice) {
-          const diff = newTotal - Number(order.total);
-          const newFoodCharges = Number(booking.invoice.foodCharges) + diff;
-          const newInvoiceSubtotal = Number(booking.invoice.roomCharges) + newFoodCharges + Number(booking.invoice.extraCharges) - Number(booking.invoice.discountAmount);
-          
-          const roomCharges = Number(booking.invoice.roomCharges);
-          const cgst = parseFloat((roomCharges * 0.06).toFixed(2));
-          const sgst = parseFloat((roomCharges * 0.06).toFixed(2));
-          const roomTax = cgst + sgst;
-          
-          const newGrand = parseFloat((newInvoiceSubtotal + roomTax).toFixed(2));
-
-          let companyAmount = 0;
-          let guestAmount = 0;
-
-          if (booking.billingRule === 'COMPANY_ALL') {
-            companyAmount = newGrand;
-            guestAmount = 0;
-          } else if (booking.billingRule === 'COMPANY_ROOM_ONLY') {
-            companyAmount = parseFloat((roomCharges + roomTax).toFixed(2));
-            guestAmount = Math.max(0, parseFloat((newGrand - companyAmount).toFixed(2)));
-          } else {
-            companyAmount = 0;
-            guestAmount = newGrand;
-          }
-
-          await tx.invoice.update({
-            where: { id: booking.invoice.id },
-            data: {
-              foodCharges: newFoodCharges,
-              subtotal: newInvoiceSubtotal,
-              cgst,
-              sgst,
-              totalTax: roomTax,
-              grandTotal: newGrand,
-              companyAmount,
-              guestAmount,
-              pendingAmount: guestAmount - Number(booking.invoice.amountPaid),
-            },
-          });
-        }
-      }
+      // Real-time invoice sync is deferred until the order status is updated to COMPLETED.
     });
 
     const updated = await prisma.order.findUnique({ where: { id: req.params.id as string }, include: { items: { include: { menuItem: true } } } });
@@ -281,51 +191,7 @@ router.delete('/:id/items/:itemId', async (req: AuthRequest, res) => {
       const newTotal = parseFloat((newSubtotal + newTax).toFixed(2));
       await tx.order.update({ where: { id: item.orderId }, data: { subtotal: newSubtotal, tax: newTax, total: newTotal } });
 
-      // Sync invoice if room order
-      if (item.order.type === 'ROOM' && item.order.roomId) {
-        const booking = await tx.booking.findFirst({ where: { roomId: item.order.roomId, status: 'CHECKED_IN' }, include: { invoice: true } });
-        if (booking?.invoice) {
-          const diff = newTotal - Number(item.order.total);
-          const newFoodCharges = Math.max(0, Number(booking.invoice.foodCharges) + diff);
-          const newInvoiceSubtotal = Number(booking.invoice.roomCharges) + newFoodCharges + Number(booking.invoice.extraCharges) - Number(booking.invoice.discountAmount);
-          
-          const roomCharges = Number(booking.invoice.roomCharges);
-          const cgst = parseFloat((roomCharges * 0.06).toFixed(2));
-          const sgst = parseFloat((roomCharges * 0.06).toFixed(2));
-          const roomTax = cgst + sgst;
-          
-          const newGrand = parseFloat((newInvoiceSubtotal + roomTax).toFixed(2));
-
-          let companyAmount = 0;
-          let guestAmount = 0;
-
-          if (booking.billingRule === 'COMPANY_ALL') {
-            companyAmount = newGrand;
-            guestAmount = 0;
-          } else if (booking.billingRule === 'COMPANY_ROOM_ONLY') {
-            companyAmount = parseFloat((roomCharges + roomTax).toFixed(2));
-            guestAmount = Math.max(0, parseFloat((newGrand - companyAmount).toFixed(2)));
-          } else {
-            companyAmount = 0;
-            guestAmount = newGrand;
-          }
-
-          await tx.invoice.update({
-            where: { id: booking.invoice.id },
-            data: {
-              foodCharges: newFoodCharges,
-              subtotal: newInvoiceSubtotal,
-              cgst,
-              sgst,
-              totalTax: roomTax,
-              grandTotal: newGrand,
-              companyAmount,
-              guestAmount,
-              pendingAmount: guestAmount - Number(booking.invoice.amountPaid),
-            },
-          });
-        }
-      }
+      // Real-time invoice sync is deferred until the order status is updated to COMPLETED.
     });
 
     await createAuditLog({ action: 'CANCEL_ITEM', entity: 'order_item', entityId: item.id, details: reason || 'Item cancelled', userId: req.user!.id });
@@ -338,9 +204,65 @@ router.put('/:id/complete', async (req: AuthRequest, res) => {
   try {
     const order = await prisma.order.findUnique({ where: { id: req.params.id as string } });
     if (!order || order.status !== 'ACTIVE') { res.status(400).json({ error: 'Order not active' }); return; }
-    const updated = await prisma.order.update({ where: { id: order.id }, data: { status: 'COMPLETED' } });
-    res.json(updated);
-  } catch { res.status(500).json({ error: 'Failed to complete order' }); }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const updated = await tx.order.update({ where: { id: order.id }, data: { status: 'COMPLETED' } });
+
+      // Sync invoice if room order
+      if (order.type === 'ROOM' && order.roomId) {
+        const activeBooking = await tx.booking.findFirst({
+          where: { roomId: order.roomId, status: 'CHECKED_IN' },
+          include: { invoice: true },
+        });
+        if (activeBooking?.invoice) {
+          const newFoodCharges = Number(activeBooking.invoice.foodCharges) + Number(order.total);
+          const newSubtotal = Number(activeBooking.invoice.roomCharges) + newFoodCharges + Number(activeBooking.invoice.extraCharges) - Number(activeBooking.invoice.discountAmount);
+          
+          const roomCharges = Number(activeBooking.invoice.roomCharges);
+          const cgst = parseFloat((roomCharges * 0.06).toFixed(2));
+          const sgst = parseFloat((roomCharges * 0.06).toFixed(2));
+          const roomTax = cgst + sgst;
+          
+          const newGrand = parseFloat((newSubtotal + roomTax).toFixed(2));
+
+          let companyAmount = 0;
+          let guestAmount = 0;
+
+          if (activeBooking.billingRule === 'COMPANY_ALL') {
+            companyAmount = newGrand;
+            guestAmount = 0;
+          } else if (activeBooking.billingRule === 'COMPANY_ROOM_ONLY') {
+            companyAmount = parseFloat((roomCharges + roomTax).toFixed(2));
+            guestAmount = Math.max(0, parseFloat((newGrand - companyAmount).toFixed(2)));
+          } else {
+            companyAmount = 0;
+            guestAmount = newGrand;
+          }
+
+          await tx.invoice.update({
+            where: { id: activeBooking.invoice.id },
+            data: {
+              foodCharges: newFoodCharges,
+              subtotal: newSubtotal,
+              cgst,
+              sgst,
+              totalTax: roomTax,
+              grandTotal: newGrand,
+              companyAmount,
+              guestAmount,
+              pendingAmount: guestAmount - Number(activeBooking.invoice.amountPaid),
+            },
+          });
+        }
+      }
+      return updated;
+    });
+
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to complete order' });
+  }
 });
 
 // PUT /api/orders/:id/cancel
@@ -353,51 +275,7 @@ router.put('/:id/cancel', async (req: AuthRequest, res) => {
     await prisma.$transaction(async (tx) => {
       await tx.order.update({ where: { id: order.id }, data: { status: 'CANCELLED' } });
 
-      // Sync invoice if room order
-      if (order.type === 'ROOM' && order.roomId) {
-        const booking = await tx.booking.findFirst({ where: { roomId: order.roomId, status: 'CHECKED_IN' }, include: { invoice: true } });
-        if (booking?.invoice) {
-          const refundAmount = Number(order.total);
-          const newFoodCharges = Math.max(0, Number(booking.invoice.foodCharges) - refundAmount);
-          const newInvoiceSubtotal = Number(booking.invoice.roomCharges) + newFoodCharges + Number(booking.invoice.extraCharges) - Number(booking.invoice.discountAmount);
-          
-          const roomCharges = Number(booking.invoice.roomCharges);
-          const cgst = parseFloat((roomCharges * 0.06).toFixed(2));
-          const sgst = parseFloat((roomCharges * 0.06).toFixed(2));
-          const roomTax = cgst + sgst;
-          
-          const newGrand = parseFloat((newInvoiceSubtotal + roomTax).toFixed(2));
-
-          let companyAmount = 0;
-          let guestAmount = 0;
-
-          if (booking.billingRule === 'COMPANY_ALL') {
-            companyAmount = newGrand;
-            guestAmount = 0;
-          } else if (booking.billingRule === 'COMPANY_ROOM_ONLY') {
-            companyAmount = parseFloat((roomCharges + roomTax).toFixed(2));
-            guestAmount = Math.max(0, parseFloat((newGrand - companyAmount).toFixed(2)));
-          } else {
-            companyAmount = 0;
-            guestAmount = newGrand;
-          }
-
-          await tx.invoice.update({
-            where: { id: booking.invoice.id },
-            data: {
-              foodCharges: newFoodCharges,
-              subtotal: newInvoiceSubtotal,
-              cgst,
-              sgst,
-              totalTax: roomTax,
-              grandTotal: newGrand,
-              companyAmount,
-              guestAmount,
-              pendingAmount: guestAmount - Number(booking.invoice.amountPaid),
-            },
-          });
-        }
-      }
+      // Real-time invoice sync is deferred until the order status is updated to COMPLETED.
     });
 
     await createAuditLog({ action: 'CANCEL_ORDER', entity: 'order', entityId: order.id, details: reason, userId: req.user!.id });
