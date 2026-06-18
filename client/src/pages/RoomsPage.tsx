@@ -107,7 +107,49 @@ export default function RoomsPage() {
     BLOCKED: rooms.filter(r => r.status === 'BLOCKED').length,
   };
 
-  if (loading) return <div className="flex items-center justify-center h-[60vh]"><div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-600 border-t-transparent" /></div>;
+  if (loading) {
+    return (
+      <div className="space-y-8 animate-pulse p-1">
+        {/* Header Skeleton */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <div className="h-7 w-28 bg-gray-200 rounded-lg" />
+            <div className="h-4 w-40 bg-gray-150 rounded-md" />
+          </div>
+          <div className="h-10 w-28 bg-gray-200 rounded-xl" />
+        </div>
+
+        {/* Filters Skeleton */}
+        <div className="flex items-center gap-4">
+          <div className="h-10 w-64 bg-gray-200 rounded-xl" />
+          <div className="flex gap-2">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="h-9 w-24 bg-gray-200 rounded-lg" />
+            ))}
+          </div>
+        </div>
+
+        {/* Floor Sections Skeletons */}
+        {[1, 2].map(floor => (
+          <div key={floor} className="space-y-4">
+            <div className="h-4 w-24 bg-gray-200 rounded-md" />
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-3">
+              {Array.from({ length: floor === 1 ? 7 : 5 }).map((_, idx) => (
+                <div key={idx} className="h-28 bg-gray-50/80 rounded-xl p-4 border border-gray-150/60 flex flex-col justify-between">
+                  <div className="flex justify-between items-center">
+                    <div className="h-6 w-12 bg-gray-200 rounded-md" />
+                    <div className="h-4 w-4 bg-gray-200 rounded-full" />
+                  </div>
+                  <div className="h-3 w-16 bg-gray-200 rounded-md" />
+                  <div className="h-5 w-16 bg-gray-200 rounded-full" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fadeIn">

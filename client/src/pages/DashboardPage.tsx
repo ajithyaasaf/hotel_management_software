@@ -38,11 +38,95 @@ export default function DashboardPage() {
     return () => clearTimeout(timer);
   }, []);
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-[60vh]">
-      <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-600 border-t-transparent" />
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="space-y-8 animate-pulse p-1">
+        {/* Header Skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="h-7 w-48 bg-gray-200 rounded-lg" />
+            <div className="h-4 w-60 bg-gray-150 rounded-md" />
+          </div>
+          <div className="h-14 w-44 bg-gray-200 rounded-2xl" />
+        </div>
+
+        {/* 4 Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-32 bg-gray-50 rounded-2xl p-5 border border-gray-150/60 flex flex-col justify-between">
+              <div className="flex justify-between items-start">
+                <div className="h-10 w-10 bg-gray-200 rounded-xl" />
+                {i === 0 && <div className="h-5 w-12 bg-gray-200 rounded-full" />}
+              </div>
+              <div className="space-y-1.5 mt-2">
+                <div className="h-6 w-24 bg-gray-200 rounded-md" />
+                <div className="h-3 w-16 bg-gray-200 rounded-md" />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* 3 Quick Stats Cards */}
+        <div className="grid grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-20 bg-gray-50 rounded-2xl p-4 border border-gray-150/60 flex items-center gap-4">
+              <div className="h-12 w-12 bg-gray-200 rounded-xl" />
+              <div className="space-y-2">
+                <div className="h-5 w-12 bg-gray-200 rounded-md" />
+                <div className="h-3.5 w-24 bg-gray-150 rounded-md" />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Bottom Columns */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Active Checkins Column */}
+          <div className="card border border-gray-150/60 p-5 space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-gray-100">
+              <div className="h-5 w-32 bg-gray-200 rounded-md" />
+              <div className="h-5 w-8 bg-gray-200 rounded-full" />
+            </div>
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <div key={idx} className="flex justify-between items-center py-1">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 bg-gray-200 rounded-lg" />
+                  <div className="space-y-2">
+                    <div className="h-4 w-28 bg-gray-200 rounded-md" />
+                    <div className="h-3 w-20 bg-gray-150 rounded-md" />
+                  </div>
+                </div>
+                <div className="space-y-1.5 flex flex-col items-end">
+                  <div className="h-5 w-16 bg-gray-200 rounded-full" />
+                  <div className="h-3 w-12 bg-gray-150 rounded-md" />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Active Orders Column */}
+          <div className="card border border-gray-150/60 p-5 space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-gray-100">
+              <div className="h-5 w-28 bg-gray-200 rounded-md" />
+              <div className="h-5 w-8 bg-gray-200 rounded-full" />
+            </div>
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <div key={idx} className="flex justify-between items-center py-1">
+                <div className="space-y-2">
+                  <div className="h-4 w-24 bg-gray-200 rounded-md" />
+                  <div className="h-3 w-32 bg-gray-150 rounded-md" />
+                </div>
+                <div className="space-y-1.5 flex flex-col items-end">
+                  <div className="h-4 w-12 bg-gray-200 rounded-md" />
+                  <div className="h-3 w-14 bg-gray-150 rounded-md" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const stats = summary ? [
     { label: 'Total Revenue', value: `₹${summary.totalRevenue.toLocaleString()}`, icon: DollarSign, color: 'bg-status-info-bg text-status-info-text', trend: '+12%' },

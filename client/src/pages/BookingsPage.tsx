@@ -142,7 +142,42 @@ export default function BookingsPage() {
 
       {/* Table */}
       {loading ? (
-        <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-600 border-t-transparent" /></div>
+        <div className="card overflow-hidden border border-gray-150/60 animate-pulse">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gray-50/50">
+                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-14" /></th>
+                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-20" /></th>
+                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-12" /></th>
+                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-16" /></th>
+                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-16" /></th>
+                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-10" /></th>
+                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-16" /></th>
+                <th className="px-5 py-3"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {Array.from({ length: 6 }).map((_, rIdx) => (
+                <tr key={rIdx} className="h-16">
+                  <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-16" /></td>
+                  <td className="px-5 py-3 space-y-1.5">
+                    <div className="h-4 bg-gray-200 rounded-md w-28" />
+                    <div className="h-3 bg-gray-150 rounded-md w-20" />
+                  </td>
+                  <td className="px-5 py-3 space-y-1.5">
+                    <div className="h-4 bg-gray-200 rounded-md w-12" />
+                    <div className="h-3 bg-gray-150 rounded-md w-24" />
+                  </td>
+                  <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-20" /></td>
+                  <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-20" /></td>
+                  <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-12" /></td>
+                  <td className="px-5 py-3"><div className="h-5 bg-gray-200 rounded-full w-20" /></td>
+                  <td className="px-5 py-3"><div className="h-8 bg-gray-100 rounded-lg w-8" /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : tab === 'individual' ? (
         <div className="card overflow-hidden">
           <table className="w-full">

@@ -29,7 +29,30 @@ export default function GuestsPage() {
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
         <input className="input pl-9" placeholder="Search by name or phone..." value={search} onChange={e => handleSearch(e.target.value)} />
       </div>
-      {loading ? <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-600 border-t-transparent" /></div> : (
+      {loading ? (
+        <div className="card overflow-hidden border border-gray-150/60 animate-pulse">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gray-50/50">
+                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-24" /></th>
+                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-20" /></th>
+                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-28" /></th>
+                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-12" /></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {Array.from({ length: 6 }).map((_, rIdx) => (
+                <tr key={rIdx} className="h-14">
+                  <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-32" /></td>
+                  <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-24" /></td>
+                  <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-40" /></td>
+                  <td className="px-5 py-3"><div className="h-5 bg-gray-200 rounded-full w-8" /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
         <div className="card overflow-hidden">
           <table className="w-full">
             <thead><tr className="bg-gray-50/50">

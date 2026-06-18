@@ -70,7 +70,77 @@ export default function POSPage() {
 
   const activeCategory = categories.find(c => c.id === activeCat);
 
-  if (loading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-600 border-t-transparent" /></div>;
+  if (loading) {
+    return (
+      <div className="animate-pulse flex gap-6 h-[calc(100vh-100px)] p-1">
+        {/* Menu Section Skeleton */}
+        <div className="flex-1 flex flex-col min-w-0 space-y-5">
+          <div className="space-y-2">
+            <div className="h-7 w-40 bg-gray-200 rounded-lg" />
+            <div className="h-4 w-48 bg-gray-150 rounded-md" />
+          </div>
+          {/* Order Types */}
+          <div className="flex gap-2">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-9 w-24 bg-gray-200 rounded-lg" />
+            ))}
+          </div>
+          {/* Category Tabs */}
+          <div className="flex gap-2">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="h-9 w-24 bg-gray-200 rounded-lg" />
+            ))}
+          </div>
+          {/* Menu Items Grid */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-28 bg-gray-50 rounded-xl p-4 border border-gray-150/60 flex flex-col justify-between">
+                  <div className="flex justify-between items-center">
+                    <div className="h-4 w-4 bg-gray-200 rounded-sm" />
+                    <div className="h-4 w-4 bg-gray-200 rounded-full" />
+                  </div>
+                  <div className="h-4 w-28 bg-gray-200 rounded-md" />
+                  <div className="h-4 w-12 bg-gray-200 rounded-md" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        {/* Cart Section Skeleton */}
+        <div className="w-[380px] flex flex-col card border border-gray-150/60 p-5 justify-between">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-3 border-b border-gray-100">
+              <div className="h-5 w-5 bg-gray-200 rounded-full" />
+              <div className="h-5 w-28 bg-gray-200 rounded-md" />
+              <div className="h-5 w-8 bg-gray-200 rounded-full ml-auto" />
+            </div>
+            {/* Cart Items List */}
+            <div className="space-y-4 pt-2">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className="flex justify-between items-center">
+                  <div className="space-y-2">
+                    <div className="h-4 w-28 bg-gray-200 rounded-md" />
+                    <div className="h-3 w-16 bg-gray-150 rounded-md" />
+                  </div>
+                  <div className="h-7 w-20 bg-gray-200 rounded-lg" />
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Footer computation */}
+          <div className="border-t border-gray-200 pt-5 space-y-4">
+            <div className="space-y-2">
+              <div className="flex justify-between"><div className="h-4 w-16 bg-gray-200 rounded-md" /><div className="h-4 w-12 bg-gray-200 rounded-md" /></div>
+              <div className="flex justify-between"><div className="h-4 w-16 bg-gray-200 rounded-md" /><div className="h-4 w-10 bg-gray-200 rounded-md" /></div>
+              <div className="flex justify-between border-t border-gray-100 pt-2"><div className="h-5 w-20 bg-gray-200 rounded-md font-bold" /><div className="h-5 w-16 bg-gray-200 rounded-md" /></div>
+            </div>
+            <div className="h-11 bg-gray-200 rounded-xl w-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fadeIn flex gap-6 h-[calc(100vh-100px)]">

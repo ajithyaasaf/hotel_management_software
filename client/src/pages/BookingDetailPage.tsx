@@ -237,7 +237,87 @@ export default function BookingDetailPage() {
     setShowTransfer(true);
   }
 
-  if (loading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-600 border-t-transparent" /></div>;
+  if (loading) {
+    return (
+      <div className="space-y-6 animate-pulse p-1 max-w-5xl">
+        {/* Back button skeleton */}
+        <div className="h-9 w-24 bg-gray-200 rounded-lg" />
+
+        {/* Header Skeleton */}
+        <div className="flex justify-between items-start">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-36 bg-gray-200 rounded-lg" />
+              <div className="h-5 w-20 bg-gray-250 rounded-full" />
+            </div>
+            <div className="h-4 w-48 bg-gray-150 rounded-md" />
+          </div>
+          <div className="flex gap-2">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="h-9 w-24 bg-gray-200 rounded-lg" />
+            ))}
+          </div>
+        </div>
+
+        {/* Content Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Guest and Stay Cards */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="card p-5 border border-gray-150/60 space-y-4">
+              <div className="flex justify-between items-center pb-2 border-b border-gray-100">
+                <div className="h-5 w-36 bg-gray-200 rounded-md" />
+                <div className="h-8 w-24 bg-gray-200 rounded-lg" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="space-y-1.5">
+                    <div className="h-3 w-16 bg-gray-150 rounded-sm" />
+                    <div className="h-4 w-32 bg-gray-200 rounded-md" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="card p-5 border border-gray-150/60 space-y-4">
+              <div className="h-5 w-28 bg-gray-200 rounded-md pb-2 border-b border-gray-100" />
+              <div className="grid grid-cols-2 gap-4">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="space-y-1.5">
+                    <div className="h-3 w-20 bg-gray-150 rounded-sm" />
+                    <div className="h-4 w-28 bg-gray-200 rounded-md" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Invoice Sidebar */}
+          <div className="card p-5 border border-gray-150/60 space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-gray-100">
+              <div className="h-5 w-20 bg-gray-200 rounded-md" />
+              <div className="h-4 w-16 bg-gray-150 rounded-md" />
+            </div>
+            <div className="space-y-3">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="flex justify-between">
+                  <div className="h-4 w-24 bg-gray-150 rounded-md" />
+                  <div className="h-4 w-16 bg-gray-200 rounded-md" />
+                </div>
+              ))}
+              <div className="border-t border-gray-200 pt-3 flex justify-between">
+                <div className="h-5 w-16 bg-gray-200 rounded-md" />
+                <div className="h-5 w-20 bg-gray-200 rounded-md" />
+              </div>
+            </div>
+            <div className="flex gap-2 pt-2 border-t border-gray-100">
+              <div className="h-9 bg-gray-200 rounded-lg flex-1" />
+              <div className="h-9 bg-gray-200 rounded-lg flex-1" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (!booking) return <p className="text-gray-500">Booking not found</p>;
 
   const isActive = booking.status === 'CHECKED_IN';

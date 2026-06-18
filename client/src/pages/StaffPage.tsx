@@ -6,11 +6,19 @@ import { Plus, UserCog, X } from 'lucide-react';
 
 export default function StaffPage() {
   const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'RECEPTION' as User['role'] });
 
   useEffect(() => { load(); }, []);
-  async function load() { try { const { data } = await usersApi.getAll(); setUsers(data); } catch {} }
+  async function load() {
+    setLoading(true);
+    try {
+      const { data } = await usersApi.getAll();
+      setUsers(data);
+    } catch {}
+    finally { setLoading(false); }
+  }
 
   async function handleAdd() {
     if (!form.name || !form.email || !form.password) { toast.error('Please fill all fields'); return; }
@@ -34,26 +42,54 @@ export default function StaffPage() {
         <div><h1 className="text-2xl font-bold text-gray-900">Staff</h1><p className="text-gray-500 text-sm mt-1">Manage users & roles</p></div>
         <button onClick={() => setShowAdd(true)} className="btn btn-primary"><Plus size={18} /> Add User</button>
       </div>
-      <div className="card overflow-hidden">
-        <table className="w-full"><thead><tr className="bg-gray-50/50">
-          <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Name</th>
-          <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Email</th>
-          <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Role</th>
-          <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
-          <th className="px-5 py-3"></th>
-        </tr></thead>
-        <tbody className="divide-y divide-gray-50">
-          {users.map(u => (
-            <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
-              <td className="px-5 py-3 text-sm font-medium text-gray-900">{u.name}</td>
-              <td className="px-5 py-3 text-sm text-gray-600">{u.email}</td>
-              <td className="px-5 py-3"><span className={`badge ${roleBadge[u.role]}`}>{u.role}</span></td>
-              <td className="px-5 py-3"><span className={`badge ${u.isActive ? 'badge-green' : 'badge-gray'}`}>{u.isActive ? 'Active' : 'Inactive'}</span></td>
-              <td className="px-5 py-3"><button onClick={() => toggleActive(u.id, u.isActive!)} className="btn btn-ghost btn-sm">{u.isActive ? 'Deactivate' : 'Activate'}</button></td>
-            </tr>
-          ))}
-        </tbody></table>
-      </div>
+
+      {loading ? (
+        <div className="card overflow-hidden border border-gray-150/60 animate-pulse">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-gray-50/50">
+                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-16" /></th>
+                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-24" /></th>
+                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-12" /></th>
+                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-14" /></th>
+                <th className="px-5 py-3"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {Array.from({ length: 4 }).map((_, rIdx) => (
+                <tr key={rIdx} className="h-14">
+                  <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-24" /></td>
+                  <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-36" /></td>
+                  <td className="px-5 py-3"><div className="h-5 bg-gray-200 rounded-full w-16" /></td>
+                  <td className="px-5 py-3"><div className="h-5 bg-gray-200 rounded-full w-14" /></td>
+                  <td className="px-5 py-3 flex justify-end items-center h-14"><div className="h-8 w-20 bg-gray-100 rounded-lg" /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="card overflow-hidden">
+          <table className="w-full"><thead><tr className="bg-gray-50/50">
+            <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Name</th>
+            <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Email</th>
+            <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Role</th>
+            <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
+            <th className="px-5 py-3"></th>
+          </tr></thead>
+          <tbody className="divide-y divide-gray-50">
+            {users.map(u => (
+              <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
+                <td className="px-5 py-3 text-sm font-medium text-gray-900">{u.name}</td>
+                <td className="px-5 py-3 text-sm text-gray-600">{u.email}</td>
+                <td className="px-5 py-3"><span className={`badge ${roleBadge[u.role]}`}>{u.role}</span></td>
+                <td className="px-5 py-3"><span className={`badge ${u.isActive ? 'badge-green' : 'badge-gray'}`}>{u.isActive ? 'Active' : 'Inactive'}</span></td>
+                <td className="px-5 py-3"><button onClick={() => toggleActive(u.id, u.isActive!)} className="btn btn-ghost btn-sm">{u.isActive ? 'Deactivate' : 'Activate'}</button></td>
+              </tr>
+            ))}
+          </tbody></table>
+        </div>
+      )}
 
       {showAdd && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowAdd(false)}>

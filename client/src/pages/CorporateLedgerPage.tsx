@@ -246,7 +246,18 @@ export default function CorporateLedgerPage() {
 
           <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
             {loading ? (
-              <div className="p-8 text-center text-gray-500">Loading accounts...</div>
+              <div className="space-y-4 p-4 animate-pulse">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex justify-between items-center py-2 border-b border-gray-50">
+                    <div className="space-y-2 flex-1 pr-4">
+                      <div className="h-4 bg-gray-200 rounded-md w-32" />
+                      <div className="h-3.5 bg-gray-150 rounded-md w-24" />
+                      <div className="h-3 bg-gray-100 rounded-md w-20" />
+                    </div>
+                    <div className="h-8 w-8 bg-gray-100 rounded-lg" />
+                  </div>
+                ))}
+              </div>
             ) : filteredCompanies.length === 0 ? (
               <div className="p-8 text-center text-gray-500">No corporate accounts found.</div>
             ) : (

@@ -506,9 +506,60 @@ export default function NightAuditPage() {
               </div>
             </div>
           ) : loadingPreCheck ? (
-            <div className="flex flex-col justify-center items-center py-32 gap-3">
-              <div className="animate-spin rounded-full h-10 w-10 border-4 border-primary-600 border-t-transparent" />
-              <p className="text-sm font-bold text-gray-500 tracking-tight">Gathering pre-check dashboard logs...</p>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-pulse">
+              {/* Left Column: Config and Details */}
+              <div className="lg:col-span-2 space-y-6">
+                {/* Business Date Info Banner */}
+                <div className="bg-white border border-gray-150 rounded-3xl p-6 flex justify-between items-center">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-gray-250" />
+                    <div className="space-y-2">
+                      <div className="h-5 w-44 bg-gray-200 rounded-md" />
+                      <div className="h-3 w-28 bg-gray-150 rounded-sm" />
+                    </div>
+                  </div>
+                  <div className="space-y-2 text-right">
+                    <div className="h-6 w-32 bg-gray-200 rounded-md" />
+                    <div className="h-3.5 w-24 bg-gray-150 rounded-sm" />
+                  </div>
+                </div>
+
+                {/* Pre-Check Operational Alerts */}
+                <div className="bg-white border border-gray-150 rounded-3xl p-6 space-y-5">
+                  <div className="h-5 w-40 bg-gray-200 rounded-md mb-2" />
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="border border-gray-100 rounded-2xl p-4 flex gap-4 items-start">
+                      <div className="w-8 h-8 rounded-xl bg-gray-200 shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 w-52 bg-gray-200 rounded-md" />
+                        <div className="h-3.5 w-80 bg-gray-150 rounded-md" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right Column: Execution Form Card */}
+              <div>
+                <div className="bg-white border border-gray-150 rounded-[24px] p-6 space-y-4">
+                  <div className="h-5 w-32 bg-gray-200 rounded-md mb-2" />
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <div className="h-4 w-28 bg-gray-150 rounded-md" />
+                      <div className="h-4 w-16 bg-gray-200 rounded-md" />
+                    </div>
+                    <div className="flex justify-between border-t pt-3">
+                      <div className="h-4 w-36 bg-gray-150 rounded-md" />
+                      <div className="h-4 w-16 bg-gray-200 rounded-md" />
+                    </div>
+                  </div>
+                  <div className="space-y-2 pt-2">
+                    <div className="h-3 w-36 bg-gray-200 rounded-sm" />
+                    <div className="h-20 bg-gray-50 rounded-xl" />
+                  </div>
+                  <div className="h-12 bg-gray-250 rounded-xl w-full" />
+                </div>
+              </div>
             </div>
           ) : preCheck ? (
             /* Close Day Form Panel */
@@ -949,9 +1000,47 @@ export default function NightAuditPage() {
               </div>
             </div>
           ) : loadingHistory ? (
-            <div className="flex flex-col justify-center items-center py-32 gap-3">
-              <div className="animate-spin rounded-full h-10 w-10 border-4 border-primary-600 border-t-transparent" />
-              <p className="text-sm font-bold text-gray-500 tracking-tight">Fetching completed audit history...</p>
+            <div className="space-y-4 animate-pulse">
+              {/* Date Filter Bar */}
+              <div className="bg-white border border-gray-150 rounded-[20px] p-4 flex justify-between items-center">
+                <div className="h-4 w-48 bg-gray-250 rounded-md" />
+                <div className="h-9 w-40 bg-gray-200 rounded-xl" />
+              </div>
+
+              {/* History Table View Card */}
+              <div className="card overflow-hidden border border-gray-150">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-gray-50/50">
+                      <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-20" /></th>
+                      <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-16" /></th>
+                      <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-16" /></th>
+                      <th className="px-5 py-3 text-right"><div className="h-3 bg-gray-200 rounded-md w-24 ml-auto" /></th>
+                      <th className="px-5 py-3 text-right"><div className="h-3 bg-gray-200 rounded-md w-24 ml-auto" /></th>
+                      <th className="px-5 py-3 text-right"><div className="h-3 bg-gray-200 rounded-md w-20 ml-auto" /></th>
+                      <th className="px-5 py-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {Array.from({ length: 5 }).map((_, rIdx) => (
+                      <tr key={rIdx} className="h-16">
+                        <td className="px-5 py-4"><div className="h-4 bg-gray-200 rounded-md w-24" /></td>
+                        <td className="px-5 py-4"><div className="h-4 bg-gray-200 rounded-md w-28" /></td>
+                        <td className="px-5 py-4">
+                          <div className="space-y-1">
+                            <div className="h-4 bg-gray-200 rounded-md w-20" />
+                            <div className="h-2.5 bg-gray-150 rounded-sm w-12" />
+                          </div>
+                        </td>
+                        <td className="px-5 py-4 text-right"><div className="h-4 bg-gray-200 rounded-md w-20 ml-auto" /></td>
+                        <td className="px-5 py-4 text-right"><div className="h-4 bg-gray-200 rounded-md w-20 ml-auto" /></td>
+                        <td className="px-5 py-4 text-right"><div className="h-4 bg-gray-200 rounded-md w-16 ml-auto" /></td>
+                        <td className="px-5 py-4 flex justify-center items-center h-16"><div className="h-8 w-24 bg-gray-100 rounded-lg" /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           ) : (
             <div className="space-y-4">

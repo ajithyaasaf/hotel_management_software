@@ -66,10 +66,67 @@ export default function BanquetsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-sm text-gray-500">Loading banquet bookings...</p>
+      <div className="space-y-6 animate-pulse p-1">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-44 bg-gray-200 rounded-lg" />
+            </div>
+            <div className="h-4 w-72 bg-gray-150 rounded-md" />
+          </div>
+          <div className="h-10 w-44 bg-gray-200 rounded-xl" />
+        </div>
+
+        {/* 3 Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="card p-5 border border-gray-150/60 flex items-center gap-4">
+              <div className="h-12 w-12 bg-gray-200 rounded-xl" />
+              <div className="space-y-2">
+                <div className="h-6 w-16 bg-gray-200 rounded-md" />
+                <div className="h-3 w-28 bg-gray-150 rounded-md" />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Filter Bar */}
+        <div className="card p-4 border border-gray-150/60 flex gap-3">
+          <div className="h-9 bg-gray-200 rounded-lg flex-1" />
+          <div className="h-9 bg-gray-200 rounded-lg w-40" />
+          <div className="h-9 bg-gray-200 rounded-lg w-44" />
+        </div>
+
+        {/* Bookings cards list */}
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="card p-5 border border-gray-150/60 flex justify-between items-center">
+              <div className="flex items-center gap-4">
+                <div className="h-10 w-10 bg-gray-200 rounded-xl" />
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <div className="h-4 w-24 bg-gray-200 rounded-md" />
+                    <div className="h-4 w-16 bg-gray-205 rounded-full" />
+                  </div>
+                  <div className="h-4 w-32 bg-gray-200 rounded-md" />
+                  <div className="h-3 w-40 bg-gray-150 rounded-md" />
+                </div>
+              </div>
+              <div className="flex gap-8">
+                {[1, 2, 3].map(j => (
+                  <div key={j} className="space-y-1.5 text-center">
+                    <div className="h-3 w-12 bg-gray-150 rounded-sm" />
+                    <div className="h-4 w-16 bg-gray-200 rounded-md" />
+                  </div>
+                ))}
+                <div className="space-y-1.5 text-right">
+                  <div className="h-3 w-16 bg-gray-150 rounded-sm" />
+                  <div className="h-5 w-20 bg-gray-200 rounded-md" />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );

@@ -86,11 +86,53 @@ export default function GroupBookingDetailPage() {
     } catch (e: any) { toast.error(e.response?.data?.error || 'Failed to unlink'); }
   }
 
-  if (loading) return (
-    <div className="flex justify-center py-20">
-      <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-600 border-t-transparent" />
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="space-y-6 animate-pulse p-1 max-w-5xl">
+        {/* Back Button */}
+        <div className="h-9 w-24 bg-gray-200 rounded-lg" />
+
+        {/* Header */}
+        <div className="flex justify-between items-start">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-44 bg-gray-200 rounded-lg" />
+              <div className="h-5 w-20 bg-gray-250 rounded-full" />
+            </div>
+            <div className="h-4 w-72 bg-gray-150 rounded-md" />
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-xl w-fit">
+          <div className="h-9 w-32 bg-white rounded-lg shadow-sm" />
+          <div className="h-9 w-32 bg-gray-200 rounded-lg" />
+        </div>
+
+        {/* Rooms List Skeletons */}
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="card p-5 border border-gray-150/60 flex flex-col gap-4">
+              <div className="flex justify-between items-center">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <div className="h-4 w-24 bg-gray-200 rounded-md" />
+                    <div className="h-4 w-20 bg-gray-200 rounded-md" />
+                    <div className="h-4 w-16 bg-gray-150 rounded-md" />
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="h-4 w-32 bg-gray-200 rounded-md" />
+                    <div className="h-4 w-28 bg-gray-200 rounded-md" />
+                  </div>
+                </div>
+                <div className="h-8 w-16 bg-gray-200 rounded-lg" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   if (!group) return <p className="text-gray-500">Group booking not found</p>;
 

@@ -37,7 +37,43 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      {loading ? <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-600 border-t-transparent" /></div> : (
+      {loading ? (
+        <div className="space-y-8 animate-pulse">
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-5">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="card p-5 border border-gray-150/60 space-y-3">
+                <div className="h-10 w-10 bg-gray-200 rounded-xl" />
+                <div className="h-6 w-20 bg-gray-200 rounded-md" />
+                <div className="h-3.5 w-16 bg-gray-150 rounded-md" />
+              </div>
+            ))}
+          </div>
+
+          {/* Revenue vs Expense Chart */}
+          <div className="card p-6 border border-gray-150/60 space-y-6">
+            <div className="h-5 w-40 bg-gray-200 rounded-md" />
+            <div className="h-72 bg-gray-50 rounded-xl flex items-end justify-around p-4">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                <div key={i} className="flex gap-1 items-end">
+                  <div className="h-44 w-4 bg-gray-200 rounded-t" />
+                  <div className="h-28 w-4 bg-gray-150 rounded-t" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Quick Stats */}
+          <div className="grid grid-cols-3 gap-5">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="card p-5 border border-gray-150/60 space-y-2">
+                <div className="h-8 w-12 bg-gray-200 rounded-md" />
+                <div className="h-4 w-28 bg-gray-150 rounded-md" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
         <>
           {/* Summary Cards */}
           {summary && (

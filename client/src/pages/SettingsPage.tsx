@@ -166,7 +166,56 @@ export default function SettingsPage() {
     }
   }
 
-  if (loading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-600 border-t-transparent" /></div>;
+  if (loading) {
+    return (
+      <div className="space-y-6 animate-pulse p-1">
+        {/* Header */}
+        <div className="space-y-2">
+          <div className="h-8 w-32 bg-gray-200 rounded-lg" />
+          <div className="h-4 w-72 bg-gray-150 rounded-md" />
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-2">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-9 w-36 bg-gray-200 rounded-lg" />
+          ))}
+        </div>
+
+        {/* Action Button */}
+        <div className="flex justify-end">
+          <div className="h-8 w-24 bg-gray-200 rounded-lg" />
+        </div>
+
+        {/* Settings Table Card */}
+        <div className="card overflow-hidden border border-gray-150/60">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gray-50/50">
+                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-20" /></th>
+                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-24" /></th>
+                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-32" /></th>
+                <th className="px-5 py-3"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {Array.from({ length: 4 }).map((_, rIdx) => (
+                <tr key={rIdx} className="h-14">
+                  <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-28" /></td>
+                  <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-20" /></td>
+                  <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-40" /></td>
+                  <td className="px-5 py-3 flex gap-2 justify-end items-center h-14">
+                    <div className="h-7 w-7 bg-gray-100 rounded-md" />
+                    <div className="h-7 w-7 bg-gray-100 rounded-md" />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fadeIn">
