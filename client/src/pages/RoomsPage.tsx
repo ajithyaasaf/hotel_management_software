@@ -32,6 +32,8 @@ export default function RoomsPage() {
   const [showBlock, setShowBlock] = useState<string | null>(null);
   const [showCheckInOptions, setShowCheckInOptions] = useState<Room | null>(null);
   const [blockReason, setBlockReason] = useState('');
+  const [blockStart, setBlockStart] = useState('');
+  const [blockEnd, setBlockEnd] = useState('');
 
   // Add room form state
   const [newRoom, setNewRoom] = useState<NewRoomForm>({ roomNumber: '', floor: 1, roomTypeId: '' });
@@ -72,10 +74,15 @@ export default function RoomsPage() {
   async function handleBlock(id: string) {
     if (!blockReason || blockReason.length < 5) { toast.error('Please provide a descriptive reason (min 5 characters)'); return; }
     try {
-      await roomsApi.block(id, { reason: blockReason });
+      const payload: any = { reason: blockReason };
+      if (blockStart) payload.blockStart = new Date(blockStart).toISOString();
+      if (blockEnd) payload.blockEnd = new Date(blockEnd).toISOString();
+      await roomsApi.block(id, payload);
       toast.success('Room blocked');
       setShowBlock(null);
       setBlockReason('');
+      setBlockStart('');
+      setBlockEnd('');
       loadData();
     } catch (e: any) { toast.error(e.response?.data?.error || 'Failed'); }
   }
@@ -267,6 +274,78 @@ export default function RoomsPage() {
           </div>
         </div>
       )}
+
+      {/* Block Room Modal */}
+      {showBlock && (() => {
+        const roomToBlock = rooms.find(r => r.id === showBlock);
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => {
+            setShowBlock(null);
+            setBlockReason('');
+            setBlockStart('');
+            setBlockEnd('');
+          }}>
+            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-lg animate-scaleIn" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-xl bg-red-50 text-red-600 flex items-center justify-center font-bold text-xl">
+                  {roomToBlock?.roomNumber || ''}
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Block Room {roomToBlock?.roomNumber}</h3>
+                  <p className="text-sm text-gray-500">{roomToBlock?.roomType.name}</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Block Reason <span className="text-red-500">*</span></label>
+                  <textarea 
+                    className="input min-h-[80px] py-2" 
+                    value={blockReason} 
+                    onChange={e => setBlockReason(e.target.value)} 
+                    placeholder="e.g., Maintenance, deep cleaning, or guest issue (min 5 characters)"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Date & Time (Optional)</label>
+                    <input 
+                      type="datetime-local" 
+                      className="input py-2 text-sm text-gray-700" 
+                      value={blockStart} 
+                      onChange={e => setBlockStart(e.target.value)} 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">End Date & Time (Optional)</label>
+                    <input 
+                      type="datetime-local" 
+                      className="input py-2 text-sm text-gray-700" 
+                      value={blockEnd} 
+                      onChange={e => setBlockEnd(e.target.value)} 
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button className="btn btn-outline flex-1" onClick={() => {
+                    setShowBlock(null);
+                    setBlockReason('');
+                    setBlockStart('');
+                    setBlockEnd('');
+                  }}>
+                    Cancel
+                  </button>
+                  <button className="btn btn-danger flex-1" onClick={() => handleBlock(showBlock)}>
+                    Block Room
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
