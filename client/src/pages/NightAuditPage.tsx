@@ -1123,10 +1123,10 @@ export default function NightAuditPage() {
                         </td>
                       </tr>
                     )}
-                </tbody>
-              </table>
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
           )}
         </div>
       )}
@@ -1247,3 +1247,4 @@ export default function NightAuditPage() {
     </div>
   );
 }
+// 
