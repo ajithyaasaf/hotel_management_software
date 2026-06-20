@@ -28,6 +28,7 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 
 // Health check
+app.get('/', (_req, res) => { res.status(200).json({ status: 'ok', message: 'Godiva Rooms API is running' }); });
 app.get('/api/health', (_req, res) => { res.json({ status: 'ok', timestamp: new Date().toISOString() }); });
 
 // Routes
