@@ -491,3 +491,6 @@ router.post('/bookings/:id/payments', async (req: AuthRequest, res) => {
 });
 
 export default router;
+
+
+// 
