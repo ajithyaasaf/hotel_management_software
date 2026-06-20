@@ -6,6 +6,18 @@ const prisma = new PrismaClient();
 async function seed() {
   console.log('🌱 Seeding database...');
 
+  // Fast path: Check if database is already seeded
+  const adminExists = await prisma.user.findUnique({
+    where: { email: 'admin@godivarooms.com' },
+  });
+  if (adminExists) {
+    const roomCount = await prisma.room.count();
+    if (roomCount >= 49) {
+      console.log('✅ Database already seeded. Skipping detailed seed.');
+      return;
+    }
+  }
+
   // Create admin user
   const adminPassword = await bcrypt.hash('admin123', 10);
   const admin = await prisma.user.upsert({

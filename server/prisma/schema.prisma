@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ─── ENUMS ──────────────────────────────────────────────
@@ -177,6 +178,7 @@ model Room {
   transfersTo   RoomTransfer[] @relation("TransferToRoom")
   nightAuditCharges NightAuditCharge[]
 
+  @@index([roomTypeId])
   @@map("rooms")
 }
 
@@ -235,9 +237,15 @@ model Booking {
   company           Company?      @relation(fields: [companyId], references: [id])
   billingRule       BillingRule   @default(GUEST)
 
-  @@index([bookingNumber])
   @@index([status])
   @@index([groupBookingId])
+  @@index([roomId])
+  @@index([guestId])
+  @@index([companyId])
+  @@index([checkInDate])
+  @@index([expectedCheckout])
+  @@index([actualCheckout])
+  @@index([createdAt])
   @@map("bookings")
 }
 
@@ -257,7 +265,8 @@ model GroupBooking {
 
   bookings Booking[]
 
-  @@index([groupNumber])
+  @@index([leadGuestId])
+  @@index([createdAt])
   @@map("group_bookings")
 }
 
@@ -334,8 +343,9 @@ model Order {
   items    OrderItem[]
   payments Payment[]
 
-  @@index([orderNumber])
   @@index([type, status])
+  @@index([createdAt])
+  @@index([roomId])
   @@map("orders")
 }
 
@@ -356,6 +366,8 @@ model OrderItem {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  @@index([orderId])
+  @@index([menuItemId])
   @@map("order_items")
 }
 
@@ -388,7 +400,8 @@ model Invoice {
 
   adjustments InvoiceAdjustment[]
 
-  @@index([invoiceNumber])
+  @@index([companyId])
+  @@index([createdAt])
   @@map("invoices")
 }
 
@@ -405,6 +418,7 @@ model InvoiceAdjustment {
   createdBy   User           @relation(fields: [createdById], references: [id])
   createdAt   DateTime       @default(now())
 
+  @@index([invoiceId])
   @@map("invoice_adjustments")
 }
 
@@ -603,6 +617,7 @@ model CompanyPayment {
   createdBy     User          @relation(fields: [createdById], references: [id])
   createdAt     DateTime      @default(now())
 
+  @@index([companyId])
   @@map("company_payments")
 }
 
@@ -672,6 +687,7 @@ model BanquetBooking {
   @@index([eventDate])
   @@index([status])
   @@index([hallId, eventDate])
+  @@index([createdAt])
   @@map("banquet_bookings")
 }
 

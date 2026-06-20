@@ -1,6 +1,13 @@
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { Toaster } from 'react-hot-toast';
+import React, { Suspense } from 'react';
+
+const InnerPageLoader = () => (
+  <div className="flex items-center justify-center min-h-[40vh] w-full">
+    <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+  </div>
+);
 
 export default function AppLayout() {
   return (
@@ -8,7 +15,9 @@ export default function AppLayout() {
       <Sidebar />
       <main className="flex-1 ml-[260px] min-h-screen print:ml-0">
         <div className="p-8 max-w-[1400px] mx-auto print:p-0">
-          <Outlet />
+          <Suspense fallback={<InnerPageLoader />}>
+            <Outlet />
+          </Suspense>
         </div>
       </main>
       <Toaster

@@ -1,76 +1,85 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import AppLayout from './components/layout/AppLayout';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 
-// Pages
-import LoginPage from './pages/LoginPage';
-import DashboardPage from './pages/DashboardPage';
-import RoomsPage from './pages/RoomsPage';
-import BookingsPage from './pages/BookingsPage';
-import NewBookingPage from './pages/NewBookingPage';
-import BookingDetailPage from './pages/BookingDetailPage';
-import NewGroupBookingPage from './pages/NewGroupBookingPage';
-import GroupBookingDetailPage from './pages/GroupBookingDetailPage';
-import POSPage from './pages/POSPage';
-import OrdersPage from './pages/OrdersPage';
-import GuestsPage from './pages/GuestsPage';
-import ReportsPage from './pages/ReportsPage';
-import SettingsPage from './pages/SettingsPage';
-import StaffPage from './pages/StaffPage';
-import AuditPage from './pages/AuditPage';
-import ExpensesPage from './pages/ExpensesPage';
-import NightAuditPage from './pages/NightAuditPage';
-import CorporateLedgerPage from './pages/CorporateLedgerPage';
-import BanquetsPage from './pages/BanquetsPage';
-import NewBanquetPage from './pages/NewBanquetPage';
-import BanquetDetailPage from './pages/BanquetDetailPage';
+// Loading fallback component
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-[50vh] w-full">
+    <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+  </div>
+);
+
+// Lazy load pages
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const RoomsPage = lazy(() => import('./pages/RoomsPage'));
+const BookingsPage = lazy(() => import('./pages/BookingsPage'));
+const NewBookingPage = lazy(() => import('./pages/NewBookingPage'));
+const BookingDetailPage = lazy(() => import('./pages/BookingDetailPage'));
+const NewGroupBookingPage = lazy(() => import('./pages/NewGroupBookingPage'));
+const GroupBookingDetailPage = lazy(() => import('./pages/GroupBookingDetailPage'));
+const POSPage = lazy(() => import('./pages/POSPage'));
+const OrdersPage = lazy(() => import('./pages/OrdersPage'));
+const GuestsPage = lazy(() => import('./pages/GuestsPage'));
+const ReportsPage = lazy(() => import('./pages/ReportsPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const StaffPage = lazy(() => import('./pages/StaffPage'));
+const AuditPage = lazy(() => import('./pages/AuditPage'));
+const ExpensesPage = lazy(() => import('./pages/ExpensesPage'));
+const NightAuditPage = lazy(() => import('./pages/NightAuditPage'));
+const CorporateLedgerPage = lazy(() => import('./pages/CorporateLedgerPage'));
+const BanquetsPage = lazy(() => import('./pages/BanquetsPage'));
+const NewBanquetPage = lazy(() => import('./pages/NewBanquetPage'));
+const BanquetDetailPage = lazy(() => import('./pages/BanquetDetailPage'));
 
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
 
-        {/* Protected Routes inside Layout */}
-        <Route element={<ProtectedRoute />}>
-          <Route element={<AppLayout />}>
-            <Route path="/" element={<DashboardPage />} />
-            
-            {/* Rooms & Bookings (Admin & Reception) */}
-            <Route element={<ProtectedRoute roles={['ADMIN', 'RECEPTION']} />}>
-              <Route path="/rooms" element={<RoomsPage />} />
-              <Route path="/bookings" element={<BookingsPage />} />
-              <Route path="/bookings/new" element={<NewBookingPage />} />
-              <Route path="/bookings/group/new" element={<NewGroupBookingPage />} />
-              <Route path="/bookings/group/:id" element={<GroupBookingDetailPage />} />
-              <Route path="/bookings/:id" element={<BookingDetailPage />} />
-              <Route path="/guests" element={<GuestsPage />} />
-              <Route path="/corporate" element={<CorporateLedgerPage />} />
-              <Route path="/night-audit" element={<NightAuditPage />} />
-              <Route path="/banquets" element={<BanquetsPage />} />
-              <Route path="/banquets/new" element={<NewBanquetPage />} />
-              <Route path="/banquets/:id" element={<BanquetDetailPage />} />
-            </Route>
+          {/* Protected Routes inside Layout */}
+          <Route element={<ProtectedRoute />}>
+            <Route element={<AppLayout />}>
+              <Route path="/" element={<DashboardPage />} />
+              
+              {/* Rooms & Bookings (Admin & Reception) */}
+              <Route element={<ProtectedRoute roles={['ADMIN', 'RECEPTION']} />}>
+                <Route path="/rooms" element={<RoomsPage />} />
+                <Route path="/bookings" element={<BookingsPage />} />
+                <Route path="/bookings/new" element={<NewBookingPage />} />
+                <Route path="/bookings/group/new" element={<NewGroupBookingPage />} />
+                <Route path="/bookings/group/:id" element={<GroupBookingDetailPage />} />
+                <Route path="/bookings/:id" element={<BookingDetailPage />} />
+                <Route path="/guests" element={<GuestsPage />} />
+                <Route path="/corporate" element={<CorporateLedgerPage />} />
+                <Route path="/night-audit" element={<NightAuditPage />} />
+                <Route path="/banquets" element={<BanquetsPage />} />
+                <Route path="/banquets/new" element={<NewBanquetPage />} />
+                <Route path="/banquets/:id" element={<BanquetDetailPage />} />
+              </Route>
 
-            {/* Restaurant POS (All roles) */}
-            <Route path="/pos" element={<POSPage />} />
-            <Route path="/orders" element={<OrdersPage />} />
+              {/* Restaurant POS (All roles) */}
+              <Route path="/pos" element={<POSPage />} />
+              <Route path="/orders" element={<OrdersPage />} />
 
-            {/* Admin Only */}
-            <Route element={<ProtectedRoute roles={['ADMIN']} />}>
-              <Route path="/reports" element={<ReportsPage />} />
-              <Route path="/expenses" element={<ExpensesPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/staff" element={<StaffPage />} />
-              <Route path="/audit" element={<AuditPage />} />
+              {/* Admin Only */}
+              <Route element={<ProtectedRoute roles={['ADMIN']} />}>
+                <Route path="/reports" element={<ReportsPage />} />
+                <Route path="/expenses" element={<ExpensesPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/staff" element={<StaffPage />} />
+                <Route path="/audit" element={<AuditPage />} />
+              </Route>
             </Route>
           </Route>
-        </Route>
 
-        {/* Catch all */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          {/* Catch all */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }
