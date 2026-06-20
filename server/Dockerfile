@@ -28,5 +28,5 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 
-# Execute migrations and start the server
-CMD ["sh", "-c", "npx prisma db push && node dist/index.js"]
+# Execute migrations, seed initial data, and start the server
+CMD ["sh", "-c", "npx prisma db push && npx tsx prisma/seed.ts && node dist/index.js"]
