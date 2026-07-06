@@ -28,12 +28,12 @@ export default function ReportsPage() {
 
   return (
     <div className="animate-fadeIn">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div><h1 className="text-2xl font-bold text-gray-900">Reports</h1><p className="text-gray-500 text-sm mt-1">Financial performance & occupancy</p></div>
-        <div className="flex items-center gap-3">
-          <input type="date" className="input max-w-[160px]" value={from} onChange={e => setFrom(e.target.value)} />
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <input type="date" className="input flex-1 sm:max-w-[160px]" value={from} onChange={e => setFrom(e.target.value)} />
           <span className="text-gray-400">to</span>
-          <input type="date" className="input max-w-[160px]" value={to} onChange={e => setTo(e.target.value)} />
+          <input type="date" className="input flex-1 sm:max-w-[160px]" value={to} onChange={e => setTo(e.target.value)} />
         </div>
       </div>
 
@@ -64,7 +64,7 @@ export default function ReportsPage() {
           </div>
 
           {/* Quick Stats */}
-          <div className="grid grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="card p-5 border border-gray-150/60 space-y-2">
                 <div className="h-8 w-12 bg-gray-200 rounded-md" />
@@ -123,7 +123,7 @@ export default function ReportsPage() {
 
           {/* Quick Stats */}
           {summary && (
-            <div className="grid grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
               <div className="card p-5"><p className="text-3xl font-bold text-gray-900">{summary.currentCheckins}</p><p className="text-sm text-gray-500 mt-1">Current Check-ins</p></div>
               <div className="card p-5"><p className="text-3xl font-bold text-gray-900">{summary.checkoutsInPeriod}</p><p className="text-sm text-gray-500 mt-1">Checkouts (Period)</p></div>
               <div className="card p-5"><p className="text-3xl font-bold text-gray-900">{summary.confirmedBookings}</p><p className="text-sm text-gray-500 mt-1">Pending Bookings</p></div>

@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import {
   LayoutDashboard, BedDouble, CalendarCheck, Users, Utensils,
-  FileText, CreditCard, Settings, Shield, LogOut, UserCog, TrendingDown, Moon, Building, Wine
+  FileText, CreditCard, Settings, Shield, LogOut, UserCog, TrendingDown, Moon, Building, Wine, X
 } from 'lucide-react';
 
 const navItems = [
@@ -22,24 +22,39 @@ const navItems = [
   { to: '/audit', icon: Shield, label: 'Audit Log', roles: ['ADMIN'] },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
 
-  const handleLogout = () => { logout(); navigate('/login'); };
+  const handleLogout = () => { logout(); navigate('/login'); onClose(); };
 
   const filtered = navItems.filter(item => user && item.roles.includes(user.role));
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-[260px] flex flex-col z-50 print:hidden"
+    <aside className={`fixed left-0 top-0 bottom-0 w-[260px] flex flex-col z-50 print:hidden transition-transform duration-300 ease-in-out lg:translate-x-0
+      ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
       style={{ background: 'var(--color-sidebar)' }}>
 
       {/* Brand */}
-      <div className="px-6 py-8 border-b border-gray-100">
-        <h1 className="text-2xl font-bold text-primary-600 tracking-tighter flex items-center gap-2">
-          <span className="text-3xl">✦</span> Godiva
-        </h1>
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1 ml-1">Hotel Management</p>
+      <div className="px-6 py-8 border-b border-gray-100 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-primary-600 tracking-tighter flex items-center gap-2">
+            <span className="text-3xl">✦</span> Godiva
+          </h1>
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1 ml-1">Hotel Management</p>
+        </div>
+        <button
+          onClick={onClose}
+          className="lg:hidden p-1.5 rounded-xl text-gray-400 hover:text-black hover:bg-gray-50 transition-colors"
+          aria-label="Close sidebar"
+        >
+          <X size={20} />
+        </button>
       </div>
 
       {/* Navigation */}
@@ -50,6 +65,7 @@ export default function Sidebar() {
               key={item.to}
               to={item.to}
               end={item.to === '/'}
+              onClick={onClose}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-3 rounded-xl text-[15px] transition-all duration-200 group
                 ${isActive

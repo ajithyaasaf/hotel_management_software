@@ -342,7 +342,7 @@ export default function BookingDetailPage() {
       )}
 
       {/* Header */}
-      <div className="flex items-start justify-between mb-6 print:hidden">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6 print:hidden">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
             {booking.bookingNumber}
@@ -359,19 +359,19 @@ export default function BookingDetailPage() {
           )}
         </div>
         {isActive && (
-          <div className="flex gap-2">
-            <button onClick={() => setShowExtend(true)} className="btn btn-outline btn-sm"><CalendarPlus size={16} /> Extend</button>
-            <button onClick={openTransferModal} className="btn btn-outline btn-sm"><ArrowRightLeft size={16} /> Transfer</button>
-            <button onClick={() => { setPayAmount(Number(invoice?.pendingAmount || 0)); setShowPayment(true); }} className="btn btn-outline btn-sm"><CreditCard size={16} /> Payment</button>
-            <button onClick={handleCheckout} className="btn btn-danger btn-sm"><CheckOutIcon size={16} /> Checkout</button>
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            <button onClick={() => setShowExtend(true)} className="btn btn-outline btn-sm flex-1 sm:flex-none justify-center"><CalendarPlus size={16} /> Extend</button>
+            <button onClick={openTransferModal} className="btn btn-outline btn-sm flex-1 sm:flex-none justify-center"><ArrowRightLeft size={16} /> Transfer</button>
+            <button onClick={() => { setPayAmount(Number(invoice?.pendingAmount || 0)); setShowPayment(true); }} className="btn btn-outline btn-sm flex-1 sm:flex-none justify-center"><CreditCard size={16} /> Payment</button>
+            <button onClick={handleCheckout} className="btn btn-danger btn-sm flex-1 sm:flex-none justify-center"><CheckOutIcon size={16} /> Checkout</button>
           </div>
         )}
         {booking.status === 'CONFIRMED' && (
-          <div className="flex gap-2">
-            <button onClick={() => { setPayAmount(Number(invoice?.pendingAmount || 0)); setShowPayment(true); }} className="btn btn-outline btn-sm"><CreditCard size={16} /> Advance Payment</button>
-            <button onClick={handleCancel} className="btn btn-outline btn-sm text-red-600 border-red-200 hover:bg-red-50"><Ban size={16} /> Cancel</button>
-            <button onClick={handleNoShow} className="btn btn-outline btn-sm text-amber-600 border-amber-200 hover:bg-amber-50">No Show</button>
-            <button onClick={handleAdvanceCheckin} className="btn btn-primary btn-sm"><CheckOutIcon size={16} className="transform rotate-180" /> Check In Now</button>
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            <button onClick={() => { setPayAmount(Number(invoice?.pendingAmount || 0)); setShowPayment(true); }} className="btn btn-outline btn-sm flex-1 sm:flex-none justify-center"><CreditCard size={16} /> Advance Payment</button>
+            <button onClick={handleCancel} className="btn btn-outline btn-sm text-red-600 border-red-200 hover:bg-red-50 flex-1 sm:flex-none justify-center"><Ban size={16} /> Cancel</button>
+            <button onClick={handleNoShow} className="btn btn-outline btn-sm text-amber-600 border-amber-200 hover:bg-amber-50 flex-1 sm:flex-none justify-center">No Show</button>
+            <button onClick={handleAdvanceCheckin} className="btn btn-primary btn-sm flex-1 sm:flex-none justify-center"><CheckOutIcon size={16} className="transform rotate-180" /> Check In Now</button>
           </div>
         )}
       </div>

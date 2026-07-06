@@ -81,7 +81,7 @@ export default function BookingsPage() {
 
   return (
     <div className="animate-fadeIn">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Bookings</h1>
           <p className="text-gray-500 text-sm mt-1">
@@ -89,10 +89,10 @@ export default function BookingsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => navigate('/bookings/group/new')} className="btn btn-outline">
+          <button onClick={() => navigate('/bookings/group/new')} className="btn btn-outline flex-1 sm:flex-none justify-center whitespace-nowrap">
             <Users size={18} /> Group Check-in
           </button>
-          <button onClick={() => navigate('/bookings/new')} className="btn btn-primary">
+          <button onClick={() => navigate('/bookings/new')} className="btn btn-primary flex-1 sm:flex-none justify-center whitespace-nowrap">
             <Plus size={18} /> New Check-in
           </button>
         </div>
@@ -115,8 +115,8 @@ export default function BookingsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-4 mb-6">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div className="relative w-full sm:max-w-sm">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             className="input pl-9"
@@ -126,12 +126,12 @@ export default function BookingsPage() {
           />
         </div>
         {tab === 'individual' && (
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:pb-0">
             {['', 'CHECKED_IN', 'CONFIRMED', 'CHECKED_OUT', 'CANCELLED'].map(s => (
               <button
                 key={s}
                 onClick={() => setFilter(s)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filter === s ? 'bg-primary-600 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${filter === s ? 'bg-primary-600 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}
               >
                 {s ? s.replace('_', ' ') : 'All'}
               </button>
@@ -143,150 +143,156 @@ export default function BookingsPage() {
       {/* Table */}
       {loading ? (
         <div className="card overflow-hidden border border-gray-150/60 animate-pulse">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50/50">
-                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-14" /></th>
-                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-20" /></th>
-                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-12" /></th>
-                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-16" /></th>
-                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-16" /></th>
-                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-10" /></th>
-                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-16" /></th>
-                <th className="px-5 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {Array.from({ length: 6 }).map((_, rIdx) => (
-                <tr key={rIdx} className="h-16">
-                  <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-16" /></td>
-                  <td className="px-5 py-3 space-y-1.5">
-                    <div className="h-4 bg-gray-200 rounded-md w-28" />
-                    <div className="h-3 bg-gray-150 rounded-md w-20" />
-                  </td>
-                  <td className="px-5 py-3 space-y-1.5">
-                    <div className="h-4 bg-gray-200 rounded-md w-12" />
-                    <div className="h-3 bg-gray-150 rounded-md w-24" />
-                  </td>
-                  <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-20" /></td>
-                  <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-20" /></td>
-                  <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-12" /></td>
-                  <td className="px-5 py-3"><div className="h-5 bg-gray-200 rounded-full w-20" /></td>
-                  <td className="px-5 py-3"><div className="h-8 bg-gray-100 rounded-lg w-8" /></td>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50/50">
+                  <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-14" /></th>
+                  <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-20" /></th>
+                  <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-12" /></th>
+                  <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-16" /></th>
+                  <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-16" /></th>
+                  <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-10" /></th>
+                  <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-16" /></th>
+                  <th className="px-5 py-3"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {Array.from({ length: 6 }).map((_, rIdx) => (
+                  <tr key={rIdx} className="h-16">
+                    <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-16" /></td>
+                    <td className="px-5 py-3 space-y-1.5">
+                      <div className="h-4 bg-gray-200 rounded-md w-28" />
+                      <div className="h-3 bg-gray-150 rounded-md w-20" />
+                    </td>
+                    <td className="px-5 py-3 space-y-1.5">
+                      <div className="h-4 bg-gray-200 rounded-md w-12" />
+                      <div className="h-3 bg-gray-150 rounded-md w-24" />
+                    </td>
+                    <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-20" /></td>
+                    <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-20" /></td>
+                    <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-12" /></td>
+                    <td className="px-5 py-3"><div className="h-5 bg-gray-200 rounded-full w-20" /></td>
+                    <td className="px-5 py-3"><div className="h-8 bg-gray-100 rounded-lg w-8" /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : tab === 'individual' ? (
         <div className="card overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50/50">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Booking</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Guest</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Room</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Check-in</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Checkout</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Rate</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-5 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {filtered.map(b => {
-                const referenceDate = businessDate || new Date().toISOString().split('T')[0];
-                const checkoutStr = new Date(b.expectedCheckout).toISOString().split('T')[0];
-                const isOverdue = b.status === 'CHECKED_IN' && checkoutStr < referenceDate;
-                return (
-                  <tr key={b.id} className={`transition-colors ${isOverdue ? 'bg-red-50/30 hover:bg-red-50/40' : 'hover:bg-gray-50/50'}`}>
-                    <td className="px-5 py-3">
-                      <span className="text-sm font-mono text-primary-600">{b.bookingNumber}</span>
-                      {b.groupBookingId && (
-                        <span className="ml-2 text-xs bg-violet-50 text-violet-600 px-2 py-0.5 rounded font-medium">Group</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3">
-                      <p className="text-sm font-medium text-gray-900">{b.guest.name}</p>
-                      <p className="text-xs text-gray-400">{b.guest.phone}</p>
-                    </td>
-                    <td className="px-5 py-3">
-                      <span className="inline-flex items-center gap-1 text-sm font-medium text-gray-900">
-                        <CalendarCheck size={14} className="text-gray-400" /> {b.room.roomNumber}
-                      </span>
-                      <p className="text-xs text-gray-400">{b.room.roomType.name}</p>
-                    </td>
-                    <td className="px-5 py-3 text-sm text-gray-600">{format(new Date(b.checkInDate), 'dd MMM yyyy')}</td>
-                    <td className="px-5 py-3 text-sm">
-                      <span className={isOverdue ? 'text-red-600 font-bold' : 'text-gray-600'}>
-                        {format(new Date(b.expectedCheckout), 'dd MMM yyyy')}
-                      </span>
-                      {isOverdue && (
-                        <span className="block text-[10px] font-bold text-red-500 uppercase tracking-wider mt-0.5 flex items-center gap-0.5 animate-pulse">
-                          <AlertTriangle size={10} /> Overdue
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50/50">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Booking</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Guest</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Room</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Check-in</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Checkout</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Rate</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
+                  <th className="px-5 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {filtered.map(b => {
+                  const referenceDate = businessDate || new Date().toISOString().split('T')[0];
+                  const checkoutStr = new Date(b.expectedCheckout).toISOString().split('T')[0];
+                  const isOverdue = b.status === 'CHECKED_IN' && checkoutStr < referenceDate;
+                  return (
+                    <tr key={b.id} className={`transition-colors ${isOverdue ? 'bg-red-50/30 hover:bg-red-50/40' : 'hover:bg-gray-50/50'}`}>
+                      <td className="px-5 py-3 whitespace-nowrap">
+                        <span className="text-sm font-mono text-primary-600">{b.bookingNumber}</span>
+                        {b.groupBookingId && (
+                          <span className="ml-2 text-xs bg-violet-50 text-violet-600 px-2 py-0.5 rounded font-medium">Group</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3 whitespace-nowrap">
+                        <p className="text-sm font-medium text-gray-900">{b.guest.name}</p>
+                        <p className="text-xs text-gray-400">{b.guest.phone}</p>
+                      </td>
+                      <td className="px-5 py-3 whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1 text-sm font-medium text-gray-900">
+                          <CalendarCheck size={14} className="text-gray-400" /> {b.room.roomNumber}
                         </span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3 text-sm font-medium text-gray-900">₹{Number(b.roomPrice).toLocaleString()}</td>
-                    <td className="px-5 py-3"><span className={`badge ${statusBadge[b.status]}`}>{b.status.replace('_', ' ')}</span></td>
-                    <td className="px-5 py-3">
-                      <button onClick={() => navigate(`/bookings/${b.id}`)} className="btn btn-ghost btn-sm"><Eye size={16} /></button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                        <p className="text-xs text-gray-400">{b.room.roomType.name}</p>
+                      </td>
+                      <td className="px-5 py-3 text-sm text-gray-600 whitespace-nowrap">{format(new Date(b.checkInDate), 'dd MMM yyyy')}</td>
+                      <td className="px-5 py-3 text-sm whitespace-nowrap">
+                        <span className={isOverdue ? 'text-red-600 font-bold' : 'text-gray-600'}>
+                          {format(new Date(b.expectedCheckout), 'dd MMM yyyy')}
+                        </span>
+                        {isOverdue && (
+                          <span className="block text-[10px] font-bold text-red-500 uppercase tracking-wider mt-0.5 flex items-center gap-0.5 animate-pulse">
+                            <AlertTriangle size={10} /> Overdue
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">₹{Number(b.roomPrice).toLocaleString()}</td>
+                      <td className="px-5 py-3 whitespace-nowrap"><span className={`badge ${statusBadge[b.status]}`}>{b.status.replace('_', ' ')}</span></td>
+                      <td className="px-5 py-3 whitespace-nowrap">
+                        <button onClick={() => navigate(`/bookings/${b.id}`)} className="btn btn-ghost btn-sm"><Eye size={16} /></button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
           {filtered.length === 0 && <p className="text-center text-gray-400 py-12">No bookings found</p>}
         </div>
       ) : (
         <div className="card overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50/50">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Group No.</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Lead Guest</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Rooms</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Amount</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Pending</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-5 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {filteredGroups.map(g => {
-                const totalAmount = g.bookings.reduce((s, b) => s + Number(b.invoice?.grandTotal ?? 0), 0);
-                const totalPending = g.bookings.reduce((s, b) => s + Number(b.invoice?.pendingAmount ?? 0), 0);
-                return (
-                  <tr key={g.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-5 py-3">
-                      <span className="text-sm font-mono text-primary-600">{g.groupNumber}</span>
-                    </td>
-                    <td className="px-5 py-3">
-                      <p className="text-sm font-medium text-gray-900">{g.leadGuest.name}</p>
-                      <p className="text-xs text-gray-400">{g.leadGuest.phone}</p>
-                    </td>
-                    <td className="px-5 py-3">
-                      <span className="inline-flex items-center gap-1 text-sm font-medium text-gray-900">
-                        <Users size={14} className="text-gray-400" /> {g.bookings.length} rooms
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-sm font-medium text-gray-900">₹{totalAmount.toLocaleString()}</td>
-                    <td className="px-5 py-3">
-                      {totalPending > 0
-                        ? <span className="text-sm font-medium text-red-600">₹{totalPending.toLocaleString()}</span>
-                        : <span className="text-sm text-emerald-500">Paid</span>
-                      }
-                    </td>
-                    <td className="px-5 py-3"><span className={`badge ${groupStatusBadge[g.status]}`}>{g.status.replace(/_/g, ' ')}</span></td>
-                    <td className="px-5 py-3">
-                      <button onClick={() => navigate(`/bookings/group/${g.id}`)} className="btn btn-ghost btn-sm"><Eye size={16} /></button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50/50">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Group No.</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Lead Guest</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Rooms</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Total Amount</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Pending</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
+                  <th className="px-5 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {filteredGroups.map(g => {
+                  const totalAmount = g.bookings.reduce((s, b) => s + Number(b.invoice?.grandTotal ?? 0), 0);
+                  const totalPending = g.bookings.reduce((s, b) => s + Number(b.invoice?.pendingAmount ?? 0), 0);
+                  return (
+                    <tr key={g.id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="px-5 py-3 whitespace-nowrap">
+                        <span className="text-sm font-mono text-primary-600">{g.groupNumber}</span>
+                      </td>
+                      <td className="px-5 py-3 whitespace-nowrap">
+                        <p className="text-sm font-medium text-gray-900">{g.leadGuest.name}</p>
+                        <p className="text-xs text-gray-400">{g.leadGuest.phone}</p>
+                      </td>
+                      <td className="px-5 py-3 whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1 text-sm font-medium text-gray-900">
+                          <Users size={14} className="text-gray-400" /> {g.bookings.length} rooms
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">₹{totalAmount.toLocaleString()}</td>
+                      <td className="px-5 py-3 whitespace-nowrap">
+                        {totalPending > 0
+                          ? <span className="text-sm font-medium text-red-600">₹{totalPending.toLocaleString()}</span>
+                          : <span className="text-sm text-emerald-500">Paid</span>
+                        }
+                      </td>
+                      <td className="px-5 py-3 whitespace-nowrap"><span className={`badge ${groupStatusBadge[g.status]}`}>{g.status.replace(/_/g, ' ')}</span></td>
+                      <td className="px-5 py-3 whitespace-nowrap">
+                        <button onClick={() => navigate(`/bookings/group/${g.id}`)} className="btn btn-ghost btn-sm"><Eye size={16} /></button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
           {filteredGroups.length === 0 && <p className="text-center text-gray-400 py-12">No group bookings found</p>}
         </div>
       )}

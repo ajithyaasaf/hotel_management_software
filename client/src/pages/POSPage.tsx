@@ -72,7 +72,7 @@ export default function POSPage() {
 
   if (loading) {
     return (
-      <div className="animate-pulse flex gap-6 h-[calc(100vh-100px)] p-1">
+      <div className="animate-pulse flex flex-col lg:flex-row gap-6 h-auto lg:h-[calc(100vh-100px)] p-1">
         {/* Menu Section Skeleton */}
         <div className="flex-1 flex flex-col min-w-0 space-y-5">
           <div className="space-y-2">
@@ -108,7 +108,7 @@ export default function POSPage() {
           </div>
         </div>
         {/* Cart Section Skeleton */}
-        <div className="w-[380px] flex flex-col card border border-gray-150/60 p-5 justify-between">
+        <div className="w-full lg:w-[380px] flex flex-col card border border-gray-150/60 p-5 justify-between min-h-[400px]">
           <div className="space-y-4">
             <div className="flex items-center gap-2 pb-3 border-b border-gray-100">
               <div className="h-5 w-5 bg-gray-200 rounded-full" />
@@ -143,7 +143,7 @@ export default function POSPage() {
   }
 
   return (
-    <div className="animate-fadeIn flex gap-6 h-[calc(100vh-100px)]">
+    <div className="animate-fadeIn flex flex-col lg:flex-row gap-6 h-auto lg:h-[calc(100vh-100px)]">
       {/* Menu Section */}
       <div className="flex-1 flex flex-col min-w-0">
         <div className="mb-4">
@@ -183,7 +183,7 @@ export default function POSPage() {
         </div>
 
         {/* Menu Items */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto mb-6 lg:mb-0">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {activeCategory?.items.map(item => (
               <button
@@ -206,7 +206,7 @@ export default function POSPage() {
       </div>
 
       {/* Cart Section */}
-      <div className="w-[380px] flex flex-col card">
+      <div className="w-full lg:w-[380px] flex flex-col card max-h-[600px] lg:max-h-none">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
           <ShoppingCart size={18} className="text-gray-500" />
           <h3 className="font-semibold text-gray-900">Current Order</h3>

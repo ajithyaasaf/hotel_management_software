@@ -210,7 +210,7 @@ export default function BanquetDetailPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/banquets')} className="btn btn-ghost btn-sm gap-1 print:hidden">
             <ArrowLeft size={16} /> Back
@@ -227,27 +227,27 @@ export default function BanquetDetailPage() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-2 print:hidden">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto print:hidden">
           {booking.status === 'PROVISIONAL' && (
-            <button onClick={handleConfirm} className="btn btn-primary btn-sm gap-1">
+            <button onClick={handleConfirm} className="btn btn-primary btn-sm gap-1 flex-1 sm:flex-none justify-center">
               <CheckCircle size={15} /> Confirm
             </button>
           )}
           {booking.status === 'CONFIRMED' && (
-            <button onClick={handleComplete} className="btn btn-outline btn-sm gap-1 text-blue-600 border-blue-200 hover:bg-blue-50">
+            <button onClick={handleComplete} className="btn btn-outline btn-sm gap-1 text-blue-600 border-blue-200 hover:bg-blue-50 flex-1 sm:flex-none justify-center">
               <CheckCircle size={15} /> Complete
             </button>
           )}
           {isActive && (
-            <button onClick={() => { setPayAmount(Number(booking.pendingAmount)); setShowPayment(true); }} className="btn btn-outline btn-sm gap-1">
+            <button onClick={() => { setPayAmount(Number(booking.pendingAmount)); setShowPayment(true); }} className="btn btn-outline btn-sm gap-1 flex-1 sm:flex-none justify-center">
               <CreditCard size={15} /> Payment
             </button>
           )}
-          <button onClick={handlePrint} className="btn btn-outline btn-sm gap-1">
+          <button onClick={handlePrint} className="btn btn-outline btn-sm gap-1 flex-1 sm:flex-none justify-center">
             <FileText size={15} /> Print Invoice
           </button>
           {isActive && (
-            <button onClick={handleCancel} className="btn btn-outline btn-sm gap-1 text-red-600 border-red-200 hover:bg-red-50">
+            <button onClick={handleCancel} className="btn btn-outline btn-sm gap-1 text-red-600 border-red-200 hover:bg-red-50 flex-1 sm:flex-none justify-center">
               <XCircle size={15} /> Cancel
             </button>
           )}
@@ -308,30 +308,32 @@ export default function BanquetDetailPage() {
           {booking.payments && booking.payments.length > 0 && (
             <div className="card p-5">
               <h3 className="font-semibold text-gray-900 mb-4">Payment Ledger</h3>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-xs text-gray-400 border-b">
-                    <th className="text-left pb-2">Date</th>
-                    <th className="text-left pb-2">Type</th>
-                    <th className="text-left pb-2">Method</th>
-                    <th className="text-left pb-2">Reference</th>
-                    <th className="text-right pb-2">Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {booking.payments.map(p => (
-                    <tr key={p.id} className="border-b last:border-0">
-                      <td className="py-2.5 text-gray-600">{format(new Date(p.createdAt), 'dd MMM, hh:mm a')}</td>
-                      <td className={`py-2.5 ${PAYMENT_TYPE_STYLES[p.type]}`}>{p.type}</td>
-                      <td className="py-2.5 text-gray-600">{p.method}</td>
-                      <td className="py-2.5 text-gray-500">{p.reference || '—'}</td>
-                      <td className={`py-2.5 text-right font-bold ${p.type === 'REFUND' ? 'text-red-600' : 'text-gray-900'}`}>
-                        {p.type === 'REFUND' ? '−' : '+'}₹{Number(p.amount).toLocaleString()}
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-xs text-gray-400 border-b whitespace-nowrap">
+                      <th className="text-left pb-2">Date</th>
+                      <th className="text-left pb-2">Type</th>
+                      <th className="text-left pb-2">Method</th>
+                      <th className="text-left pb-2">Reference</th>
+                      <th className="text-right pb-2">Amount</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="whitespace-nowrap">
+                    {booking.payments.map(p => (
+                      <tr key={p.id} className="border-b last:border-0">
+                        <td className="py-2.5 text-gray-600">{format(new Date(p.createdAt), 'dd MMM, hh:mm a')}</td>
+                        <td className={`py-2.5 ${PAYMENT_TYPE_STYLES[p.type]}`}>{p.type}</td>
+                        <td className="py-2.5 text-gray-600">{p.method}</td>
+                        <td className="py-2.5 text-gray-500">{p.reference || '—'}</td>
+                        <td className={`py-2.5 text-right font-bold ${p.type === 'REFUND' ? 'text-red-600' : 'text-gray-900'}`}>
+                          {p.type === 'REFUND' ? '−' : '+'}₹{Number(p.amount).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>

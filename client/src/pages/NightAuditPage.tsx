@@ -410,10 +410,10 @@ export default function NightAuditPage() {
                     <FileText size={20} className="text-gray-400" /> Room Charges Posted ({auditResult.charges?.length || 0})
                   </h3>
 
-                  <div className="border border-gray-200 rounded-2xl overflow-hidden">
+                  <div className="border border-gray-200 rounded-2xl overflow-hidden overflow-x-auto">
                     <table className="w-full">
                       <thead>
-                        <tr className="bg-gray-50 text-left border-b border-gray-200 text-xs font-bold text-gray-500 uppercase">
+                        <tr className="bg-gray-50 text-left border-b border-gray-200 text-xs font-bold text-gray-500 uppercase whitespace-nowrap">
                           <th className="px-5 py-3.5">Room</th>
                           <th className="px-5 py-3.5">Booking</th>
                           <th className="px-5 py-3.5">Guest</th>
@@ -423,7 +423,7 @@ export default function NightAuditPage() {
                           <th className="px-5 py-3.5 text-right">Total Charge</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-100 text-sm font-medium text-gray-700">
+                      <tbody className="divide-y divide-gray-100 text-sm font-medium text-gray-700 whitespace-nowrap">
                         {auditResult.charges?.map((c: AuditChargeDetail) => (
                           <tr key={c.id} className="hover:bg-gray-50/30 transition-colors">
                             <td className="px-5 py-3 font-bold text-gray-900">Room {c.room.roomNumber}</td>
@@ -453,10 +453,10 @@ export default function NightAuditPage() {
                     <Utensils size={20} className="text-gray-400" /> Restaurant POS Sales ({auditResult.orders?.length || 0})
                   </h3>
 
-                  <div className="border border-gray-200 rounded-2xl overflow-hidden">
+                  <div className="border border-gray-200 rounded-2xl overflow-hidden overflow-x-auto">
                     <table className="w-full">
                       <thead>
-                        <tr className="bg-gray-50 text-left border-b border-gray-200 text-xs font-bold text-gray-500 uppercase">
+                        <tr className="bg-gray-50 text-left border-b border-gray-200 text-xs font-bold text-gray-500 uppercase whitespace-nowrap">
                           <th className="px-5 py-3.5">Order Number</th>
                           <th className="px-5 py-3.5">Type</th>
                           <th className="px-5 py-3.5">Room</th>
@@ -465,7 +465,7 @@ export default function NightAuditPage() {
                           <th className="px-5 py-3.5 text-center">Billing Status</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-100 text-sm font-medium text-gray-700">
+                      <tbody className="divide-y divide-gray-100 text-sm font-medium text-gray-700 whitespace-nowrap">
                         {auditResult.orders?.map((o: AuditOrderDetail) => (
                           <tr key={o.id} className="hover:bg-gray-50/30 transition-colors">
                             <td className="px-5 py-3 font-bold text-gray-900">{o.orderNumber}</td>
@@ -905,10 +905,10 @@ export default function NightAuditPage() {
                   <FileText size={20} className="text-gray-400" /> Room Charges Posted ({auditDetails.charges.length})
                 </h3>
 
-                <div className="border border-gray-200 rounded-2xl overflow-hidden">
+                <div className="border border-gray-200 rounded-2xl overflow-hidden overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="bg-gray-50 text-left border-b border-gray-200 text-xs font-bold text-gray-500 uppercase">
+                      <tr className="bg-gray-50 text-left border-b border-gray-200 text-xs font-bold text-gray-500 uppercase whitespace-nowrap">
                         <th className="px-5 py-3.5">Room</th>
                         <th className="px-5 py-3.5">Booking</th>
                         <th className="px-5 py-3.5">Guest</th>
@@ -918,7 +918,7 @@ export default function NightAuditPage() {
                         <th className="px-5 py-3.5 text-right">Total Charge</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100 text-sm font-medium text-gray-700">
+                    <tbody className="divide-y divide-gray-100 text-sm font-medium text-gray-700 whitespace-nowrap">
                       {auditDetails.charges.map(c => (
                         <tr key={c.id} className="hover:bg-gray-50/30 transition-colors">
                           <td className="px-5 py-3 font-bold text-gray-900">Room {c.room.roomNumber}</td>
@@ -948,10 +948,10 @@ export default function NightAuditPage() {
                   <Utensils size={20} className="text-gray-400" /> Restaurant POS Sales ({auditDetails.orders?.length || 0})
                 </h3>
 
-                <div className="border border-gray-200 rounded-2xl overflow-hidden">
+                <div className="border border-gray-200 rounded-2xl overflow-hidden overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="bg-gray-50 text-left border-b border-gray-200 text-xs font-bold text-gray-500 uppercase">
+                      <tr className="bg-gray-50 text-left border-b border-gray-200 text-xs font-bold text-gray-500 uppercase whitespace-nowrap">
                         <th className="px-5 py-3.5">Order Number</th>
                         <th className="px-5 py-3.5">Type</th>
                         <th className="px-5 py-3.5">Room</th>
@@ -960,7 +960,7 @@ export default function NightAuditPage() {
                         <th className="px-5 py-3.5 text-center">Billing Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100 text-sm font-medium text-gray-700">
+                    <tbody className="divide-y divide-gray-100 text-sm font-medium text-gray-700 whitespace-nowrap">
                       {auditDetails.orders?.map((o: AuditOrderDetail) => (
                         <tr key={o.id} className="hover:bg-gray-50/30 transition-colors">
                           <td className="px-5 py-3 font-bold text-gray-900">{o.orderNumber}</td>
@@ -1069,26 +1069,26 @@ export default function NightAuditPage() {
               </div>
 
               {/* History Table View */}
-              <div className="card overflow-hidden border border-gray-200 shadow-xl shadow-gray-100/50">
+              <div className="card overflow-hidden border border-gray-200 shadow-xl shadow-gray-100/50 overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="bg-gray-50 border-b border-gray-200">
-                      <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Business Date</th>
-                      <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Closed At</th>
-                      <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Auditor</th>
-                      <th className="text-right px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Total Revenue</th>
-                      <th className="text-right px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Cash Collected</th>
-                      <th className="text-right px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">UPI / Card</th>
-                      <th className="text-center px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
+                    <tr className="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                      <th className="text-left px-5 py-3.5">Business Date</th>
+                      <th className="text-left px-5 py-3.5">Closed At</th>
+                      <th className="text-left px-5 py-3.5">Auditor</th>
+                      <th className="text-right px-5 py-3.5">Total Revenue</th>
+                      <th className="text-right px-5 py-3.5">Cash Collected</th>
+                      <th className="text-right px-5 py-3.5">UPI / Card</th>
+                      <th className="text-center px-5 py-3.5">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100 text-sm font-medium text-gray-700">
+                  <tbody className="divide-y divide-gray-100 text-sm font-medium text-gray-700 whitespace-nowrap">
                     {filteredHistory.map(item => (
                       <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                        <td className="px-5 py-4 font-bold text-gray-900 whitespace-nowrap">
+                        <td className="px-5 py-4 font-bold text-gray-900">
                           {format(new Date(item.businessDate), 'dd MMM yyyy')}
                         </td>
-                        <td className="px-5 py-4 text-gray-500 whitespace-nowrap">
+                        <td className="px-5 py-4 text-gray-500">
                           {item.completedAt ? format(new Date(item.completedAt), 'dd MMM, hh:mm a') : '—'}
                         </td>
                         <td className="px-5 py-4">
@@ -1097,13 +1097,13 @@ export default function NightAuditPage() {
                             {item.runBy.role}
                           </span>
                         </td>
-                        <td className="px-5 py-4 text-right font-bold text-primary-600 whitespace-nowrap">
+                        <td className="px-5 py-4 text-right font-bold text-primary-600">
                           ₹{Number(item.totalRevenue).toLocaleString('en-IN')}
                         </td>
-                        <td className="px-5 py-4 text-right text-gray-900 whitespace-nowrap">
+                        <td className="px-5 py-4 text-right text-gray-900">
                           ₹{Number(item.cashCollected).toLocaleString('en-IN')}
                         </td>
-                        <td className="px-5 py-4 text-right text-gray-500 whitespace-nowrap">
+                        <td className="px-5 py-4 text-right text-gray-500">
                           ₹{(Number(item.upiCollected) + Number(item.cardCollected)).toLocaleString('en-IN')}
                         </td>
                         <td className="px-5 py-4 text-center">

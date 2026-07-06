@@ -154,30 +154,30 @@ export default function RoomsPage() {
   return (
     <div className="animate-fadeIn">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Rooms</h1>
           <p className="text-gray-500 text-sm mt-1">Manage your {rooms.length} rooms</p>
         </div>
         {user?.role === 'ADMIN' && (
-          <button onClick={() => setShowAdd(true)} className="btn btn-primary">
+          <button onClick={() => setShowAdd(true)} className="btn btn-primary justify-center">
             <Plus size={18} /> Add Room
           </button>
         )}
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-4 mb-6">
-        <div className="relative flex-1 max-w-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div className="relative w-full sm:max-w-xs">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input className="input pl-9" placeholder="Search rooms..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:pb-0">
           {Object.entries(counts).map(([key, count]) => (
             <button
               key={key}
               onClick={() => setFilter(key)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filter === key ? 'bg-primary-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-200'}`}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${filter === key ? 'bg-primary-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-200'}`}
             >
               {key === 'ALL' ? 'All' : statusConfig[key]?.label} ({count})
             </button>

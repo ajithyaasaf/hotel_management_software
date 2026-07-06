@@ -45,49 +45,57 @@ export default function StaffPage() {
 
       {loading ? (
         <div className="card overflow-hidden border border-gray-150/60 animate-pulse">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-gray-50/50">
-                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-16" /></th>
-                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-24" /></th>
-                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-12" /></th>
-                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-14" /></th>
-                <th className="px-5 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {Array.from({ length: 4 }).map((_, rIdx) => (
-                <tr key={rIdx} className="h-14">
-                  <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-24" /></td>
-                  <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-36" /></td>
-                  <td className="px-5 py-3"><div className="h-5 bg-gray-200 rounded-full w-16" /></td>
-                  <td className="px-5 py-3"><div className="h-5 bg-gray-200 rounded-full w-14" /></td>
-                  <td className="px-5 py-3 flex justify-end items-center h-14"><div className="h-8 w-20 bg-gray-100 rounded-lg" /></td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-gray-50/50">
+                  <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-16" /></th>
+                  <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-24" /></th>
+                  <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-12" /></th>
+                  <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-14" /></th>
+                  <th className="px-5 py-3"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {Array.from({ length: 4 }).map((_, rIdx) => (
+                  <tr key={rIdx} className="h-14">
+                    <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-24" /></td>
+                    <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-36" /></td>
+                    <td className="px-5 py-3"><div className="h-5 bg-gray-200 rounded-full w-16" /></td>
+                    <td className="px-5 py-3"><div className="h-5 bg-gray-200 rounded-full w-14" /></td>
+                    <td className="px-5 py-3 flex justify-end items-center h-14"><div className="h-8 w-20 bg-gray-100 rounded-lg" /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : (
         <div className="card overflow-hidden">
-          <table className="w-full"><thead><tr className="bg-gray-50/50">
-            <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Name</th>
-            <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Email</th>
-            <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Role</th>
-            <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
-            <th className="px-5 py-3"></th>
-          </tr></thead>
-          <tbody className="divide-y divide-gray-50">
-            {users.map(u => (
-              <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
-                <td className="px-5 py-3 text-sm font-medium text-gray-900">{u.name}</td>
-                <td className="px-5 py-3 text-sm text-gray-600">{u.email}</td>
-                <td className="px-5 py-3"><span className={`badge ${roleBadge[u.role]}`}>{u.role}</span></td>
-                <td className="px-5 py-3"><span className={`badge ${u.isActive ? 'badge-green' : 'badge-gray'}`}>{u.isActive ? 'Active' : 'Inactive'}</span></td>
-                <td className="px-5 py-3"><button onClick={() => toggleActive(u.id, u.isActive!)} className="btn btn-ghost btn-sm">{u.isActive ? 'Deactivate' : 'Activate'}</button></td>
-              </tr>
-            ))}
-          </tbody></table>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-gray-50/50">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">Name</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">Email</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">Role</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">Status</th>
+                  <th className="px-5 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {users.map(u => (
+                  <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-5 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{u.name}</td>
+                    <td className="px-5 py-3 text-sm text-gray-600 whitespace-nowrap">{u.email}</td>
+                    <td className="px-5 py-3 whitespace-nowrap"><span className={`badge ${roleBadge[u.role]}`}>{u.role}</span></td>
+                    <td className="px-5 py-3 whitespace-nowrap"><span className={`badge ${u.isActive ? 'badge-green' : 'badge-gray'}`}>{u.isActive ? 'Active' : 'Inactive'}</span></td>
+                    <td className="px-5 py-3 whitespace-nowrap text-right"><button onClick={() => toggleActive(u.id, u.isActive!)} className="btn btn-ghost btn-sm">{u.isActive ? 'Deactivate' : 'Activate'}</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

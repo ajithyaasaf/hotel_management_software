@@ -191,7 +191,7 @@ export default function NewBookingPage() {
             {searching && <div className="animate-spin h-3 w-3 border-2 border-primary-600 border-t-transparent rounded-full ml-2" />}
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Phone Number *</label>
               <input 
@@ -238,7 +238,7 @@ export default function NewBookingPage() {
               <label className="block text-sm font-medium text-gray-600 mb-2">ID Proof Document (Aadhar / PAN Scan)</label>
               
               {existingIdProofUrl ? (
-                <div className="flex items-center justify-between p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-emerald-100/50 rounded-lg text-emerald-600">
                       <UserCheck size={20} />
@@ -248,19 +248,19 @@ export default function NewBookingPage() {
                       <p className="text-xs text-emerald-600">This returning guest already has an ID proof uploaded.</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
                     <a 
                       href={existingIdProofUrl} 
                       target="_blank" 
                       rel="noopener noreferrer" 
-                      className="text-xs font-semibold text-primary-600 hover:text-primary-700 bg-white border border-gray-200 py-1.5 px-3 rounded-lg shadow-sm"
+                      className="text-xs font-semibold text-primary-600 hover:text-primary-700 bg-white border border-gray-200 py-1.5 px-3 rounded-lg shadow-sm flex-1 sm:flex-none justify-center text-center"
                     >
                       View Saved ID
                     </a>
                     <button 
                       type="button" 
                       onClick={() => setExistingIdProofUrl('')} 
-                      className="text-xs font-semibold text-red-600 hover:text-red-700 bg-white border border-gray-200 py-1.5 px-3 rounded-lg shadow-sm"
+                      className="text-xs font-semibold text-red-600 hover:text-red-700 bg-white border border-gray-200 py-1.5 px-3 rounded-lg shadow-sm flex-1 sm:flex-none justify-center"
                     >
                       Replace ID
                     </button>
@@ -299,7 +299,7 @@ export default function NewBookingPage() {
 
         <div className="card p-5 mb-6">
           <h3 className="text-sm font-semibold text-gray-700 mb-4">Room & Stay</h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Room *</label>
               <SearchableSelect
@@ -334,7 +334,7 @@ export default function NewBookingPage() {
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Billing Account Type</label>
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   type="button"
                   onClick={() => {
@@ -368,7 +368,7 @@ export default function NewBookingPage() {
             </div>
 
             {billingType === 'CORPORATE' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-dashed border-gray-100 animate-fadeIn">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-dashed border-gray-100 animate-fadeIn">
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-1">Company / Corporate Client</label>
                   <select 
@@ -412,7 +412,7 @@ export default function NewBookingPage() {
 
         <div className="card p-5 mb-6">
           <h3 className="text-sm font-semibold text-gray-700 mb-4">Advance Payment</h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Advance Amount (₹)</label>
               <input className="input" type="number" min={0} value={form.advanceAmount} onChange={e => setForm(p => ({ ...p, advanceAmount: e.target.value }))} />

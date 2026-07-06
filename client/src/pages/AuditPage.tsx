@@ -72,7 +72,7 @@ export default function AuditPage() {
       </div>
 
       {loading ? (
-        <div className="card overflow-hidden border border-gray-150/60 animate-pulse">
+        <div className="card overflow-hidden border border-gray-150/60 animate-pulse overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="bg-gray-50/50">
@@ -100,18 +100,18 @@ export default function AuditPage() {
           </table>
         </div>
       ) : (
-        <div className="card overflow-hidden">
-          <table className="w-full"><thead><tr className="bg-gray-50/50">
-            <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Time</th>
-            <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Action</th>
-            <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Entity</th>
-            <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Details</th>
-            <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">User</th>
+        <div className="card overflow-hidden overflow-x-auto">
+          <table className="w-full"><thead><tr className="bg-gray-50/50 text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">
+            <th className="text-left px-5 py-3">Time</th>
+            <th className="text-left px-5 py-3">Action</th>
+            <th className="text-left px-5 py-3">Entity</th>
+            <th className="text-left px-5 py-3">Details</th>
+            <th className="text-left px-5 py-3">User</th>
           </tr></thead>
-          <tbody className="divide-y divide-gray-50">
+          <tbody className="divide-y divide-gray-50 whitespace-nowrap">
             {logs.map(log => (
               <tr key={log.id} className="hover:bg-gray-50/50 transition-colors">
-                <td className="px-5 py-3 text-sm text-gray-500 whitespace-nowrap">{format(new Date(log.createdAt), 'dd MMM yyyy, hh:mm a')}</td>
+                <td className="px-5 py-3 text-sm text-gray-500">{format(new Date(log.createdAt), 'dd MMM yyyy, hh:mm a')}</td>
                 <td className="px-5 py-3">
                   <span className={`inline-block px-2.5 py-0.5 rounded-md text-xs font-semibold ${actionColor[log.action] || 'text-gray-600 bg-gray-50'}`}>
                     {log.action.replace(/_/g, ' ')}
@@ -120,8 +120,8 @@ export default function AuditPage() {
                 <td className="px-5 py-3 text-sm text-gray-600 capitalize">{log.entity}</td>
                 <td className="px-5 py-3 text-sm text-gray-500 max-w-xs truncate">{log.details || '—'}</td>
                 <td className="px-5 py-3">
-                  <p className="text-sm font-medium text-gray-900">{log.user.name}</p>
-                  <p className="text-xs text-gray-400">{log.user.role}</p>
+                  <p className="text-sm font-medium text-gray-900 leading-none">{log.user.name}</p>
+                  <p className="text-xs text-gray-400 mt-1">{log.user.role}</p>
                 </td>
               </tr>
             ))}

@@ -186,7 +186,7 @@ export default function NewBanquetPage() {
         {/* Guest Information */}
         <div className="card p-5 space-y-4">
           <h3 className="font-semibold text-gray-900">Guest / Organiser Details</h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Phone Number *</label>
               <div className="relative">
@@ -232,7 +232,7 @@ export default function NewBanquetPage() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-1">Select Hall *</label>
                   <select
@@ -307,7 +307,7 @@ export default function NewBanquetPage() {
 
               {/* Custom Hours */}
               {form.slot === 'CUSTOM' && (
-                <div className="grid grid-cols-2 gap-4 p-4 bg-primary-50/40 rounded-xl border border-primary-100">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-primary-50/40 rounded-xl border border-primary-100">
                   <div>
                     <label className="block text-sm font-medium text-gray-600 mb-1">Start Time *</label>
                     <input
@@ -344,7 +344,7 @@ export default function NewBanquetPage() {
         {/* Event Details */}
         <div className="card p-5 space-y-4">
           <h3 className="font-semibold text-gray-900">Event Details</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Event Type *</label>
               <select className="input" value={form.eventType} onChange={e => setField('eventType', e.target.value)}>
@@ -401,7 +401,7 @@ export default function NewBanquetPage() {
         {/* Pricing */}
         <div className="card p-5 space-y-4">
           <h3 className="font-semibold text-gray-900">Pricing & Billing</h3>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Hall Rental (₹) *</label>
               <input className="input" type="number" min="0" value={form.hallRentalPrice} onChange={e => setField('hallRentalPrice', e.target.value)} required />
@@ -460,7 +460,7 @@ export default function NewBanquetPage() {
             <h4 className="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-2">
               <IndianRupee size={14} className="text-primary-600" /> Advance Deposit (Optional)
             </h4>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-600 mb-1">Amount (₹)</label>
                 <input className="input" type="number" min="0" value={form.advanceAmount} onChange={e => setField('advanceAmount', e.target.value)} />

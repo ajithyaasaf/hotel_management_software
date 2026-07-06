@@ -188,7 +188,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Settings Table Card */}
-        <div className="card overflow-hidden border border-gray-150/60">
+        <div className="card overflow-hidden border border-gray-150/60 overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="bg-gray-50/50">
@@ -237,14 +237,14 @@ export default function SettingsPage() {
           <div className="flex justify-end mb-4">
             <button onClick={() => { setEditRt(null); setRtForm({ name: '', basePrice: 0, description: '' }); setShowRtForm(true); }} className="btn btn-primary btn-sm"><Plus size={16} /> Add Type</button>
           </div>
-          <div className="card overflow-hidden">
-            <table className="w-full"><thead><tr className="bg-gray-50/50">
-              <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Name</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Base Price</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Description</th>
+          <div className="card overflow-hidden overflow-x-auto">
+            <table className="w-full"><thead><tr className="bg-gray-50/50 text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">
+              <th className="text-left px-5 py-3">Name</th>
+              <th className="text-left px-5 py-3">Base Price</th>
+              <th className="text-left px-5 py-3">Description</th>
               <th className="px-5 py-3"></th>
             </tr></thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-gray-50 whitespace-nowrap">
                 {roomTypes.map(rt => (
                   <tr key={rt.id} className="hover:bg-gray-50/50">
                     <td className="px-5 py-3 text-sm font-medium text-gray-900">{rt.name}</td>
@@ -274,15 +274,15 @@ export default function SettingsPage() {
                 <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">{cat.name}</h3>
                 <button onClick={() => deleteCategory(cat.id)} className="text-gray-300 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
               </div>
-              <div className="card overflow-hidden">
-                <table className="w-full"><thead><tr className="bg-gray-50/50">
-                  <th className="text-left px-5 py-2 text-xs font-semibold text-gray-500">Item</th>
-                  <th className="text-left px-5 py-2 text-xs font-semibold text-gray-500">Price</th>
-                  <th className="text-left px-5 py-2 text-xs font-semibold text-gray-500">Type</th>
-                  <th className="text-left px-5 py-2 text-xs font-semibold text-gray-500">Available</th>
+              <div className="card overflow-hidden overflow-x-auto">
+                <table className="w-full"><thead><tr className="bg-gray-50/50 text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">
+                  <th className="text-left px-5 py-2">Item</th>
+                  <th className="text-left px-5 py-2">Price</th>
+                  <th className="text-left px-5 py-2">Type</th>
+                  <th className="text-left px-5 py-2">Available</th>
                   <th className="px-5 py-2"></th>
                 </tr></thead>
-                  <tbody className="divide-y divide-gray-50">
+                  <tbody className="divide-y divide-gray-50 whitespace-nowrap">
                     {cat.items.map(item => (
                       <tr key={item.id} className="hover:bg-gray-50/50">
                         <td className="px-5 py-2.5 text-sm font-medium text-gray-900">{item.name}</td>
@@ -322,19 +322,19 @@ export default function SettingsPage() {
               <Plus size={16} /> Add Banquet Hall
             </button>
           </div>
-          <div className="card overflow-hidden">
+          <div className="card overflow-hidden overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-gray-50/50">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Hall Name</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Max Capacity</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Base Rental</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Description</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Active</th>
+                <tr className="bg-gray-50/50 text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">
+                  <th className="text-left px-5 py-3">Hall Name</th>
+                  <th className="text-left px-5 py-3">Max Capacity</th>
+                  <th className="text-left px-5 py-3">Base Rental</th>
+                  <th className="text-left px-5 py-3">Description</th>
+                  <th className="text-left px-5 py-3">Active</th>
                   <th className="px-5 py-3"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-gray-50 whitespace-nowrap">
                 {banquetHalls.map(hall => (
                   <tr key={hall.id} className="hover:bg-gray-50/50">
                     <td className="px-5 py-3 text-sm font-medium text-gray-900">{hall.name}</td>

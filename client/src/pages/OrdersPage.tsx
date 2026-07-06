@@ -148,43 +148,45 @@ export default function OrdersPage() {
         </div>
         <div className="flex gap-1 overflow-x-auto pb-1">
           {['', 'ACTIVE', 'COMPLETED', 'CANCELLED'].map(s => (
-            <button key={s} onClick={() => setFilter(s)} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === s ? 'bg-primary-600 text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}>{s || 'All Statuses'}</button>
+            <button key={s} onClick={() => setFilter(s)} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${filter === s ? 'bg-primary-600 text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}>{s || 'All Statuses'}</button>
           ))}
         </div>
       </div>
 
       {loading ? (
         <div className="card overflow-hidden border border-gray-150/60 animate-pulse">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-gray-50/50">
-                <th className="px-5 py-3.5"><div className="h-3 bg-gray-200 rounded-md w-14" /></th>
-                <th className="px-5 py-3.5"><div className="h-3 bg-gray-200 rounded-md w-12" /></th>
-                <th className="px-5 py-3.5"><div className="h-3 bg-gray-200 rounded-md w-10" /></th>
-                <th className="px-5 py-3.5"><div className="h-3 bg-gray-200 rounded-md w-24" /></th>
-                <th className="px-5 py-3.5"><div className="h-3 bg-gray-200 rounded-md w-14" /></th>
-                <th className="px-5 py-3.5"><div className="h-3 bg-gray-200 rounded-md w-12" /></th>
-                <th className="px-5 py-3.5"><div className="h-3 bg-gray-200 rounded-md w-16" /></th>
-                <th className="px-5 py-3.5"><div className="h-3 bg-gray-200 rounded-md w-28" /></th>
-                <th className="px-5 py-3.5"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {Array.from({ length: 6 }).map((_, rIdx) => (
-                <tr key={rIdx} className="h-16">
-                  <td className="px-5 py-4"><div className="h-4 bg-gray-200 rounded-md w-16" /></td>
-                  <td className="px-5 py-4"><div className="h-5 bg-gray-200 rounded-full w-14" /></td>
-                  <td className="px-5 py-4"><div className="h-4 bg-gray-200 rounded-md w-10" /></td>
-                  <td className="px-5 py-4"><div className="h-4 bg-gray-200 rounded-md w-28" /></td>
-                  <td className="px-5 py-4"><div className="h-4 bg-gray-200 rounded-md w-12" /></td>
-                  <td className="px-5 py-4"><div className="h-4 bg-gray-200 rounded-md w-16" /></td>
-                  <td className="px-5 py-4"><div className="h-5 bg-gray-200 rounded-full w-16" /></td>
-                  <td className="px-5 py-4"><div className="h-4 bg-gray-200 rounded-md w-32" /></td>
-                  <td className="px-5 py-4"><div className="h-8 bg-gray-100 rounded-lg w-16" /></td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-gray-50/50">
+                  <th className="px-5 py-3.5"><div className="h-3 bg-gray-200 rounded-md w-14" /></th>
+                  <th className="px-5 py-3.5"><div className="h-3 bg-gray-200 rounded-md w-12" /></th>
+                  <th className="px-5 py-3.5"><div className="h-3 bg-gray-200 rounded-md w-10" /></th>
+                  <th className="px-5 py-3.5"><div className="h-3 bg-gray-200 rounded-md w-24" /></th>
+                  <th className="px-5 py-3.5"><div className="h-3 bg-gray-200 rounded-md w-14" /></th>
+                  <th className="px-5 py-3.5"><div className="h-3 bg-gray-200 rounded-md w-12" /></th>
+                  <th className="px-5 py-3.5"><div className="h-3 bg-gray-200 rounded-md w-16" /></th>
+                  <th className="px-5 py-3.5"><div className="h-3 bg-gray-200 rounded-md w-28" /></th>
+                  <th className="px-5 py-3.5"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {Array.from({ length: 6 }).map((_, rIdx) => (
+                  <tr key={rIdx} className="h-16">
+                    <td className="px-5 py-4"><div className="h-4 bg-gray-200 rounded-md w-16" /></td>
+                    <td className="px-5 py-4"><div className="h-5 bg-gray-200 rounded-full w-14" /></td>
+                    <td className="px-5 py-4"><div className="h-4 bg-gray-200 rounded-md w-10" /></td>
+                    <td className="px-5 py-4"><div className="h-4 bg-gray-200 rounded-md w-28" /></td>
+                    <td className="px-5 py-4"><div className="h-4 bg-gray-200 rounded-md w-12" /></td>
+                    <td className="px-5 py-4"><div className="h-4 bg-gray-200 rounded-md w-16" /></td>
+                    <td className="px-5 py-4"><div className="h-5 bg-gray-200 rounded-full w-16" /></td>
+                    <td className="px-5 py-4"><div className="h-4 bg-gray-200 rounded-md w-32" /></td>
+                    <td className="px-5 py-4"><div className="h-8 bg-gray-100 rounded-lg w-16" /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : (
         <div className="card overflow-hidden">
@@ -192,29 +194,29 @@ export default function OrdersPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50/50 border-b border-gray-100">
-                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Order</th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Room</th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Customer</th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Items</th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Total</th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date & Time</th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Order</th>
+                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Type</th>
+                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Room</th>
+                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Customer</th>
+                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Items</th>
+                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Total</th>
+                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
+                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Date & Time</th>
+                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {filtered.map(o => (
                   <tr key={o.id} className="hover:bg-gray-50/55 transition-colors cursor-pointer" onClick={() => openOrderDetails(o)}>
-                    <td className="px-5 py-4 text-sm font-mono text-primary-600 font-semibold">{o.orderNumber}</td>
-                    <td className="px-5 py-4"><span className="badge badge-blue">{o.type.replace('_', ' ')}</span></td>
-                    <td className="px-5 py-4 text-sm text-gray-600 font-medium">{o.room?.roomNumber || '—'}</td>
-                    <td className="px-5 py-4 text-sm text-gray-600">{o.customerName || '—'}</td>
-                    <td className="px-5 py-4 text-sm text-gray-600">{o.items.filter(i => !i.isCancelled).length} active</td>
-                    <td className="px-5 py-4 text-sm font-bold text-gray-900">₹{Number(o.total).toLocaleString()}</td>
-                    <td className="px-5 py-4"><span className={`badge ${statusBadge[o.status]}`}>{o.status}</span></td>
-                    <td className="px-5 py-4 text-sm text-gray-400">{format(new Date(o.createdAt), 'dd MMM, hh:mm a')}</td>
-                    <td className="px-5 py-4" onClick={e => e.stopPropagation()}>
+                    <td className="px-5 py-4 text-sm font-mono text-primary-600 font-semibold whitespace-nowrap">{o.orderNumber}</td>
+                    <td className="px-5 py-4 whitespace-nowrap"><span className="badge badge-blue">{o.type.replace('_', ' ')}</span></td>
+                    <td className="px-5 py-4 text-sm text-gray-600 font-medium whitespace-nowrap">{o.room?.roomNumber || '—'}</td>
+                    <td className="px-5 py-4 text-sm text-gray-600 whitespace-nowrap">{o.customerName || '—'}</td>
+                    <td className="px-5 py-4 text-sm text-gray-600 whitespace-nowrap">{o.items.filter(i => !i.isCancelled).length} active</td>
+                    <td className="px-5 py-4 text-sm font-bold text-gray-900 whitespace-nowrap">₹{Number(o.total).toLocaleString()}</td>
+                    <td className="px-5 py-4 whitespace-nowrap"><span className={`badge ${statusBadge[o.status]}`}>{o.status}</span></td>
+                    <td className="px-5 py-4 text-sm text-gray-400 whitespace-nowrap">{format(new Date(o.createdAt), 'dd MMM, hh:mm a')}</td>
+                    <td className="px-5 py-4 whitespace-nowrap" onClick={e => e.stopPropagation()}>
                       <div className="flex items-center gap-1">
                         <button onClick={() => openOrderDetails(o)} className="btn btn-ghost btn-sm text-primary-600" title="View & Edit"><Eye size={16} /></button>
                         {o.status === 'ACTIVE' && (

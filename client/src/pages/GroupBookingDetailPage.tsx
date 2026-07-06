@@ -146,7 +146,7 @@ export default function GroupBookingDetailPage() {
       </button>
 
       {/* Header */}
-      <div className="flex items-start justify-between mb-6 print:hidden">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6 print:hidden">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
             <Users size={22} className="text-primary-600" />
@@ -159,9 +159,9 @@ export default function GroupBookingDetailPage() {
           </p>
           {group.notes && <p className="text-xs text-gray-400 mt-1 italic">{group.notes}</p>}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           {canCheckoutAll && (
-            <button onClick={handleCheckoutAll} disabled={checkingOut} className="btn btn-danger btn-sm">
+            <button onClick={handleCheckoutAll} disabled={checkingOut} className="btn btn-danger btn-sm flex-1 sm:flex-none justify-center">
               <LogOut size={16} /> {checkingOut ? 'Checking Out...' : 'Checkout All Rooms'}
             </button>
           )}
@@ -190,15 +190,15 @@ export default function GroupBookingDetailPage() {
             const isOverdue = booking.status === 'CHECKED_IN' && checkoutStr < referenceDate;
             return (
               <div key={booking.id} className={`card p-5 transition-colors ${isOverdue ? 'bg-red-50/20 border-l-4 border-l-red-500' : ''}`}>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-3 mb-1">
+                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-3 mb-1">
                       <span className="font-mono text-sm text-primary-600">{booking.bookingNumber}</span>
                       <span className="font-semibold text-gray-900">Room {booking.room.roomNumber}</span>
                       <span className="text-xs text-gray-400">{booking.room.roomType.name}</span>
                       <span className={`badge ${bookingStatusColors[booking.status]}`}>{booking.status.replace('_', ' ')}</span>
                     </div>
-                    <div className="grid grid-cols-4 gap-4 text-sm text-gray-600 mt-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm text-gray-600 mt-2">
                       <div>
                         <span className="text-gray-400 text-xs block">Check-in</span>
                         {format(new Date(booking.checkInDate), 'dd MMM yyyy')}
@@ -219,7 +219,7 @@ export default function GroupBookingDetailPage() {
                         {booking.numberOfGuests}
                       </div>
                     </div>
-                    <div className="mt-3 pt-2 border-t border-gray-50 flex items-center justify-between text-xs text-gray-500">
+                    <div className="mt-3 pt-2 border-t border-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-gray-500">
                       <div>
                         <span className="font-medium text-gray-400">Occupant: </span>
                         <span className="font-semibold text-gray-700">{booking.guest.name}</span>
@@ -238,28 +238,28 @@ export default function GroupBookingDetailPage() {
                       )}
                     </div>
                   </div>
-                <div className="flex items-center gap-2">
-                  {booking.invoice && (
-                    <div className="text-right text-sm mr-4">
-                      <p className="font-semibold text-gray-900">₹{Number(booking.invoice.grandTotal).toLocaleString()}</p>
-                      {Number(booking.invoice.pendingAmount) > 0 && (
-                        <p className="text-xs text-red-600 flex items-center gap-1">
-                          <AlertCircle size={10} /> ₹{Number(booking.invoice.pendingAmount).toLocaleString()} pending
-                        </p>
-                      )}
-                    </div>
-                  )}
-                  <button onClick={() => navigate(`/bookings/${booking.id}`)} className="btn btn-outline btn-sm">
-                    <Eye size={14} /> View
-                  </button>
-                  {booking.status !== 'CHECKED_IN' && (
-                    <button onClick={() => handleUnlink(booking.id, booking.room.roomNumber)} className="btn btn-ghost btn-sm text-gray-400">
-                      <Unlink size={14} />
+                  <div className="flex items-center justify-between md:justify-end gap-2 w-full md:w-auto border-t md:border-t-0 pt-3 md:pt-0 mt-3 md:mt-0">
+                    {booking.invoice && (
+                      <div className="text-left md:text-right text-sm mr-4">
+                        <p className="font-semibold text-gray-900">₹{Number(booking.invoice.grandTotal).toLocaleString()}</p>
+                        {Number(booking.invoice.pendingAmount) > 0 && (
+                          <p className="text-xs text-red-600 flex items-center gap-1">
+                            <AlertCircle size={10} /> ₹{Number(booking.invoice.pendingAmount).toLocaleString()} pending
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    <button onClick={() => navigate(`/bookings/${booking.id}`)} className="btn btn-outline btn-sm">
+                      <Eye size={14} /> View
                     </button>
-                  )}
+                    {booking.status !== 'CHECKED_IN' && (
+                      <button onClick={() => handleUnlink(booking.id, booking.room.roomNumber)} className="btn btn-ghost btn-sm text-gray-400">
+                        <Unlink size={14} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
           );
         })}
         </div>
@@ -281,46 +281,48 @@ export default function GroupBookingDetailPage() {
           </div>
 
           {/* Per-room breakdown */}
-          <table className="w-full text-sm mb-6">
-            <thead>
-              <tr className="border-b-2 border-gray-200">
-                <th className="py-3 text-left font-semibold text-gray-600">Room</th>
-                <th className="py-3 text-left font-semibold text-gray-600">Period</th>
-                <th className="py-3 text-right font-semibold text-gray-600">Room Charges</th>
-                <th className="py-3 text-right font-semibold text-gray-600">Food</th>
-                <th className="py-3 text-right font-semibold text-gray-600">Extra</th>
-                <th className="py-3 text-right font-semibold text-gray-600">Discount</th>
-                <th className="py-3 text-right font-semibold text-gray-600">Total</th>
-                <th className="py-3 text-right font-semibold text-gray-600">Paid</th>
-                <th className="py-3 text-right font-semibold text-gray-600">Pending</th>
-              </tr>
-            </thead>
-            <tbody>
-              {masterInvoice.rooms.map(r => (
-                <tr key={r.bookingId} className="border-b border-gray-50 hover:bg-gray-50/50">
-                  <td className="py-3">
-                    <p className="font-medium">Room {r.roomNumber}</p>
-                    <p className="text-xs text-gray-400">{r.roomType}</p>
-                  </td>
-                  <td className="py-3 text-gray-500">
-                    {format(new Date(r.checkInDate), 'dd MMM')} — {format(new Date(r.expectedCheckout), 'dd MMM yyyy')}
-                  </td>
-                  <td className="py-3 text-right">₹{r.roomCharges.toLocaleString()}</td>
-                  <td className="py-3 text-right">{r.foodCharges > 0 ? `₹${r.foodCharges.toLocaleString()}` : '—'}</td>
-                  <td className="py-3 text-right">{r.extraCharges > 0 ? `₹${r.extraCharges.toLocaleString()}` : '—'}</td>
-                  <td className="py-3 text-right text-emerald-600">{r.discountAmount > 0 ? `-₹${r.discountAmount.toLocaleString()}` : '—'}</td>
-                  <td className="py-3 text-right font-semibold">₹{r.grandTotal.toLocaleString()}</td>
-                  <td className="py-3 text-right text-emerald-600">₹{r.amountPaid.toLocaleString()}</td>
-                  <td className="py-3 text-right">
-                    {r.pendingAmount > 0
-                      ? <span className="text-red-600 font-semibold">₹{r.pendingAmount.toLocaleString()}</span>
-                      : <span className="text-emerald-500">✓ Paid</span>
-                    }
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm mb-6">
+              <thead>
+                <tr className="border-b-2 border-gray-200 whitespace-nowrap">
+                  <th className="py-3 text-left font-semibold text-gray-600">Room</th>
+                  <th className="py-3 text-left font-semibold text-gray-600">Period</th>
+                  <th className="py-3 text-right font-semibold text-gray-600">Room Charges</th>
+                  <th className="py-3 text-right font-semibold text-gray-600">Food</th>
+                  <th className="py-3 text-right font-semibold text-gray-600">Extra</th>
+                  <th className="py-3 text-right font-semibold text-gray-600">Discount</th>
+                  <th className="py-3 text-right font-semibold text-gray-600">Total</th>
+                  <th className="py-3 text-right font-semibold text-gray-600">Paid</th>
+                  <th className="py-3 text-right font-semibold text-gray-600">Pending</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="whitespace-nowrap">
+                {masterInvoice.rooms.map(r => (
+                  <tr key={r.bookingId} className="border-b border-gray-50 hover:bg-gray-50/50">
+                    <td className="py-3">
+                      <p className="font-medium">Room {r.roomNumber}</p>
+                      <p className="text-xs text-gray-400">{r.roomType}</p>
+                    </td>
+                    <td className="py-3 text-gray-500">
+                      {format(new Date(r.checkInDate), 'dd MMM')} — {format(new Date(r.expectedCheckout), 'dd MMM yyyy')}
+                    </td>
+                    <td className="py-3 text-right">₹{r.roomCharges.toLocaleString()}</td>
+                    <td className="py-3 text-right">{r.foodCharges > 0 ? `₹${r.foodCharges.toLocaleString()}` : '—'}</td>
+                    <td className="py-3 text-right">{r.extraCharges > 0 ? `₹${r.extraCharges.toLocaleString()}` : '—'}</td>
+                    <td className="py-3 text-right text-emerald-600">{r.discountAmount > 0 ? `-₹${r.discountAmount.toLocaleString()}` : '—'}</td>
+                    <td className="py-3 text-right font-semibold">₹{r.grandTotal.toLocaleString()}</td>
+                    <td className="py-3 text-right text-emerald-600">₹{r.amountPaid.toLocaleString()}</td>
+                    <td className="py-3 text-right">
+                      {r.pendingAmount > 0
+                        ? <span className="text-red-600 font-semibold">₹{r.pendingAmount.toLocaleString()}</span>
+                        : <span className="text-emerald-500">✓ Paid</span>
+                      }
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
           {/* Totals */}
           <div className="ml-auto max-w-xs space-y-2 text-sm">

@@ -67,7 +67,7 @@ export default function DashboardPage() {
         </div>
 
         {/* 3 Quick Stats Cards */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="h-20 bg-gray-50 rounded-2xl p-4 border border-gray-150/60 flex items-center gap-4">
               <div className="h-12 w-12 bg-gray-200 rounded-xl" />
@@ -200,7 +200,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         {quickStats.map((s, i) => (
           <div key={i} className="card p-4 flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-primary-50 flex items-center justify-center text-primary-600">

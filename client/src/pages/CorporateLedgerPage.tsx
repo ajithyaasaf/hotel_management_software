@@ -207,7 +207,7 @@ export default function CorporateLedgerPage() {
         {user?.role === 'ADMIN' && (
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 shadow-md shadow-primary-100 hover:shadow-lg transition-all"
+            className="flex items-center gap-2 justify-center px-5 py-3 rounded-xl text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 shadow-md shadow-primary-100 hover:shadow-lg transition-all w-full md:w-auto"
           >
             <Plus size={18} /> Add Company
           </button>
@@ -229,7 +229,7 @@ export default function CorporateLedgerPage() {
       {/* Main Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Company Directory */}
-        <div className="lg:col-span-4 bg-white rounded-2xl border border-gray-150 shadow-sm flex flex-col overflow-hidden h-[650px]">
+        <div className="lg:col-span-4 bg-white rounded-2xl border border-gray-150 shadow-sm flex flex-col overflow-hidden h-[300px] lg:h-[650px]">
           <div className="p-4 border-b border-gray-100 space-y-3">
             <h3 className="font-bold text-gray-900 text-lg">Companies Directory</h3>
             <div className="relative">
@@ -289,7 +289,7 @@ export default function CorporateLedgerPage() {
         </div>
 
         {/* Right Column: Detailed Corporate Invoice Settlement */}
-        <div className="lg:col-span-8 bg-white rounded-2xl border border-gray-150 shadow-sm flex flex-col h-[650px] overflow-hidden">
+        <div className="lg:col-span-8 bg-white rounded-2xl border border-gray-150 shadow-sm flex flex-col h-[550px] lg:h-[650px] overflow-hidden">
           {!selectedCompany ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-8 text-gray-400">
               <Building2 size={48} className="text-gray-300 mb-2" />
@@ -312,7 +312,7 @@ export default function CorporateLedgerPage() {
               </div>
 
               {/* Stats Cards for Company */}
-              <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 grid grid-cols-3 gap-4 shrink-0">
+              <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 grid grid-cols-1 sm:grid-cols-3 gap-4 shrink-0 overflow-y-auto sm:overflow-visible max-h-[160px] sm:max-h-none">
                 <div className="bg-white p-3 rounded-xl border border-gray-150 shadow-xs flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-gray-50 text-gray-600">
                     <FileText size={18} />

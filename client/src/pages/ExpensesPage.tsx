@@ -199,82 +199,86 @@ export default function ExpensesPage() {
       {/* Table */}
       {loading ? (
         <div className="card overflow-hidden border border-gray-150/60 animate-pulse">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-gray-50/50">
-                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-20" /></th>
-                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-24" /></th>
-                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-16" /></th>
-                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-12" /></th>
-                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-14" /></th>
-                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-16" /></th>
-                <th className="px-5 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {Array.from({ length: 6 }).map((_, rIdx) => (
-                <tr key={rIdx} className="h-14">
-                  <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-24" /></td>
-                  <td className="px-5 py-3 space-y-1.5">
-                    <div className="h-4 bg-gray-200 rounded-md w-32" />
-                    <div className="h-3 bg-gray-150 rounded-md w-20" />
-                  </td>
-                  <td className="px-5 py-3"><div className="h-5 bg-gray-200 rounded-full w-20" /></td>
-                  <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-12" /></td>
-                  <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-16" /></td>
-                  <td className="px-5 py-3"><div className="h-4 bg-gray-150 rounded-md w-16" /></td>
-                  <td className="px-5 py-3"><div className="h-8 bg-gray-100 rounded-lg w-16" /></td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-gray-50/50">
+                  <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-20" /></th>
+                  <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-24" /></th>
+                  <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-16" /></th>
+                  <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-12" /></th>
+                  <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-14" /></th>
+                  <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-16" /></th>
+                  <th className="px-5 py-3"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {Array.from({ length: 6 }).map((_, rIdx) => (
+                  <tr key={rIdx} className="h-14">
+                    <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-24" /></td>
+                    <td className="px-5 py-3 space-y-1.5">
+                      <div className="h-4 bg-gray-200 rounded-md w-32" />
+                      <div className="h-3 bg-gray-150 rounded-md w-20" />
+                    </td>
+                    <td className="px-5 py-3"><div className="h-5 bg-gray-200 rounded-full w-20" /></td>
+                    <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-12" /></td>
+                    <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-16" /></td>
+                    <td className="px-5 py-3"><div className="h-4 bg-gray-150 rounded-md w-16" /></td>
+                    <td className="px-5 py-3"><div className="h-8 bg-gray-100 rounded-lg w-16" /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : (
         <div className="card overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50/50">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Title</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Method</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Recorded By</th>
-                <th className="px-5 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {expenses.map(e => (
-                <tr key={e.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-5 py-3 text-sm text-gray-600 whitespace-nowrap">
-                    {format(new Date(e.paidDate), 'dd MMM yyyy')}
-                  </td>
-                  <td className="px-5 py-3">
-                    <p className="text-sm font-medium text-gray-900">{e.title}</p>
-                    {e.notes && <p className="text-xs text-gray-400 truncate max-w-[200px]">{e.notes}</p>}
-                  </td>
-                  <td className="px-5 py-3">
-                    <span className={`inline-block px-2.5 py-0.5 rounded text-xs font-semibold ${CATEGORY_COLORS[e.category] || 'bg-gray-100 text-gray-700'}`}>
-                      {CATEGORIES.find(c => c.value === e.category)?.label || e.category}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 text-sm text-gray-600">{e.method}</td>
-                  <td className="px-5 py-3 text-sm font-bold text-red-600">₹{Number(e.amount).toLocaleString()}</td>
-                  <td className="px-5 py-3 text-xs text-gray-400">{e.createdBy?.name || '—'}</td>
-                  <td className="px-5 py-3">
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => openEdit(e)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
-                        <Pencil size={14} />
-                      </button>
-                      <button onClick={() => handleDelete(e)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors">
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-gray-50/50">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Date</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Title</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Category</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Method</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Amount</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Recorded By</th>
+                  <th className="px-5 py-3"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {expenses.map(e => (
+                  <tr key={e.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-5 py-3 text-sm text-gray-600 whitespace-nowrap">
+                      {format(new Date(e.paidDate), 'dd MMM yyyy')}
+                    </td>
+                    <td className="px-5 py-3 whitespace-nowrap">
+                      <p className="text-sm font-medium text-gray-900">{e.title}</p>
+                      {e.notes && <p className="text-xs text-gray-400 truncate max-w-[200px]">{e.notes}</p>}
+                    </td>
+                    <td className="px-5 py-3 whitespace-nowrap">
+                      <span className={`inline-block px-2.5 py-0.5 rounded text-xs font-semibold ${CATEGORY_COLORS[e.category] || 'bg-gray-100 text-gray-700'}`}>
+                        {CATEGORIES.find(c => c.value === e.category)?.label || e.category}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-sm text-gray-600 whitespace-nowrap">{e.method}</td>
+                    <td className="px-5 py-3 text-sm font-bold text-red-600 whitespace-nowrap">₹{Number(e.amount).toLocaleString()}</td>
+                    <td className="px-5 py-3 text-xs text-gray-400 whitespace-nowrap">{e.createdBy?.name || '—'}</td>
+                    <td className="px-5 py-3 whitespace-nowrap text-right">
+                      <div className="flex items-center gap-2 justify-end">
+                        <button onClick={() => openEdit(e)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
+                          <Pencil size={14} />
+                        </button>
+                        <button onClick={() => handleDelete(e)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           {expenses.length === 0 && (
             <p className="text-center text-gray-400 py-12">No expenses recorded for this period</p>
           )}

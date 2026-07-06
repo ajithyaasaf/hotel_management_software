@@ -257,7 +257,7 @@ export default function NewGroupBookingPage() {
             {searching && <div className="animate-spin h-3 w-3 border-2 border-primary-600 border-t-transparent rounded-full ml-2" />}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Phone Number *</label>
               <input
@@ -296,7 +296,7 @@ export default function NewGroupBookingPage() {
                   </button>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-1">Room *</label>
                   <SearchableSelect
@@ -384,7 +384,7 @@ export default function NewGroupBookingPage() {
                 {entry.showGuestForm && (
                   <div className="mt-4 bg-gray-50/50 p-4 rounded-xl border border-gray-100 space-y-4">
                     <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Room Guest Details</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-600 mb-1">Phone Number *</label>
                         <input
@@ -442,7 +442,7 @@ export default function NewGroupBookingPage() {
                     <div className="border-t pt-4">
                       <label className="block text-sm font-medium text-gray-600 mb-2">ID Proof Document (Aadhar / PAN Scan)</label>
                       {entry.existingIdProofUrl ? (
-                        <div className="flex items-center justify-between p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl">
                           <div className="flex items-center gap-3">
                             <div className="p-2 bg-emerald-100/50 rounded-lg text-emerald-600">
                               <UserCheck size={20} />
@@ -452,19 +452,19 @@ export default function NewGroupBookingPage() {
                               <p className="text-xs text-emerald-600">A saved ID proof is already available for this guest.</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-3">
+                          <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
                             <a
                               href={entry.existingIdProofUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-xs font-semibold text-primary-600 hover:text-primary-700 bg-white border border-gray-200 py-1.5 px-3 rounded-lg shadow-sm"
+                              className="text-xs font-semibold text-primary-600 hover:text-primary-700 bg-white border border-gray-200 py-1.5 px-3 rounded-lg shadow-sm flex-1 sm:flex-none justify-center text-center"
                             >
                               View Saved ID
                             </a>
                             <button
                               type="button"
                               onClick={() => updateEntry(index, { existingIdProofUrl: '' })}
-                              className="text-xs font-semibold text-red-600 hover:text-red-700 bg-white border border-gray-200 py-1.5 px-3 rounded-lg shadow-sm"
+                              className="text-xs font-semibold text-red-600 hover:text-red-700 bg-white border border-gray-200 py-1.5 px-3 rounded-lg shadow-sm flex-1 sm:flex-none justify-center"
                             >
                               Replace ID
                             </button>
@@ -522,7 +522,7 @@ export default function NewGroupBookingPage() {
         </div>
 
         {/* Summary Bar */}
-        <div className="bg-gray-50 rounded-xl p-4 mb-6 flex items-center justify-between">
+        <div className="bg-gray-50 rounded-xl p-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="text-sm text-gray-600">
             <span className="font-semibold text-gray-900">{roomEntries.length} rooms</span> selected ·{' '}
             Total estimate: <span className="font-semibold text-primary-600">

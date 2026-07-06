@@ -31,56 +31,62 @@ export default function GuestsPage() {
       </div>
       {loading ? (
         <div className="card overflow-hidden border border-gray-150/60 animate-pulse">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50/50">
-                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-24" /></th>
-                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-20" /></th>
-                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-28" /></th>
-                <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-12" /></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {Array.from({ length: 6 }).map((_, rIdx) => (
-                <tr key={rIdx} className="h-14">
-                  <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-32" /></td>
-                  <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-24" /></td>
-                  <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-40" /></td>
-                  <td className="px-5 py-3"><div className="h-5 bg-gray-200 rounded-full w-8" /></td>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50/50">
+                  <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-24" /></th>
+                  <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-20" /></th>
+                  <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-28" /></th>
+                  <th className="px-5 py-3"><div className="h-3 bg-gray-200 rounded-md w-12" /></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {Array.from({ length: 6 }).map((_, rIdx) => (
+                  <tr key={rIdx} className="h-14">
+                    <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-32" /></td>
+                    <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-24" /></td>
+                    <td className="px-5 py-3"><div className="h-4 bg-gray-200 rounded-md w-40" /></td>
+                    <td className="px-5 py-3"><div className="h-5 bg-gray-200 rounded-full w-8" /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : (
         <div className="card overflow-hidden">
-          <table className="w-full">
-            <thead><tr className="bg-gray-50/50">
-              <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Name</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Phone</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">ID Proof</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Visits</th>
-            </tr></thead>
-            <tbody className="divide-y divide-gray-50">
-              {guests.map(g => (
-                <tr key={g.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-5 py-3 text-sm font-medium text-gray-900">{g.name}</td>
-                  <td className="px-5 py-3 text-sm text-gray-600">{g.phone}</td>
-                  <td className="px-5 py-3 text-sm text-gray-500">
-                    <div className="flex items-center gap-2">
-                      <span>{g.idProofType ? `${g.idProofType} — ${g.idProofNumber || 'N/A'}` : '—'}</span>
-                      {(g as any).idProofUrl && (
-                        <a href={(g as any).idProofUrl} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-700" title="View ID Proof">
-                          <FileText size={16} />
-                        </a>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-5 py-3"><span className="badge badge-blue">{g.visitCount}</span></td>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50/50">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">Name</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">Phone</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">ID Proof</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">Visits</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {guests.map(g => (
+                  <tr key={g.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-5 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{g.name}</td>
+                    <td className="px-5 py-3 text-sm text-gray-600 whitespace-nowrap">{g.phone}</td>
+                    <td className="px-5 py-3 text-sm text-gray-500 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <span>{g.idProofType ? `${g.idProofType} — ${g.idProofNumber || 'N/A'}` : '—'}</span>
+                        {(g as any).idProofUrl && (
+                          <a href={(g as any).idProofUrl} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-700" title="View ID Proof">
+                            <FileText size={16} />
+                          </a>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-5 py-3 whitespace-nowrap"><span className="badge badge-blue">{g.visitCount}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           {guests.length === 0 && <p className="text-center text-gray-400 py-12">No guests found</p>}
         </div>
       )}
