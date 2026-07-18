@@ -2,8 +2,30 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'ADMIN' | 'RECEPTION' | 'RESTAURANT';
+  role: 'MD' | 'ACCOUNT_MANAGER' | 'OPERATIONAL_MANAGER' | 'RESTAURANT_MANAGER' | 'RECEPTIONIST';
   isActive?: boolean;
+  permissions?: string[];
+}
+
+export interface Permission {
+  id: string;
+  code: string;
+  name: string;
+  module: string;
+  description?: string;
+}
+
+export interface CancellationRequest {
+  id: string;
+  bookingId: string;
+  booking?: Booking;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  reason: string;
+  requestedBy?: { name: string; role: string };
+  approvedBy?: { name: string; role: string };
+  approverNote?: string;
+  requestedAt: string;
+  resolvedAt?: string;
 }
 
 export interface RoomType {
@@ -189,8 +211,12 @@ export interface AuditLog {
 export interface ReportSummary {
   roomRevenue: number;
   restaurantRevenue: number;
+  banquetRevenue?: number;
   totalRevenue: number;
   totalExpenses: number;
+  hotelExpenses?: number;
+  restaurantExpenses?: number;
+  banquetExpenses?: number;
   netProfit: number;
   occupancyPercent: number;
   occupiedRooms: number;
@@ -210,6 +236,7 @@ export interface Expense {
   id: string;
   title: string;
   category: ExpenseCategory;
+  department: 'HOTEL' | 'RESTAURANT' | 'BANQUET';
   amount: number;
   paidDate: string;
   method: 'CASH' | 'UPI' | 'CARD';
@@ -222,6 +249,7 @@ export interface Expense {
 export interface ExpenseSummary {
   total: number;
   byCategory: Record<string, number>;
+  byDepartment: Record<string, number>;
   count: number;
 }
 

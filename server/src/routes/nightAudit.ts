@@ -1,123 +1,92 @@
 import { Router } from 'express';
-import { z } from 'zod';
-import bcrypt from 'bcryptjs';
 import prisma from '../utils/prisma';
-import { authenticate, authorize, AuthRequest } from '../middleware/auth';
+import { authenticate, requirePermission, AuthRequest } from '../middleware/auth';
 import { nightAuditService } from '../services/nightAuditService';
 
 const router = Router();
-router.use(authenticate);
+router.use(authenticate, requirePermission('nightaudit.view', 'nightaudit.run'));
 
-// GET /api/night-audit/status
-// Visible to Admin and Reception (to show what business date they are operating under)
-router.get('/status', async (req: AuthRequest, res) => {
+router.get('/status', async (_req, res) => {
   try {
-    const businessDate = await nightAuditService.getBusinessDate();
-
-    // Get last completed audit
-    const lastAudit = await prisma.nightAudit.findFirst({
-      where: { status: 'COMPLETED' },
+    const businessDateStr = await nightAuditService.getBusinessDate();
+    const latestAudit = await prisma.nightAudit.findFirst({
       orderBy: { businessDate: 'desc' },
+      include: { runBy: { select: { name: true } } },
     });
-
     res.json({
-      businessDate,
-      lastAudit: lastAudit ? {
-        id: lastAudit.id,
-        businessDate: lastAudit.businessDate.toISOString().split('T')[0],
-        completedAt: lastAudit.completedAt,
-        totalRevenue: Number(lastAudit.totalRevenue),
-      } : null,
+      currentBusinessDate: businessDateStr,
+      businessDate: businessDateStr,
+      lastAudit: latestAudit,
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to fetch status' });
+    res.status(500).json({ error: 'Failed to fetch audit status' });
   }
 });
 
-// GET /api/night-audit/pre-check
-// Visible to Admin and Reception
-router.get('/pre-check', async (req: AuthRequest, res) => {
+router.get('/history', async (_req, res) => {
   try {
-    const preCheck = await nightAuditService.runPreCheck();
-    res.json(preCheck);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to perform pre-check' });
-  }
-});
-
-// POST /api/night-audit/run
-// Visible to Admin and Reception (logs the user who ran it)
-router.post('/run', authorize('ADMIN', 'RECEPTION'), async (req: AuthRequest, res) => {
-  try {
-    const { notes, password } = z.object({
-      notes: z.string().optional(),
-      password: z.string().min(1, 'Verification password is required'),
-    }).parse(req.body);
-
-    // Verify Password before allowing day-end close
-    const user = await prisma.user.findUnique({
-      where: { id: req.user!.id },
-    });
-
-    if (!user) {
-      res.status(401).json({ error: 'User session invalid' });
-      return;
-    }
-
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    if (!isValidPassword) {
-      res.status(400).json({ error: 'Invalid verification password. Authorization failed.' });
-      return;
-    }
-
-    const result = await nightAuditService.runAudit(user.id, notes);
-    res.json(result);
-  } catch (err: any) {
-    console.error(err);
-    res.status(400).json({ error: err.message || 'Night Audit execution failed' });
-  }
-});
-
-// GET /api/night-audit/history
-// Visible to Admin and Reception
-router.get('/history', authorize('ADMIN', 'RECEPTION'), async (req: AuthRequest, res) => {
-  try {
-    const history = await prisma.nightAudit.findMany({
+    const audits = await prisma.nightAudit.findMany({
+      include: { runBy: { select: { name: true } } },
       orderBy: { businessDate: 'desc' },
-      include: {
-        runBy: { select: { name: true, role: true } },
-      },
+      take: 30,
     });
-    res.json(history);
+    res.json(audits);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch audit history' });
   }
 });
 
-// GET /api/night-audit/:id
-// Visible to Admin and Reception
-router.get('/:id', authorize('ADMIN', 'RECEPTION'), async (req: AuthRequest, res) => {
+router.get('/pre-check', async (_req, res) => {
+  try {
+    const result = await nightAuditService.runPreCheck();
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Pre-check failed' });
+  }
+});
+
+router.post('/run', requirePermission('nightaudit.run'), async (req: AuthRequest, res) => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+    const result = await nightAuditService.runAudit(req.user.id, req.body.notes);
+    res.json(result);
+  } catch (err: any) {
+    console.error(err);
+    res.status(400).json({ error: err.message || 'Audit execution failed' });
+  }
+});
+
+router.get('/:id', async (req, res) => {
   try {
     const audit = await prisma.nightAudit.findUnique({
-      where: { id: req.params.id as string },
+      where: { id: req.params.id },
       include: {
         runBy: { select: { name: true, role: true } },
         charges: {
           include: {
-            booking: { include: { guest: true } },
-            room: true,
+            booking: {
+              include: {
+                guest: { select: { name: true } },
+              },
+            },
+            room: { select: { roomNumber: true } },
           },
         },
         orders: true,
       },
     });
+
     if (!audit) {
-      res.status(404).json({ error: 'Night Audit record not found' });
+      res.status(404).json({ error: 'Audit session not found' });
       return;
     }
+
     res.json(audit);
   } catch (err) {
     console.error(err);

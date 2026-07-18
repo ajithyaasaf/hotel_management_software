@@ -20,8 +20,9 @@ import groupBookingRoutes from './routes/groupBookings';
 import nightAuditRoutes from './routes/nightAudit';
 import companyRoutes from './routes/companies';
 import banquetRoutes from './routes/banquets';
-import { Server } from 'http';
-import { never } from 'zod';
+import auditRoutes from './routes/audit';
+import permissionRoutes from './routes/permissions';
+import cancellationRoutes from './routes/cancellations';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -49,6 +50,9 @@ app.use('/api/group-bookings', groupBookingRoutes);
 app.use('/api/night-audit', nightAuditRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/banquets', banquetRoutes);
+app.use('/api/audit', auditRoutes);
+app.use('/api/permissions', permissionRoutes);
+app.use('/api/cancellations', cancellationRoutes);
 
 // Global error handler
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

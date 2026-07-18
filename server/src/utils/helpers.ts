@@ -1,13 +1,22 @@
 import prisma from './prisma';
 
+// ─── Enhanced Audit Logging ─────────────────────────────
+
 interface AuditParams {
   action: string;
   entity: string;
   entityId: string;
   details?: string;
   userId: string;
+  oldValue?: Record<string, any> | null;
+  newValue?: Record<string, any> | null;
 }
 
+/**
+ * Create an audit log entry with optional before/after snapshots.
+ * For critical changes (tariff edits, payment modifications, etc.),
+ * pass oldValue and newValue to capture the full change context.
+ */
 export async function createAuditLog(params: AuditParams) {
   return prisma.auditLog.create({
     data: {
@@ -16,9 +25,30 @@ export async function createAuditLog(params: AuditParams) {
       entityId: params.entityId,
       details: params.details,
       userId: params.userId,
+      oldValue: params.oldValue ? JSON.stringify(params.oldValue) : null,
+      newValue: params.newValue ? JSON.stringify(params.newValue) : null,
     },
   });
 }
+
+/**
+ * Create an audit log inside a Prisma transaction.
+ */
+export async function createAuditLogTx(tx: any, params: AuditParams) {
+  return tx.auditLog.create({
+    data: {
+      action: params.action,
+      entity: params.entity,
+      entityId: params.entityId,
+      details: params.details,
+      userId: params.userId,
+      oldValue: params.oldValue ? JSON.stringify(params.oldValue) : null,
+      newValue: params.newValue ? JSON.stringify(params.newValue) : null,
+    },
+  });
+}
+
+// ─── Counter-Based Number Generators ────────────────────
 
 let bookingCounter = 0;
 let orderCounter = 0;
@@ -92,4 +122,3 @@ export async function initializeCounters() {
     if (!isNaN(num)) banquetCounter = num;
   }
 }
-

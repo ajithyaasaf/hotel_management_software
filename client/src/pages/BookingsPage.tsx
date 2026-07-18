@@ -4,7 +4,8 @@ import { bookingsApi, groupBookingsApi, nightAuditApi } from '../api';
 import type { Booking, GroupBooking } from '../types';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
-import { Plus, Search, CalendarCheck, Eye, Users, AlertTriangle } from 'lucide-react';
+import { Plus, Search, CalendarCheck, Eye, Users, AlertTriangle, AlertCircle } from 'lucide-react';
+import { useAuthStore } from '../store/authStore';
 
 const statusBadge: Record<string, string> = {
   CONFIRMED: 'badge-blue', CHECKED_IN: 'badge-green', CHECKED_OUT: 'badge-gray',
@@ -18,17 +19,25 @@ const groupStatusBadge: Record<string, string> = {
 
 export default function BookingsPage() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<'individual' | 'group'>('individual');
+  const { hasPermission } = useAuthStore();
+  const [tab, setTab] = useState<'individual' | 'group' | 'cancellations'>('individual');
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [groups, setGroups] = useState<GroupBooking[]>([]);
+  const [cancellations, setCancellations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
   const [search, setSearch] = useState('');
   const [businessDate, setBusinessDate] = useState<string>('');
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
     nightAuditApi.getStatus().then(res => {
-      setBusinessDate(res.data.businessDate);
+      const bDate = res.data.businessDate || res.data.currentBusinessDate;
+      if (bDate) {
+        setBusinessDate(bDate);
+      } else {
+        setBusinessDate(format(new Date(), 'yyyy-MM-dd'));
+      }
     }).catch(() => {
       setBusinessDate(format(new Date(), 'yyyy-MM-dd'));
     });
@@ -54,12 +63,35 @@ export default function BookingsPage() {
     finally { setLoading(false); }
   };
 
+  const loadCancellations = async () => {
+    setLoading(true);
+    try {
+      // Need to import cancellationsApi (assuming it's exported from api index)
+      const { cancellationsApi } = await import('../api');
+      const { data } = await cancellationsApi.getAll({ status: filter || 'PENDING' });
+      setCancellations(data);
+      // Update pending count
+      const countRes = await cancellationsApi.getPendingCount();
+      setPendingCount(countRes.data.count);
+    } catch { toast.error('Failed to load cancellations'); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => {
+    // Load pending count initially
+    import('../api').then(({ cancellationsApi }) => {
+      cancellationsApi.getPendingCount().then(res => setPendingCount(res.data.count)).catch();
+    });
+  }, []);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       if (tab === 'individual') {
         loadBookings();
-      } else {
+      } else if (tab === 'group') {
         loadGroups();
+      } else {
+        loadCancellations();
       }
     }, 0);
     return () => clearTimeout(timer);
@@ -102,16 +134,29 @@ export default function BookingsPage() {
       <div className="flex gap-1 mb-5 bg-gray-100 p-1 rounded-xl w-fit">
         <button
           onClick={() => { setTab('individual'); setFilter(''); setSearch(''); }}
-          className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'individual' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+          className={`cursor-pointer px-5 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'individual' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
         >
           Individual
         </button>
         <button
           onClick={() => { setTab('group'); setFilter(''); setSearch(''); }}
-          className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'group' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+          className={`cursor-pointer px-5 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'group' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
         >
           <span className="flex items-center gap-1.5"><Users size={14} /> Groups</span>
         </button>
+        {(hasPermission(['booking.cancel.approve']) || hasPermission(['cancellation.notify'])) && (
+          <button
+            onClick={() => { setTab('cancellations'); setFilter('PENDING'); setSearch(''); }}
+            className={`cursor-pointer px-5 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 ${tab === 'cancellations' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            Cancellations
+            {pendingCount > 0 && (
+              <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                {pendingCount}
+              </span>
+            )}
+          </button>
+        )}
       </div>
 
       {/* Filters */}
@@ -131,9 +176,22 @@ export default function BookingsPage() {
               <button
                 key={s}
                 onClick={() => setFilter(s)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${filter === s ? 'bg-primary-600 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}
+                className={`cursor-pointer px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${filter === s ? 'bg-primary-600 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}
               >
                 {s ? s.replace('_', ' ') : 'All'}
+              </button>
+            ))}
+          </div>
+        )}
+        {tab === 'cancellations' && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:pb-0">
+            {['PENDING', 'APPROVED', 'REJECTED'].map(s => (
+              <button
+                key={s}
+                onClick={() => setFilter(s)}
+                className={`cursor-pointer px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${filter === s ? 'bg-primary-600 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}
+              >
+                {s}
               </button>
             ))}
           </div>
@@ -243,7 +301,7 @@ export default function BookingsPage() {
           </div>
           {filtered.length === 0 && <p className="text-center text-gray-400 py-12">No bookings found</p>}
         </div>
-      ) : (
+      ) : tab === 'group' ? (
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -294,6 +352,55 @@ export default function BookingsPage() {
             </table>
           </div>
           {filteredGroups.length === 0 && <p className="text-center text-gray-400 py-12">No group bookings found</p>}
+        </div>
+      ) : (
+        <div className="card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50/50">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Booking / Room</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Guest</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Requested By</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Reason</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
+                  <th className="px-5 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {cancellations.map(c => (
+                  <tr key={c.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-5 py-3 whitespace-nowrap">
+                      <span className="text-sm font-mono text-primary-600">{c.booking.bookingNumber}</span>
+                      <p className="text-xs text-gray-500 mt-0.5">Room {c.booking.room.roomNumber}</p>
+                    </td>
+                    <td className="px-5 py-3 whitespace-nowrap">
+                      <p className="text-sm font-medium text-gray-900">{c.booking.guest.name}</p>
+                      <p className="text-xs text-gray-400">{c.booking.guest.phone}</p>
+                    </td>
+                    <td className="px-5 py-3 whitespace-nowrap">
+                      <p className="text-sm font-medium text-gray-900">{c.requestedBy?.name || 'System'}</p>
+                      <p className="text-xs text-gray-400">{format(new Date(c.requestedAt), 'dd MMM, hh:mm a')}</p>
+                    </td>
+                    <td className="px-5 py-3 text-sm text-gray-600 max-w-[200px] truncate" title={c.reason}>
+                      {c.reason}
+                    </td>
+                    <td className="px-5 py-3 whitespace-nowrap">
+                      <span className={`badge ${c.status === 'PENDING' ? 'badge-yellow' : c.status === 'APPROVED' ? 'badge-green' : 'badge-red'}`}>
+                        {c.status}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 whitespace-nowrap">
+                      <button onClick={() => navigate(`/bookings/${c.bookingId}`)} className="btn btn-ghost btn-sm text-indigo-600">
+                        View Booking
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {cancellations.length === 0 && <p className="text-center text-gray-400 py-12">No cancellation requests found</p>}
         </div>
       )}
     </div>

@@ -8,9 +8,10 @@ interface AuthState {
   login: (user: User, token: string) => void;
   logout: () => void;
   setUser: (user: User) => void;
+  hasPermission: (permissionCodes: string[]) => boolean;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: JSON.parse(localStorage.getItem('user') || 'null'),
   token: localStorage.getItem('token'),
   isAuthenticated: !!localStorage.getItem('token'),
@@ -28,4 +29,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.setItem('user', JSON.stringify(user));
     set({ user });
   },
+  hasPermission: (permissionCodes) => {
+    const { user } = get();
+    if (!user) return false;
+    if (user.role === 'MD') return true; // Superadmin bypass
+    if (!user.permissions) return false;
+    // Return true if the user has ANY of the requested permissions
+    return permissionCodes.some(code => user.permissions?.includes(code));
+  }
 }));

@@ -27,7 +27,7 @@ export default function DashboardPage() {
       setSummary(sumRes.data);
       setRecentBookings(bookRes.data.slice(0, 5));
       setActiveOrders(ordRes.data.slice(0, 5));
-      setBusinessDate(statusRes.data.businessDate);
+      setBusinessDate(statusRes.data.businessDate || statusRes.data.currentBusinessDate || new Date().toISOString().split('T')[0]);
     } catch { /* silent */ } finally { setLoading(false); }
   };
 

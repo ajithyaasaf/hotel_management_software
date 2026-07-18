@@ -3,7 +3,7 @@ import { ordersApi, menuApi } from '../api';
 import type { Order, MenuCategory } from '../types';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
-import { Search, CheckCircle, XCircle, Plus, Minus, Trash2, X, PlusCircle, ShoppingBag, Eye } from 'lucide-react';
+import { Search, CheckCircle, XCircle, Plus, Minus, Trash2, X, PlusCircle, ShoppingBag, Edit } from 'lucide-react';
 
 const statusBadge: Record<string, string> = { 
   ACTIVE: 'badge-green', 
@@ -218,7 +218,7 @@ export default function OrdersPage() {
                     <td className="px-5 py-4 text-sm text-gray-400 whitespace-nowrap">{format(new Date(o.createdAt), 'dd MMM, hh:mm a')}</td>
                     <td className="px-5 py-4 whitespace-nowrap" onClick={e => e.stopPropagation()}>
                       <div className="flex items-center gap-1">
-                        <button onClick={() => openOrderDetails(o)} className="btn btn-ghost btn-sm text-primary-600" title="View & Edit"><Eye size={16} /></button>
+                        <button onClick={() => openOrderDetails(o)} className="btn btn-ghost btn-sm text-primary-600" title="View & Edit"><Edit size={16} /></button>
                         {o.status === 'ACTIVE' && (
                           <>
                             <button onClick={() => completeOrder(o.id)} className="btn btn-ghost btn-sm text-emerald-600" title="Complete"><CheckCircle size={16} /></button>
@@ -309,7 +309,7 @@ export default function OrdersPage() {
                     <span>₹{Number(selectedOrder.subtotal).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-sm text-gray-500">
-                    <span>Tax (10%)</span>
+                    <span>GST (5%)</span>
                     <span>₹{Number(selectedOrder.tax).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-base font-bold text-gray-900 border-t border-gray-100 pt-2">

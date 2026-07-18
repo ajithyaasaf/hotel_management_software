@@ -521,6 +521,8 @@ router.post('/:id/checkout-all', async (req: AuthRequest, res) => {
       entityId: group.id,
       details: `Checked out ${activeBookings.length} rooms from group ${group.groupNumber}`,
       userId: req.user!.id,
+      oldValue: { status: group.status },
+      newValue: { status: newStatus },
     });
 
     const updated = await prisma.groupBooking.findUnique({
@@ -577,6 +579,8 @@ router.delete('/:id/unlink/:bookingId', async (req: AuthRequest, res) => {
       entityId: bookingId as string,
       details: `Unlinked from group ${id}`,
       userId: req.user!.id,
+      oldValue: { groupBookingId: id },
+      newValue: { groupBookingId: null },
     });
 
     res.json({ message: 'Booking unlinked from group' });

@@ -5,15 +5,16 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 // ─── ENUMS ──────────────────────────────────────────────
 
 enum UserRole {
-  ADMIN
-  RECEPTION
-  RESTAURANT
+  MD
+  ACCOUNT_MANAGER
+  OPERATIONAL_MANAGER
+  RESTAURANT_MANAGER
+  RECEPTIONIST
 }
 
 enum RoomStatus {
@@ -75,6 +76,12 @@ enum ExpenseCategory {
   MISCELLANEOUS
 }
 
+enum ExpenseDepartment {
+  HOTEL
+  RESTAURANT
+  BANQUET
+}
+
 enum GroupBookingStatus {
   ACTIVE
   PARTIALLY_CHECKED_OUT
@@ -114,6 +121,19 @@ enum BanquetPaymentType {
   REFUND     // Cancellation refund
 }
 
+enum FoodPreference {
+  VEG
+  NON_VEG
+  BOTH
+  NONE
+}
+
+enum CancellationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 // ─── USERS ──────────────────────────────────────────────
 
 model User {
@@ -121,24 +141,54 @@ model User {
   name      String
   email     String   @unique
   password  String
-  role      UserRole @default(RECEPTION)
+  role      UserRole @default(RECEPTIONIST)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  bookings        Booking[]
-  orders          Order[]
-  payments        Payment[]
-  auditLogs       AuditLog[]
-  adjustments     InvoiceAdjustment[]
-  expenses        Expense[]
-  groupBookings   GroupBooking[]
-  nightAudits     NightAudit[]
-  companyPayments CompanyPayment[]
-  banquetPayments BanquetPayment[] @relation("BanquetPaymentCreator")
-  banquetBookings BanquetBooking[] @relation("BanquetBookingCreator")
+  bookings              Booking[]
+  orders                Order[]
+  payments              Payment[]
+  auditLogs             AuditLog[]
+  adjustments           InvoiceAdjustment[]
+  expenses              Expense[]
+  groupBookings         GroupBooking[]
+  nightAudits           NightAudit[]
+  companyPayments       CompanyPayment[]
+  banquetPayments       BanquetPayment[]        @relation("BanquetPaymentCreator")
+  banquetBookings       BanquetBooking[]        @relation("BanquetBookingCreator")
+  cancellationRequests  CancellationRequest[]   @relation("CancellationRequester")
+  cancellationApprovals CancellationRequest[]   @relation("CancellationApprover")
 
   @@map("users")
+}
+
+// ─── PERMISSIONS (Flexible RBAC) ────────────────────────
+
+model Permission {
+  id          String   @id @default(uuid())
+  code        String   @unique  // e.g. "tariff.edit", "audit.view"
+  name        String             // Human-readable: "Edit Room Tariffs"
+  module      String             // "tariff", "audit", "expense", "booking", etc.
+  description String?
+  createdAt   DateTime @default(now())
+
+  rolePermissions RolePermission[]
+
+  @@index([module])
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String     @id @default(uuid())
+  role         UserRole
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  grantedAt    DateTime   @default(now())
+
+  @@unique([role, permissionId])
+  @@index([role])
+  @@map("role_permissions")
 }
 
 // ─── ROOM TYPES ─────────────────────────────────────────
@@ -172,10 +222,10 @@ model Room {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  bookings      Booking[]
-  orders        Order[]
-  transfersFrom RoomTransfer[] @relation("TransferFromRoom")
-  transfersTo   RoomTransfer[] @relation("TransferToRoom")
+  bookings          Booking[]
+  orders            Order[]
+  transfersFrom     RoomTransfer[] @relation("TransferFromRoom")
+  transfersTo       RoomTransfer[] @relation("TransferToRoom")
   nightAuditCharges NightAuditCharge[]
 
   @@index([roomTypeId])
@@ -229,13 +279,14 @@ model Booking {
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
-  invoice       Invoice?
-  transfers     RoomTransfer[]
-  payments      Payment[]
-  nightAuditCharges NightAuditCharge[]
-  companyId         String?
-  company           Company?      @relation(fields: [companyId], references: [id])
-  billingRule       BillingRule   @default(GUEST)
+  invoice               Invoice?
+  transfers             RoomTransfer[]
+  payments              Payment[]
+  nightAuditCharges     NightAuditCharge[]
+  cancellationRequests  CancellationRequest[]
+  companyId             String?
+  company               Company?      @relation(fields: [companyId], references: [id])
+  billingRule           BillingRule   @default(GUEST)
 
   @@index([status])
   @@index([groupBookingId])
@@ -273,15 +324,15 @@ model GroupBooking {
 // ─── ROOM TRANSFERS ─────────────────────────────────────
 
 model RoomTransfer {
-  id           String   @id @default(uuid())
-  bookingId    String
-  booking      Booking  @relation(fields: [bookingId], references: [id])
-  fromRoomId   String
-  fromRoom     Room     @relation("TransferFromRoom", fields: [fromRoomId], references: [id])
-  toRoomId     String
-  toRoom       Room     @relation("TransferToRoom", fields: [toRoomId], references: [id])
-  reason       String?
-  newRoomPrice Decimal? @db.Decimal(10, 2)
+  id            String   @id @default(uuid())
+  bookingId     String
+  booking       Booking  @relation(fields: [bookingId], references: [id])
+  fromRoomId    String
+  fromRoom      Room     @relation("TransferFromRoom", fields: [fromRoomId], references: [id])
+  toRoomId      String
+  toRoom        Room     @relation("TransferToRoom", fields: [toRoomId], references: [id])
+  reason        String?
+  newRoomPrice  Decimal? @db.Decimal(10, 2)
   transferredAt DateTime @default(now())
 
   @@map("room_transfers")
@@ -324,21 +375,21 @@ model MenuItem {
 // ─── ORDERS ─────────────────────────────────────────────
 
 model Order {
-  id          String      @id @default(uuid())
-  orderNumber String      @unique
-  type        OrderType
-  status      OrderStatus @default(ACTIVE)
-  roomId      String?
-  room        Room?       @relation(fields: [roomId], references: [id])
+  id           String      @id @default(uuid())
+  orderNumber  String      @unique
+  type         OrderType
+  status       OrderStatus @default(ACTIVE)
+  roomId       String?
+  room         Room?       @relation(fields: [roomId], references: [id])
   customerName String?
-  subtotal    Decimal     @db.Decimal(10, 2) @default(0)
-  tax         Decimal     @db.Decimal(10, 2) @default(0)
-  total       Decimal     @db.Decimal(10, 2) @default(0)
-  notes       String?
-  createdById String
-  createdBy   User        @relation(fields: [createdById], references: [id])
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  subtotal     Decimal     @db.Decimal(10, 2) @default(0)
+  tax          Decimal     @db.Decimal(10, 2) @default(0)
+  total        Decimal     @db.Decimal(10, 2) @default(0)
+  notes        String?
+  createdById  String
+  createdBy    User        @relation(fields: [createdById], references: [id])
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
   items    OrderItem[]
   payments Payment[]
@@ -352,19 +403,19 @@ model Order {
 // ─── ORDER ITEMS ────────────────────────────────────────
 
 model OrderItem {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   orderId      String
-  order        Order    @relation(fields: [orderId], references: [id])
+  order        Order     @relation(fields: [orderId], references: [id])
   menuItemId   String
-  menuItem     MenuItem @relation(fields: [menuItemId], references: [id])
+  menuItem     MenuItem  @relation(fields: [menuItemId], references: [id])
   quantity     Int
-  unitPrice    Decimal  @db.Decimal(10, 2)
-  totalPrice   Decimal  @db.Decimal(10, 2)
-  isCancelled  Boolean  @default(false)
+  unitPrice    Decimal   @db.Decimal(10, 2)
+  totalPrice   Decimal   @db.Decimal(10, 2)
+  isCancelled  Boolean   @default(false)
   cancelReason String?
   cancelledAt  DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@index([orderId])
   @@index([menuItemId])
@@ -458,20 +509,22 @@ model TaxConfig {
 // ─── EXPENSES ───────────────────────────────────────
 
 model Expense {
-  id          String          @id @default(uuid())
+  id          String            @id @default(uuid())
   title       String
   category    ExpenseCategory
-  amount      Decimal         @db.Decimal(10, 2)
+  department  ExpenseDepartment @default(HOTEL)
+  amount      Decimal           @db.Decimal(10, 2)
   paidDate    DateTime
   method      PaymentMethod
   notes       String?
   createdById String
-  createdBy   User            @relation(fields: [createdById], references: [id])
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  createdBy   User              @relation(fields: [createdById], references: [id])
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 
   @@index([paidDate])
   @@index([category])
+  @@index([department])
   @@map("expenses")
 }
 
@@ -483,13 +536,39 @@ model AuditLog {
   entity     String
   entityId   String
   details    String?
+  oldValue   String?  // JSON snapshot of previous state for critical changes
+  newValue   String?  // JSON snapshot of new state for critical changes
   userId     String
   user       User     @relation(fields: [userId], references: [id])
   createdAt  DateTime @default(now())
 
   @@index([entity, entityId])
   @@index([createdAt])
+  @@index([userId])
+  @@index([action])
   @@map("audit_logs")
+}
+
+// ─── CANCELLATION REQUESTS ──────────────────────────────
+
+model CancellationRequest {
+  id            String             @id @default(uuid())
+  bookingId     String
+  booking       Booking            @relation(fields: [bookingId], references: [id])
+  reason        String
+  status        CancellationStatus @default(PENDING)
+  requestedById String
+  requestedBy   User               @relation("CancellationRequester", fields: [requestedById], references: [id])
+  approvedById  String?
+  approvedBy    User?              @relation("CancellationApprover", fields: [approvedById], references: [id])
+  approverNote  String?
+  requestedAt   DateTime           @default(now())
+  resolvedAt    DateTime?
+
+  @@index([bookingId])
+  @@index([status])
+  @@index([requestedAt])
+  @@map("cancellation_requests")
 }
 
 // ─── NIGHT AUDIT ────────────────────────────────────────
@@ -584,6 +663,7 @@ model SystemConfig {
 }
 
 // ─── COMPANIES (Corporate Accounts) ──────────────────────
+
 model Company {
   id                 String   @id @default(uuid())
   name               String   @unique
@@ -605,6 +685,7 @@ model Company {
 }
 
 // ─── COMPANY BULK PAYMENTS (Corporate Reconciliation) ────
+
 model CompanyPayment {
   id            String        @id @default(uuid())
   companyId     String
@@ -674,10 +755,10 @@ model BanquetBooking {
   advancePaid   Decimal @db.Decimal(10, 2) @default(0)
   pendingAmount Decimal @db.Decimal(10, 2)
 
-  notes         String?
+  notes          String?
   foodPreference FoodPreference @default(NONE)
-  cancelReason  String?
-  cancelledAt   DateTime?
+  cancelReason   String?
+  cancelledAt    DateTime?
 
   payments BanquetPayment[]
 
@@ -708,11 +789,4 @@ model BanquetPayment {
 
   @@index([bookingId])
   @@map("banquet_payments")
-}
-
-enum FoodPreference {
-  VEG
-  NON_VEG
-  BOTH
-  NONE
 }

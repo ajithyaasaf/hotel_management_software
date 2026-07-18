@@ -145,7 +145,7 @@ export const nightAuditService = {
 
     if (!isPastDate) {
       const currentHour = now.getHours();
-      if (currentHour < 22 && userObj.role !== 'ADMIN') {
+      if (currentHour < 22 && userObj.role !== 'MD') {
         throw new Error('Early Day-End Lock: Receptionists can only run the Night Audit after 10:00 PM (22:00) local time. An Administrator must run this transaction to execute early.');
       }
     }
@@ -156,7 +156,7 @@ export const nightAuditService = {
     const targetBusinessDate = new Date(businessDateStr);
     if (todayLocal <= targetBusinessDate) {
       const isDev = !process.env.NODE_ENV || process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
-      if (!isDev || userObj.role !== 'ADMIN') {
+      if (!isDev || userObj.role !== 'MD') {
         throw new Error(`Calendar Lock: You cannot close the business date of ${businessDateStr} until the real-world calendar date has progressed to the next day (after midnight).`);
       }
     }

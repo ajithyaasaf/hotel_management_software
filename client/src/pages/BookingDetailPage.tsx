@@ -1,16 +1,18 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { bookingsApi, invoicesApi, paymentsApi, roomsApi, nightAuditApi, guestsApi } from '../api';
+import { bookingsApi, invoicesApi, paymentsApi, roomsApi, nightAuditApi, guestsApi, cancellationsApi } from '../api';
 import type { Booking, Invoice, Room } from '../types';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
-import { ArrowLeft, ArrowRightLeft, CalendarPlus, LogOut as CheckOutIcon, CreditCard, Receipt, X, Ban, Users, AlertTriangle, FileText, Edit, Upload, UserCheck, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, ArrowRightLeft, CalendarPlus, LogOut as CheckOutIcon, CreditCard, Receipt, X, Ban, Users, AlertTriangle, FileText, Edit, Upload, UserCheck, Image as ImageIcon, CheckCircle, XCircle } from 'lucide-react';
 import SearchableSelect from '../components/ui/SearchableSelect';
+import { useAuthStore } from '../store/authStore';
 
 export default function BookingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [booking, setBooking] = useState<Booking | null>(null);
+  const { hasPermission } = useAuthStore();
+  const [booking, setBooking] = useState<any>(null); // using any here to simplify, or extend Booking type
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [businessDate, setBusinessDate] = useState<string>('');
@@ -166,13 +168,36 @@ export default function BookingDetailPage() {
   }
 
   async function handleCancel() {
-    const reason = prompt('Cancellation reason (optional):');
-    if (reason === null) return;
+    const reason = prompt('Cancellation reason:');
+    if (!reason) return;
     try {
-      await bookingsApi.cancel(id!, reason);
-      toast.success('Booking cancelled');
+      const res = await bookingsApi.cancel(id!, reason);
+      if (res.data.requiresApproval) {
+        toast.success(res.data.message);
+      } else {
+        toast.success('Booking cancelled');
+      }
       loadBooking();
     } catch (e: any) { toast.error(e.response?.data?.error || 'Cancellation failed'); }
+  }
+
+  async function handleApproveCancellation(reqId: string) {
+    if (!confirm('Are you sure you want to approve this cancellation?')) return;
+    try {
+      await cancellationsApi.approve(reqId);
+      toast.success('Cancellation approved');
+      loadBooking();
+    } catch (e: any) { toast.error(e.response?.data?.error || 'Failed to approve'); }
+  }
+
+  async function handleRejectCancellation(reqId: string) {
+    const note = prompt('Rejection reason (optional):');
+    if (note === null) return;
+    try {
+      await cancellationsApi.reject(reqId, note);
+      toast.success('Cancellation rejected');
+      loadBooking();
+    } catch (e: any) { toast.error(e.response?.data?.error || 'Failed to reject'); }
   }
 
   async function handlePayment() {
@@ -329,6 +354,32 @@ export default function BookingDetailPage() {
     <div className="animate-fadeIn max-w-5xl">
       <button onClick={() => navigate('/bookings')} className="btn btn-ghost mb-4"><ArrowLeft size={18} /> Bookings</button>
 
+      {/* Pending Cancellation Alert */}
+      {booking.cancellationRequests?.filter((r: any) => r.status === 'PENDING').map((req: any) => (
+        <div key={req.id} className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded-2xl mb-6 flex flex-col sm:flex-row items-start justify-between gap-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="text-yellow-600 shrink-0 mt-0.5" size={20} />
+            <div>
+              <h4 className="font-bold text-yellow-900">Cancellation Requested</h4>
+              <p className="text-sm text-yellow-700 mt-0.5">
+                Requested by <strong>{req.requestedBy?.name || 'System'}</strong> on {format(new Date(req.requestedAt), 'dd MMM hh:mm a')}.<br />
+                Reason: {req.reason}
+              </p>
+            </div>
+          </div>
+          {hasPermission(['booking.cancel.approve']) && (
+            <div className="flex items-center gap-2 shrink-0">
+              <button onClick={() => handleApproveCancellation(req.id)} className="btn btn-primary btn-sm bg-yellow-600 hover:bg-yellow-700 border-none text-white shadow-sm">
+                <CheckCircle size={16} /> Approve
+              </button>
+              <button onClick={() => handleRejectCancellation(req.id)} className="btn btn-outline btn-sm text-yellow-700 border-yellow-300 hover:bg-yellow-100">
+                <XCircle size={16} /> Reject
+              </button>
+            </div>
+          )}
+        </div>
+      ))}
+
       {isOverdue && (
         <div className="bg-red-50 border border-red-100 text-red-800 p-4 rounded-2xl mb-6 flex items-start gap-3 shadow-sm shadow-red-100/50 animate-fadeIn print:hidden">
           <AlertTriangle className="text-red-500 shrink-0 mt-0.5" size={20} />
@@ -451,7 +502,7 @@ export default function BookingDetailPage() {
             {booking.transfers && booking.transfers.length > 0 && (
               <div className="mt-4 pt-4 border-t border-gray-100">
                 <h4 className="text-sm font-semibold text-gray-700 mb-2">Room Transfers</h4>
-                {booking.transfers.map(t => (
+                {booking.transfers.map((t: any) => (
                   <p key={t.id} className="text-sm text-gray-500">
                     {t.fromRoom.roomNumber} → {t.toRoom.roomNumber} — {format(new Date(t.transferredAt), 'dd MMM, hh:mm a')}
                     {t.reason && ` (${t.reason})`}
@@ -466,7 +517,7 @@ export default function BookingDetailPage() {
             <div className="card p-5">
               <h3 className="font-semibold text-gray-900 mb-4">Payment History</h3>
               <div className="space-y-2">
-                {booking.payments.map(p => (
+                {booking.payments.map((p: any) => (
                   <div key={p.id} className="flex justify-between items-center text-sm py-2 border-b border-gray-50">
                     <div>
                       <span className={`badge ${p.type === 'REFUND' ? 'badge-red' : 'badge-green'} mr-2`}>{p.type}</span>
@@ -652,7 +703,7 @@ export default function BookingDetailPage() {
             <h3 className="font-semibold text-gray-900 border-b pb-2 mb-2 text-sm">Payment History</h3>
             <table className="w-full text-sm">
               <tbody>
-                {booking.payments.map(p => (
+                {booking.payments.map((p: any) => (
                   <tr key={p.id} className="border-b border-gray-100">
                     <td className="py-1">{format(new Date(p.createdAt), 'dd MMM yyyy')}</td>
                     <td className="py-1">{p.method}</td>

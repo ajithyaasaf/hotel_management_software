@@ -12,6 +12,7 @@ export default function POSPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [activeCat, setActiveCat] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [search, setSearch] = useState('');
   const [orderType, setOrderType] = useState<'WALK_IN' | 'ROOM' | 'TAKEAWAY'>('WALK_IN');
   const [selectedRoom, setSelectedRoom] = useState('');
   const [customerName, setCustomerName] = useState('');
@@ -44,7 +45,8 @@ export default function POSPage() {
   function removeItem(menuItemId: string) { setCart(prev => prev.filter(c => c.menuItemId !== menuItemId)); }
 
   const subtotal = cart.reduce((s, c) => s + c.price * c.quantity, 0);
-  const tax = parseFloat((subtotal * 0.1).toFixed(2));
+  const taxRate = 0.05; // 5% total (2.5% CGST + 2.5% SGST)
+  const tax = parseFloat((subtotal * taxRate).toFixed(2));
   const total = subtotal + tax;
 
   async function submitOrder() {
@@ -69,6 +71,13 @@ export default function POSPage() {
   }
 
   const activeCategory = categories.find(c => c.id === activeCat);
+
+  // Search: filter all menu items across all categories when a query exists
+  const searchResults = search.trim()
+    ? categories.flatMap(cat => (cat.items || []).filter(item =>
+        item.name.toLowerCase().includes(search.toLowerCase().trim()) && item.isAvailable
+      ))
+    : null;
 
   if (loading) {
     return (
@@ -172,20 +181,44 @@ export default function POSPage() {
           </div>
         )}
 
-        {/* Category tabs */}
-        <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
-          {categories.map(cat => (
-            <button key={cat.id} onClick={() => setActiveCat(cat.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${activeCat === cat.id ? 'bg-primary-600 text-white shadow-md' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}>
-              {cat.name}
+        {/* Search Bar */}
+        <div className="relative mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input
+            type="text"
+            className="input pl-9"
+            placeholder="Search menu items across all categories..."
+            value={search}
+            onChange={e => { setSearch(e.target.value); }}
+          />
+          {search && (
+            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
             </button>
-          ))}
+          )}
         </div>
+
+        {/* Category tabs — hidden when searching */}
+        {!search && (
+          <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+            {categories.map(cat => (
+              <button key={cat.id} onClick={() => setActiveCat(cat.id)}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${activeCat === cat.id ? 'bg-primary-600 text-white shadow-md' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}>
+                {cat.name}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Menu Items */}
         <div className="flex-1 overflow-y-auto mb-6 lg:mb-0">
+          {search && searchResults !== null && (
+            <p className="text-xs text-gray-400 mb-3 font-medium">
+              {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for "{search}"
+            </p>
+          )}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {activeCategory?.items.map(item => (
+            {(searchResults ?? activeCategory?.items ?? []).map(item => (
               <button
                 key={item.id}
                 onClick={() => addToCart(item)}
@@ -198,9 +231,17 @@ export default function POSPage() {
                   <Plus size={16} className="text-gray-400" />
                 </div>
                 <p className="text-sm font-medium text-gray-900 mb-1">{item.name}</p>
+                {searchResults && (
+                  <p className="text-[10px] text-gray-400 mb-0.5">{categories.find(c => c.items?.some(i => i.id === item.id))?.name}</p>
+                )}
                 <p className="text-sm font-bold text-primary-600">₹{Number(item.price)}</p>
               </button>
             ))}
+            {(searchResults?.length === 0) && (
+              <div className="col-span-full text-center py-12 text-gray-400">
+                <p className="text-sm">No items match "{search}"</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -250,7 +291,7 @@ export default function POSPage() {
         <div className="border-t border-gray-200 p-5">
           <div className="space-y-1 text-sm mb-4">
             <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span>₹{subtotal.toLocaleString()}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">Tax (10%)</span><span>₹{tax.toLocaleString()}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">GST (5%)</span><span>₹{tax.toLocaleString()}</span></div>
             <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-100"><span>Total</span><span>₹{total.toLocaleString()}</span></div>
           </div>
           <button

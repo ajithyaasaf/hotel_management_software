@@ -8,7 +8,7 @@ export default function StaffPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'RECEPTION' as User['role'] });
+  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'RECEPTIONIST' as User['role'] });
 
   useEffect(() => { load(); }, []);
   async function load() {
@@ -25,7 +25,7 @@ export default function StaffPage() {
     if (form.name.length < 3 || /^\d+$/.test(form.name)) { toast.error('Enter a valid name (min 3 characters, no pure numbers)'); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) { toast.error('Enter a valid email address'); return; }
     if (form.password.length < 6) { toast.error('Password must be at least 6 characters'); return; }
-    try { await usersApi.create(form); toast.success('User created'); setShowAdd(false); setForm({ name: '', email: '', password: '', role: 'RECEPTION' }); load(); }
+    try { await usersApi.create(form); toast.success('User created'); setShowAdd(false); setForm({ name: '', email: '', password: '', role: 'RECEPTIONIST' }); load(); }
     catch (e: any) { toast.error(e.response?.data?.error || 'Failed'); }
   }
 
@@ -34,7 +34,7 @@ export default function StaffPage() {
     catch { toast.error('Failed'); }
   }
 
-  const roleBadge: Record<string, string> = { ADMIN: 'badge-red', RECEPTION: 'badge-blue', RESTAURANT: 'badge-yellow' };
+  const roleBadge: Record<string, string> = { MD: 'badge-red', RECEPTIONIST: 'badge-blue', RESTAURANT_MANAGER: 'badge-yellow', OPERATIONAL_MANAGER: 'badge-green', ACCOUNT_MANAGER: 'badge-purple' };
 
   return (
     <div className="animate-fadeIn">
@@ -107,7 +107,7 @@ export default function StaffPage() {
               <div><label className="block text-sm font-medium text-gray-600 mb-1">Name</label><input className="input" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} /></div>
               <div><label className="block text-sm font-medium text-gray-600 mb-1">Email</label><input className="input" type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} /></div>
               <div><label className="block text-sm font-medium text-gray-600 mb-1">Password</label><input className="input" type="password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} /></div>
-              <div><label className="block text-sm font-medium text-gray-600 mb-1">Role</label><select className="input" value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value as any }))}><option value="RECEPTION">Reception</option><option value="RESTAURANT">Restaurant</option><option value="ADMIN">Admin</option></select></div>
+              <div><label className="block text-sm font-medium text-gray-600 mb-1">Role</label><select className="input" value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value as any }))}><option value="RECEPTIONIST">Receptionist</option><option value="RESTAURANT_MANAGER">Restaurant Manager</option><option value="OPERATIONAL_MANAGER">Operational Manager</option><option value="ACCOUNT_MANAGER">Account Manager</option><option value="MD">MD</option></select></div>
               <div className="flex gap-3 pt-2"><button className="btn btn-outline flex-1" onClick={() => setShowAdd(false)}>Cancel</button><button className="btn btn-primary flex-1" onClick={handleAdd}>Create</button></div>
             </div>
           </div>

@@ -52,8 +52,14 @@ export default function NewBookingPage() {
   useEffect(() => {
     companiesApi.getAll().then(res => setCompanies(res.data)).catch(() => {});
     nightAuditApi.getStatus().then(res => {
-      setForm(p => ({ ...p, checkInDate: res.data.businessDate }));
-    }).catch(() => {});
+      console.log('nightAuditApi status response data:', res.data);
+      const bDate = res.data.businessDate || res.data.currentBusinessDate;
+      if (bDate) {
+        setForm(p => ({ ...p, checkInDate: bDate }));
+      }
+    }).catch(err => {
+      console.error('nightAuditApi status error:', err);
+    });
   }, []);
 
   useEffect(() => {
@@ -164,7 +170,8 @@ export default function NewBookingPage() {
       toast.success(`Guest checked into Room ${data.room.roomNumber}!`);
       navigate(`/bookings/${data.id}`);
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Booking failed');
+      console.error('Booking creation error:', err);
+      toast.error(err.response?.data?.error || err.message || 'Booking failed');
     } finally { setLoading(false); }
   }
 

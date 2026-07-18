@@ -159,7 +159,7 @@ export default function RoomsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Rooms</h1>
           <p className="text-gray-500 text-sm mt-1">Manage your {rooms.length} rooms</p>
         </div>
-        {user?.role === 'ADMIN' && (
+        {user?.role === 'MD' && (
           <button onClick={() => setShowAdd(true)} className="btn btn-primary justify-center">
             <Plus size={18} /> Add Room
           </button>

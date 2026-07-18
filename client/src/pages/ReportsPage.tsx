@@ -77,16 +77,23 @@ export default function ReportsPage() {
         <>
           {/* Summary Cards */}
           {summary && (
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-5 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
               {[
-                { label: 'Total Revenue', value: `₹${summary.totalRevenue.toLocaleString()}`, icon: DollarSign, color: 'bg-primary-50 text-primary-600' },
                 { label: 'Room Revenue', value: `₹${summary.roomRevenue.toLocaleString()}`, icon: BedDouble, color: 'bg-emerald-50 text-emerald-600' },
-                { label: 'Restaurant Revenue', value: `₹${summary.restaurantRevenue.toLocaleString()}`, icon: Utensils, color: 'bg-amber-50 text-amber-600' },
-                { label: 'Total Expenses', value: `₹${(summary.totalExpenses ?? 0).toLocaleString()}`, icon: TrendingDown, color: 'bg-red-50 text-red-600' },
+                { label: 'Restaurant Rev.', value: `₹${summary.restaurantRevenue.toLocaleString()}`, icon: Utensils, color: 'bg-amber-50 text-amber-600' },
+                { label: 'Banquet Rev.', value: `₹${(summary.banquetRevenue || 0).toLocaleString()}`, icon: DollarSign, color: 'bg-indigo-50 text-indigo-600' },
+                { label: 'Total Revenue', value: `₹${summary.totalRevenue.toLocaleString()}`, icon: TrendingUp, color: 'bg-primary-50 text-primary-600' },
+                {
+                  label: 'Total Expenses', 
+                  value: `₹${(summary.totalExpenses ?? 0).toLocaleString()}`,
+                  subtext: `H: ₹${summary.hotelExpenses || 0} | R: ₹${summary.restaurantExpenses || 0} | B: ₹${summary.banquetExpenses || 0}`,
+                  icon: TrendingDown, 
+                  color: 'bg-red-50 text-red-600' 
+                },
                 {
                   label: 'Net Profit',
                   value: `₹${Math.abs(summary.netProfit ?? 0).toLocaleString()}`,
-                  icon: TrendingUp,
+                  icon: DollarSign,
                   color: (summary.netProfit ?? 0) >= 0 ? 'bg-violet-50 text-violet-600' : 'bg-red-100 text-red-700',
                   prefix: (summary.netProfit ?? 0) < 0 ? '-' : '',
                 },
@@ -96,6 +103,7 @@ export default function ReportsPage() {
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${s.color} mb-3`}><s.icon size={20} /></div>
                   <p className="text-xl font-bold text-gray-900">{(s as any).prefix || ''}{s.value}</p>
                   <p className="text-xs text-gray-500 mt-1">{s.label}</p>
+                  {s.subtext && <p className="text-[10px] text-gray-400 mt-2 font-medium">{s.subtext}</p>}
                 </div>
               ))}
             </div>

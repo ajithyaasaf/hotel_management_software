@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { menuApi, banquetsApi } from '../api';
+import { menuApi, banquetsApi, permissionsApi } from '../api';
 import type { RoomType, MenuCategory, MenuItem, BanquetHall } from '../types';
 import toast from 'react-hot-toast';
-import { Plus, Pencil, Trash2, X, Save } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Save, Shield } from 'lucide-react';
 import SearchableSelect from '../components/ui/SearchableSelect';
+import { useAuthStore } from '../store/authStore';
 
 interface RoomTypeForm {
   name: string;
@@ -32,10 +33,14 @@ interface BanquetHallForm {
 }
 
 export default function SettingsPage() {
-  const [tab, setTab] = useState<'roomTypes' | 'menu' | 'banquetHalls'>('roomTypes');
+  const { hasPermission } = useAuthStore();
+  const [tab, setTab] = useState<'roomTypes' | 'menu' | 'banquetHalls' | 'permissions'>('roomTypes');
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [categories, setCategories] = useState<MenuCategory[]>([]);
   const [banquetHalls, setBanquetHalls] = useState<BanquetHall[]>([]);
+  const [permissionsMatrix, setPermissionsMatrix] = useState<any[]>([]);
+  const [availableRoles, setAvailableRoles] = useState<string[]>([]);
+  const [matrix, setMatrix] = useState<Record<string, Record<string, boolean>>>({});
   const [loading, setLoading] = useState(true);
 
   // Forms
@@ -66,7 +71,29 @@ export default function SettingsPage() {
       setRoomTypes(rt.data);
       setCategories(cats.data);
       setBanquetHalls(hallsRes.data);
+
+      if (hasPermission(['permission.manage'])) {
+        const matrixRes = await permissionsApi.getMatrix();
+        setPermissionsMatrix(matrixRes.data.permissions);
+        setAvailableRoles(matrixRes.data.roles);
+        setMatrix(matrixRes.data.matrix);
+      }
     } catch { } finally { setLoading(false); }
+  }
+
+  async function togglePermission(role: string, permissionCode: string, currentlyGranted: boolean) {
+    try {
+      if (currentlyGranted) {
+        await permissionsApi.revoke(role, permissionCode);
+        toast.success(`Permission revoked from ${role}`);
+      } else {
+        await permissionsApi.grant(role, permissionCode);
+        toast.success(`Permission granted to ${role}`);
+      }
+      load();
+    } catch (e: any) {
+      toast.error(e.response?.data?.error || 'Failed to update permission');
+    }
   }
 
   // Room Type handlers
@@ -224,11 +251,15 @@ export default function SettingsPage() {
         <p className="text-gray-500 text-sm mt-1">Manage rooms, pricing, menus, and event halls</p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-6">
-        <button onClick={() => setTab('roomTypes')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'roomTypes' ? 'bg-gray-900 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}>Room Types & Pricing</button>
-        <button onClick={() => setTab('menu')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'menu' ? 'bg-gray-900 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}>Menu Items</button>
-        <button onClick={() => setTab('banquetHalls')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'banquetHalls' ? 'bg-gray-900 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}>Banquet Halls</button>
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
+        <button onClick={() => setTab('roomTypes')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${tab === 'roomTypes' ? 'bg-gray-900 text-white shadow-md' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}>Room Types & Pricing</button>
+        <button onClick={() => setTab('menu')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${tab === 'menu' ? 'bg-gray-900 text-white shadow-md' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}>Menu Items</button>
+        <button onClick={() => setTab('banquetHalls')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${tab === 'banquetHalls' ? 'bg-gray-900 text-white shadow-md' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}>Banquet Halls</button>
+        {hasPermission(['permission.manage']) && (
+          <button onClick={() => setTab('permissions')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 ${tab === 'permissions' ? 'bg-gray-900 text-white shadow-md' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}>
+            <Shield size={16} /> Roles & Permissions
+          </button>
+        )}
       </div>
 
       {/* Room Types Tab */}
@@ -381,6 +412,63 @@ export default function SettingsPage() {
                     </td>
                   </tr>
                 )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Permissions Tab */}
+      {tab === 'permissions' && hasPermission(['permission.manage']) && (
+        <div className="space-y-6">
+          <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-xl flex items-start gap-3">
+            <Shield className="text-indigo-600 shrink-0 mt-0.5" size={20} />
+            <div>
+              <h4 className="font-semibold text-indigo-900">Role-Based Access Control</h4>
+              <p className="text-sm text-indigo-700 mt-1">Manage what each role can access across the system. Changes take effect immediately on next user action. MD role always has full access.</p>
+            </div>
+          </div>
+
+          <div className="card overflow-hidden overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-gray-50/50">
+                  <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-10 w-[250px]">Permission</th>
+                  {availableRoles.filter(r => r !== 'MD').map(role => (
+                    <th key={role} className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">
+                      {role.replace(/_/g, ' ')}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {permissionsMatrix.map(perm => (
+                  <tr key={perm.code} className="hover:bg-gray-50/50">
+                    <td className="px-5 py-3 sticky left-0 bg-white group-hover:bg-gray-50 z-10">
+                      <p className="text-sm font-semibold text-gray-900">{perm.name}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{perm.description}</p>
+                    </td>
+                    {availableRoles.filter(r => r !== 'MD').map(role => {
+                      const isGranted = matrix[perm.code]?.[role] || false;
+                      return (
+                        <td key={role} className="px-5 py-3 text-center">
+                          <button
+                            onClick={() => togglePermission(role, perm.code, isGranted)}
+                            className={`w-10 h-5 rounded-full transition-colors relative inline-flex items-center ${
+                              isGranted ? 'bg-indigo-500' : 'bg-gray-300'
+                            }`}
+                          >
+                            <span
+                              className={`block w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                                isGranted ? 'translate-x-5' : 'translate-x-0.5'
+                              }`}
+                            />
+                          </button>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

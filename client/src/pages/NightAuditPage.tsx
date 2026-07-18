@@ -127,7 +127,7 @@ interface AuditDetails {
 
 export default function NightAuditPage() {
   const { user } = useAuthStore();
-  const isAdmin = user?.role === 'ADMIN';
+  const isAdmin = user?.role === 'MD';
 
   const [activeTab, setActiveTab] = useState<'close_day' | 'history'>('close_day');
 

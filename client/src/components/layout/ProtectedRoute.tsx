@@ -3,19 +3,20 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 
 interface ProtectedRouteProps {
-  roles?: ('ADMIN' | 'RECEPTION' | 'RESTAURANT')[];
+  permissions?: string[];
+  children?: React.ReactNode;
 }
 
-export default function ProtectedRoute({ roles }: ProtectedRouteProps) {
-  const { user, isAuthenticated } = useAuthStore();
+export default function ProtectedRoute({ permissions, children }: ProtectedRouteProps) {
+  const { isAuthenticated, hasPermission } = useAuthStore();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  if (roles && user && !roles.includes(user.role)) {
+  if (permissions && permissions.length > 0 && !hasPermission(permissions)) {
     return <Navigate to="/" replace />;
   }
 
-  return <Outlet />;
+  return children ? <>{children}</> : <Outlet />;
 }

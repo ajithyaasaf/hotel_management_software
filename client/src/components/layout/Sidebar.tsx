@@ -6,20 +6,20 @@ import {
 } from 'lucide-react';
 
 const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard', roles: ['ADMIN', 'RECEPTION', 'RESTAURANT'] },
-  { to: '/rooms', icon: BedDouble, label: 'Rooms', roles: ['ADMIN', 'RECEPTION'] },
-  { to: '/bookings', icon: CalendarCheck, label: 'Bookings', roles: ['ADMIN', 'RECEPTION'] },
-  { to: '/guests', icon: Users, label: 'Guests', roles: ['ADMIN', 'RECEPTION'] },
-  { to: '/corporate', icon: Building, label: 'Corporate Ledger', roles: ['ADMIN', 'RECEPTION'] },
-  { to: '/pos', icon: Utensils, label: 'Restaurant POS', roles: ['ADMIN', 'RECEPTION', 'RESTAURANT'] },
-  { to: '/orders', icon: FileText, label: 'Orders', roles: ['ADMIN', 'RECEPTION', 'RESTAURANT'] },
-  { to: '/reports', icon: CreditCard, label: 'Reports', roles: ['ADMIN'] },
-  { to: '/expenses', icon: TrendingDown, label: 'Expenses', roles: ['ADMIN'] },
-  { to: '/banquets', icon: Wine, label: 'Banquets', roles: ['ADMIN', 'RECEPTION'] },
-  { to: '/night-audit', icon: Moon, label: 'Night Audit', roles: ['ADMIN', 'RECEPTION'] },
-  { to: '/staff', icon: UserCog, label: 'Staff', roles: ['ADMIN'] },
-  { to: '/settings', icon: Settings, label: 'Settings', roles: ['ADMIN'] },
-  { to: '/audit', icon: Shield, label: 'Audit Log', roles: ['ADMIN'] },
+  { to: '/', icon: LayoutDashboard, label: 'Dashboard', permissions: [] }, // Dashboard always visible
+  { to: '/rooms', icon: BedDouble, label: 'Rooms', permissions: ['room.view'] },
+  { to: '/bookings', icon: CalendarCheck, label: 'Bookings', permissions: ['booking.view'] },
+  { to: '/guests', icon: Users, label: 'Guests', permissions: ['guest.view'] },
+  { to: '/corporate', icon: Building, label: 'Corporate Ledger', permissions: ['corporate.view'] },
+  { to: '/pos', icon: Utensils, label: 'Restaurant POS', permissions: ['pos.access'] },
+  { to: '/orders', icon: FileText, label: 'Orders', permissions: ['order.view'] },
+  { to: '/reports', icon: CreditCard, label: 'Reports', permissions: ['report.view'] },
+  { to: '/expenses', icon: TrendingDown, label: 'Expenses', permissions: ['expense.view'] },
+  { to: '/banquets', icon: Wine, label: 'Banquets', permissions: ['banquet.view'] },
+  { to: '/night-audit', icon: Moon, label: 'Night Audit', permissions: ['nightaudit.view'] },
+  { to: '/staff', icon: UserCog, label: 'Staff', permissions: ['staff.manage'] },
+  { to: '/settings', icon: Settings, label: 'Settings', permissions: ['settings.manage'] },
+  { to: '/audit', icon: Shield, label: 'Audit Log', permissions: ['audit.view'] },
 ];
 
 interface SidebarProps {
@@ -28,12 +28,12 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
-  const { user, logout } = useAuthStore();
+  const { user, logout, hasPermission } = useAuthStore();
   const navigate = useNavigate();
 
   const handleLogout = () => { logout(); navigate('/login'); onClose(); };
 
-  const filtered = navItems.filter(item => user && item.roles.includes(user.role));
+  const filtered = navItems.filter(item => item.permissions.length === 0 || hasPermission(item.permissions));
 
   return (
     <aside className={`fixed left-0 top-0 bottom-0 w-[260px] flex flex-col z-50 print:hidden transition-transform duration-300 ease-in-out lg:translate-x-0

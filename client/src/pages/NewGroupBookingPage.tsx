@@ -65,8 +65,11 @@ export default function NewGroupBookingPage() {
 
   useEffect(() => {
     nightAuditApi.getStatus().then(res => {
-      setBusinessDate(res.data.businessDate);
-      setRoomEntries(prev => prev.map(e => ({ ...e, checkInDate: res.data.businessDate })));
+      const bDate = res.data.businessDate || res.data.currentBusinessDate;
+      if (bDate) {
+        setBusinessDate(bDate);
+        setRoomEntries(prev => prev.map(e => ({ ...e, checkInDate: bDate })));
+      }
     }).catch(() => {});
   }, []);
 
@@ -231,7 +234,8 @@ export default function NewGroupBookingPage() {
       toast.success(`Group booking ${data.groupNumber} created with ${roomEntries.length} rooms!`);
       navigate(`/bookings/group/${data.id}`);
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to create group booking');
+      console.error('Group booking creation error:', err);
+      toast.error(err.response?.data?.error || err.message || 'Failed to create group booking');
     } finally { setLoading(false); }
   }
 

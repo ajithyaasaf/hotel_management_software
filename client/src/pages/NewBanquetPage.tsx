@@ -58,8 +58,11 @@ export default function NewBanquetPage() {
     }).catch(() => {});
 
     nightAuditApi.getStatus().then(res => {
-      setBusinessDate(res.data.businessDate);
-      setForm(p => ({ ...p, eventDate: res.data.businessDate }));
+      const bDate = res.data.businessDate || res.data.currentBusinessDate;
+      if (bDate) {
+        setBusinessDate(bDate);
+        setForm(p => ({ ...p, eventDate: bDate }));
+      }
     }).catch(() => {});
   }, []);
 
@@ -161,7 +164,8 @@ export default function NewBanquetPage() {
       toast.success(`Banquet booking ${res.data.bookingNumber} created!`);
       navigate(`/banquets/${res.data.id}`);
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to create banquet booking');
+      console.error('Banquet booking creation error:', err);
+      toast.error(err.response?.data?.error || err.message || 'Failed to create banquet booking');
     } finally {
       setLoading(false);
     }

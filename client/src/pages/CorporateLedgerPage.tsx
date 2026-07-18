@@ -204,7 +204,7 @@ export default function CorporateLedgerPage() {
           </h2>
           <p className="text-sm text-gray-500 font-medium mt-1">Manage billing, print invoices, and settle post-checkout payments for corporate clients.</p>
         </div>
-        {user?.role === 'ADMIN' && (
+        {user?.role === 'MD' && (
           <button
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-2 justify-center px-5 py-3 rounded-xl text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 shadow-md shadow-primary-100 hover:shadow-lg transition-all w-full md:w-auto"

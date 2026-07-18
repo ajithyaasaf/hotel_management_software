@@ -31,6 +31,7 @@ export const authApi = {
   login: (email: string, password: string) => api.post('/auth/login', { email, password }),
   register: (data: any) => api.post('/auth/register', data),
   me: () => api.get('/auth/me'),
+  getUsersByDepartment: () => api.get('/auth/users-by-department'),
 };
 
 // ─── ROOMS ────────────────────────────────────────
@@ -123,7 +124,29 @@ export const reportsApi = {
   summary: (params?: any) => api.get('/reports/summary', { params }),
   revenueDaily: (params?: any) => api.get('/reports/revenue-daily', { params }),
   occupancy: () => api.get('/reports/occupancy'),
-  audit: (params?: any) => api.get('/reports/audit', { params }),
+};
+
+// ─── AUDIT ────────────────────────────────────────────
+export const auditApi = {
+  getAll: (params?: any) => api.get('/audit', { params }),
+  getActions: (params?: any) => api.get('/audit/actions', { params }),
+  getEntities: () => api.get('/audit/entities'),
+};
+
+// ─── PERMISSIONS ──────────────────────────────────────
+export const permissionsApi = {
+  getAll: () => api.get('/permissions'),
+  getMatrix: () => api.get('/permissions/matrix'),
+  grant: (role: string, permissionCode: string) => api.put('/permissions/grant', { role, permissionCode }),
+  revoke: (role: string, permissionCode: string) => api.put('/permissions/revoke', { role, permissionCode }),
+};
+
+// ─── CANCELLATIONS ────────────────────────────────────
+export const cancellationsApi = {
+  getAll: (params?: any) => api.get('/cancellations', { params }),
+  getPendingCount: () => api.get('/cancellations/pending/count'),
+  approve: (id: string, note?: string) => api.put(`/cancellations/${id}/approve`, { note }),
+  reject: (id: string, note?: string) => api.put(`/cancellations/${id}/reject`, { note }),
 };
 
 // ─── EXPENSES ─────────────────────────────────────────
@@ -174,12 +197,12 @@ export const banquetsApi = {
   checkAvailability: (hallId: string, date: string) =>
     api.get('/banquets/bookings/availability', { params: { hallId, date } }),
   // Bookings
-  getBookings: (params?: any) => api.get('/banquets/bookings', { params }),
-  getBookingById: (id: string) => api.get(`/banquets/bookings/${id}`),
-  createBooking: (data: any) => api.post('/banquets/bookings', data),
-  confirmBooking: (id: string) => api.put(`/banquets/bookings/${id}/confirm`),
-  completeBooking: (id: string) => api.put(`/banquets/bookings/${id}/complete`),
-  cancelBooking: (id: string, reason?: string) => api.put(`/banquets/bookings/${id}/cancel`, { reason }),
+  getBookings: (params?: any) => api.get('/banquets', { params }),
+  getBookingById: (id: string) => api.get(`/banquets/${id}`),
+  createBooking: (data: any) => api.post('/banquets', data),
+  confirmBooking: (id: string) => api.put(`/banquets/${id}/confirm`),
+  completeBooking: (id: string) => api.put(`/banquets/${id}/complete`),
+  cancelBooking: (id: string, reason?: string) => api.put(`/banquets/${id}/cancel`, { reason }),
   // Payments
-  recordPayment: (id: string, data: any) => api.post(`/banquets/bookings/${id}/payments`, data),
+  recordPayment: (id: string, data: any) => api.post(`/banquets/${id}/payments`, data),
 };
