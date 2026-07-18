@@ -235,6 +235,22 @@ export default function NightAuditPage() {
     window.print();
   };
 
+  const firstAuditCharge = auditResult?.charges?.[0];
+  const auditResultCgstPercent = firstAuditCharge && Number(firstAuditCharge.roomRate) > 0
+    ? Math.round((Number(firstAuditCharge.cgst) / Number(firstAuditCharge.roomRate)) * 100 * 10) / 10
+    : 2.5;
+  const auditResultSgstPercent = firstAuditCharge && Number(firstAuditCharge.roomRate) > 0
+    ? Math.round((Number(firstAuditCharge.sgst) / Number(firstAuditCharge.roomRate)) * 100 * 10) / 10
+    : 2.5;
+
+  const firstDetailsCharge = auditDetails?.charges?.[0];
+  const auditDetailsCgstPercent = firstDetailsCharge && Number(firstDetailsCharge.roomRate) > 0
+    ? Math.round((Number(firstDetailsCharge.cgst) / Number(firstDetailsCharge.roomRate)) * 100 * 10) / 10
+    : 2.5;
+  const auditDetailsSgstPercent = firstDetailsCharge && Number(firstDetailsCharge.roomRate) > 0
+    ? Math.round((Number(firstDetailsCharge.sgst) / Number(firstDetailsCharge.roomRate)) * 100 * 10) / 10
+    : 2.5;
+
   return (
     <div className="animate-fadeIn p-4 md:p-6 print:p-0 print:bg-white max-w-7xl mx-auto">
       {/* Header */}
@@ -418,8 +434,8 @@ export default function NightAuditPage() {
                           <th className="px-5 py-3.5">Booking</th>
                           <th className="px-5 py-3.5">Guest</th>
                           <th className="px-5 py-3.5 text-right">Room Rate</th>
-                          <th className="px-5 py-3.5 text-right">CGST (6%)</th>
-                          <th className="px-5 py-3.5 text-right">SGST (6%)</th>
+                          <th className="px-5 py-3.5 text-right">CGST ({auditResultCgstPercent}%)</th>
+                          <th className="px-5 py-3.5 text-right">SGST ({auditResultSgstPercent}%)</th>
                           <th className="px-5 py-3.5 text-right">Total Charge</th>
                         </tr>
                       </thead>
@@ -913,8 +929,8 @@ export default function NightAuditPage() {
                         <th className="px-5 py-3.5">Booking</th>
                         <th className="px-5 py-3.5">Guest</th>
                         <th className="px-5 py-3.5 text-right">Room Rate</th>
-                        <th className="px-5 py-3.5 text-right">CGST (6%)</th>
-                        <th className="px-5 py-3.5 text-right">SGST (6%)</th>
+                        <th className="px-5 py-3.5 text-right">CGST ({auditDetailsCgstPercent}%)</th>
+                        <th className="px-5 py-3.5 text-right">SGST ({auditDetailsSgstPercent}%)</th>
                         <th className="px-5 py-3.5 text-right">Total Charge</th>
                       </tr>
                     </thead>

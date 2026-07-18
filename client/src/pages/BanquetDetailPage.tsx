@@ -207,6 +207,13 @@ export default function BanquetDetailPage() {
   const slotInfo = SLOT_LABELS[booking.slot];
   const isActive = booking.status === 'PROVISIONAL' || booking.status === 'CONFIRMED';
 
+  const cgstPercent = booking && Number(booking.subtotal) > 0 && Number(booking.cgst) > 0
+    ? Math.round((Number(booking.cgst) / Number(booking.subtotal)) * 100 * 10) / 10
+    : 2.5;
+  const sgstPercent = booking && Number(booking.subtotal) > 0 && Number(booking.sgst) > 0
+    ? Math.round((Number(booking.sgst) / Number(booking.subtotal)) * 100 * 10) / 10
+    : 2.5;
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
@@ -366,11 +373,11 @@ export default function BanquetDetailPage() {
                 <span>₹{Number(booking.subtotal).toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-gray-400 text-xs">
-                <span>CGST (6%)</span>
+                <span>CGST ({cgstPercent}%)</span>
                 <span>₹{Number(booking.cgst).toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-gray-400 text-xs">
-                <span>SGST (6%)</span>
+                <span>SGST ({sgstPercent}%)</span>
                 <span>₹{Number(booking.sgst).toLocaleString()}</span>
               </div>
               <div className="flex justify-between font-bold text-gray-900 text-base border-t pt-2">
@@ -415,8 +422,8 @@ export default function BanquetDetailPage() {
             <tr className="border-b"><td className="py-1 text-gray-600">Hall Rental</td><td className="text-right">₹{Number(booking.hallRentalPrice).toLocaleString()}</td></tr>
             {Number(booking.perHeadFoodPrice) > 0 && <tr className="border-b"><td className="py-1 text-gray-600">Food & Catering</td><td className="text-right">₹{(Number(booking.perHeadFoodPrice) * booking.estimatedPax).toLocaleString()}</td></tr>}
             {Number(booking.extraCharges) > 0 && <tr className="border-b"><td className="py-1 text-gray-600">Extra Charges</td><td className="text-right">₹{Number(booking.extraCharges).toLocaleString()}</td></tr>}
-            <tr className="border-b"><td className="py-1 text-gray-400">CGST (6%)</td><td className="text-right text-gray-400">₹{Number(booking.cgst).toLocaleString()}</td></tr>
-            <tr className="border-b"><td className="py-1 text-gray-400">SGST (6%)</td><td className="text-right text-gray-400">₹{Number(booking.sgst).toLocaleString()}</td></tr>
+            <tr className="border-b"><td className="py-1 text-gray-400">CGST ({cgstPercent}%)</td><td className="text-right text-gray-400">₹{Number(booking.cgst).toLocaleString()}</td></tr>
+            <tr className="border-b"><td className="py-1 text-gray-400">SGST ({sgstPercent}%)</td><td className="text-right text-gray-400">₹{Number(booking.sgst).toLocaleString()}</td></tr>
             <tr className="border-b font-bold"><td className="py-2">Total Amount</td><td className="text-right">₹{Number(booking.totalAmount).toLocaleString()}</td></tr>
             <tr><td className="py-1 text-gray-600">Advance Paid</td><td className="text-right">₹{Number(booking.advancePaid).toLocaleString()}</td></tr>
             <tr className="font-bold"><td className="py-1">Balance Due</td><td className="text-right">₹{Number(booking.pendingAmount).toLocaleString()}</td></tr>

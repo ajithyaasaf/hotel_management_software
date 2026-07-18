@@ -350,6 +350,16 @@ export default function BookingDetailPage() {
   const checkoutStr = new Date(booking.expectedCheckout).toISOString().split('T')[0];
   const isOverdue = booking.status === 'CHECKED_IN' && checkoutStr < referenceDate;
 
+  const taxableStayAmount = invoice 
+    ? Number(invoice.roomCharges) + Number(invoice.extraCharges) - Number(invoice.discountAmount) 
+    : 0;
+  const cgstPercent = invoice && taxableStayAmount > 0 && Number(invoice.cgst) > 0
+    ? Math.round((Number(invoice.cgst) / taxableStayAmount) * 100 * 10) / 10 
+    : 2.5;
+  const sgstPercent = invoice && taxableStayAmount > 0 && Number(invoice.sgst) > 0
+    ? Math.round((Number(invoice.sgst) / taxableStayAmount) * 100 * 10) / 10 
+    : 2.5;
+
   return (
     <div className="animate-fadeIn max-w-5xl">
       <button onClick={() => navigate('/bookings')} className="btn btn-ghost mb-4"><ArrowLeft size={18} /> Bookings</button>
@@ -550,8 +560,8 @@ export default function BookingDetailPage() {
                 {Number(invoice.extraCharges) > 0 && <div className="flex justify-between"><span className="text-gray-500">Extra Charges</span><span>₹{Number(invoice.extraCharges).toLocaleString()}</span></div>}
                 {Number(invoice.discountAmount) > 0 && <div className="flex justify-between text-emerald-600"><span>Discount</span><span>-₹{Number(invoice.discountAmount).toLocaleString()}</span></div>}
                 <div className="border-t border-gray-100 pt-2 flex justify-between"><span className="text-gray-500">Subtotal</span><span>₹{Number(invoice.subtotal).toLocaleString()}</span></div>
-                {Number(invoice.cgst) > 0 && <div className="flex justify-between text-gray-400 text-xs"><span>CGST (6%)</span><span>₹{Number(invoice.cgst).toLocaleString()}</span></div>}
-                {Number(invoice.sgst) > 0 && <div className="flex justify-between text-gray-400 text-xs"><span>SGST (6%)</span><span>₹{Number(invoice.sgst).toLocaleString()}</span></div>}
+                {Number(invoice.cgst) > 0 && <div className="flex justify-between text-gray-400 text-xs"><span>CGST ({cgstPercent}%)</span><span>₹{Number(invoice.cgst).toLocaleString()}</span></div>}
+                {Number(invoice.sgst) > 0 && <div className="flex justify-between text-gray-400 text-xs"><span>SGST ({sgstPercent}%)</span><span>₹{Number(invoice.sgst).toLocaleString()}</span></div>}
                 <div className="border-t border-gray-200 pt-2 flex justify-between font-bold text-lg"><span>Total</span><span>₹{Number(invoice.grandTotal).toLocaleString()}</span></div>
                 
                 {/* Corporate routing details */}
@@ -667,11 +677,11 @@ export default function BookingDetailPage() {
                 <td className="py-3 text-right">{Number(invoice.subtotal).toLocaleString()}</td>
               </tr>
               <tr className="text-gray-600">
-                <td className="py-1">CGST (6%)</td>
+                <td className="py-1">CGST ({cgstPercent}%)</td>
                 <td className="py-1 text-right">{Number(invoice.cgst).toLocaleString()}</td>
               </tr>
               <tr className="text-gray-600 border-b border-gray-200">
-                <td className="py-1 pb-3">SGST (6%)</td>
+                <td className="py-1 pb-3">SGST ({sgstPercent}%)</td>
                 <td className="py-1 pb-3 text-right">{Number(invoice.sgst).toLocaleString()}</td>
               </tr>
               <tr className="font-bold text-lg">
