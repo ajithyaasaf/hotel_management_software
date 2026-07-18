@@ -109,6 +109,7 @@ export const menuApi = {
   createRoomType: (data: any) => api.post('/menu/room-types', data),
   updateRoomType: (id: string, data: any) => api.put(`/menu/room-types/${id}`, data),
   deleteRoomType: (id: string) => api.delete(`/menu/room-types/${id}`),
+  getTaxConfig: () => api.get('/menu/tax-config'),
 };
 
 // ─── USERS ────────────────────────────────────────

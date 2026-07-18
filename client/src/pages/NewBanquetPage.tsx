@@ -1,6 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { banquetsApi, guestsApi, nightAuditApi } from '../api';
+import { banquetsApi, guestsApi, nightAuditApi, menuApi } from '../api';
 import type { BanquetHall } from '../types';
 import toast from 'react-hot-toast';
 import { ArrowLeft, Search, UserCheck, AlertTriangle, Users, Wine, IndianRupee } from 'lucide-react';
@@ -36,6 +36,8 @@ export default function NewBanquetPage() {
   const [guestFound, setGuestFound] = useState(false);
   const [availability, setAvailability] = useState<{ slot: string; available: boolean }[]>([]);
   const [checkingAvail, setCheckingAvail] = useState(false);
+  const [cgstRate, setCgstRate] = useState(0.025);
+  const [sgstRate, setSgstRate] = useState(0.025);
 
   const [form, setForm] = useState<BanquetForm>({
     guestPhone: '', guestName: '',
@@ -63,6 +65,13 @@ export default function NewBanquetPage() {
         setBusinessDate(bDate);
         setForm(p => ({ ...p, eventDate: bDate }));
       }
+    }).catch(() => {});
+
+    menuApi.getTaxConfig().then(res => {
+      const cgstConfig = res.data.find((t: any) => t.name === 'CGST');
+      const sgstConfig = res.data.find((t: any) => t.name === 'SGST');
+      if (cgstConfig) setCgstRate(Number(cgstConfig.rate) / 100);
+      if (sgstConfig) setSgstRate(Number(sgstConfig.rate) / 100);
     }).catch(() => {});
   }, []);
 
@@ -112,8 +121,8 @@ export default function NewBanquetPage() {
   const perHead = Number(form.perHeadFoodPrice) || 0;
   const extras = Number(form.extraCharges) || 0;
   const subtotal = rental + (perHead * pax) + extras;
-  const cgst = subtotal * 0.025;
-  const sgst = subtotal * 0.025;
+  const cgst = subtotal * cgstRate;
+  const sgst = subtotal * sgstRate;
   const total = subtotal + cgst + sgst;
   const pending = total - Number(form.advanceAmount || 0);
 
@@ -448,10 +457,10 @@ export default function NewBanquetPage() {
                 </div>
               )}
               <div className="flex justify-between text-gray-500 border-t pt-2">
-                <span>CGST (2.5%)</span><span>₹{cgst.toFixed(2)}</span>
+                <span>CGST ({(cgstRate * 100).toFixed(1)}%)</span><span>₹{cgst.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-gray-500">
-                <span>SGST (2.5%)</span><span>₹{sgst.toFixed(2)}</span>
+                <span>SGST ({(sgstRate * 100).toFixed(1)}%)</span><span>₹{sgst.toFixed(2)}</span>
               </div>
               <div className="flex justify-between font-bold text-gray-900 border-t pt-2 text-base">
                 <span>Total Invoice</span><span>₹{total.toFixed(2)}</span>

@@ -18,13 +18,19 @@ export default function POSPage() {
   const [customerName, setCustomerName] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [taxRate, setTaxRate] = useState(0.05);
 
   useEffect(() => {
-    Promise.all([menuApi.getCategories(), roomsApi.getAll()])
-      .then(([cRes, rRes]) => {
+    Promise.all([menuApi.getCategories(), roomsApi.getAll(), menuApi.getTaxConfig()])
+      .then(([cRes, rRes, tRes]) => {
         setCategories(cRes.data);
         if (cRes.data.length > 0) setActiveCat(cRes.data[0].id);
         setRooms(rRes.data.filter((r: Room) => r.status === 'OCCUPIED'));
+        const cgstConfig = tRes.data.find((t: any) => t.name === 'CGST');
+        const sgstConfig = tRes.data.find((t: any) => t.name === 'SGST');
+        const cgst = cgstConfig ? Number(cgstConfig.rate) / 100 : 0.025;
+        const sgst = sgstConfig ? Number(sgstConfig.rate) / 100 : 0.025;
+        setTaxRate(cgst + sgst);
       })
       .catch(() => toast.error('Failed to load menu'))
       .finally(() => setLoading(false));
@@ -45,7 +51,6 @@ export default function POSPage() {
   function removeItem(menuItemId: string) { setCart(prev => prev.filter(c => c.menuItemId !== menuItemId)); }
 
   const subtotal = cart.reduce((s, c) => s + c.price * c.quantity, 0);
-  const taxRate = 0.05; // 5% total (2.5% CGST + 2.5% SGST)
   const tax = parseFloat((subtotal * taxRate).toFixed(2));
   const total = subtotal + tax;
 
@@ -291,7 +296,7 @@ export default function POSPage() {
         <div className="border-t border-gray-200 p-5">
           <div className="space-y-1 text-sm mb-4">
             <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span>₹{subtotal.toLocaleString()}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">GST (5%)</span><span>₹{tax.toLocaleString()}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">GST ({(taxRate * 100).toFixed(1)}%)</span><span>₹{tax.toLocaleString()}</span></div>
             <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-100"><span>Total</span><span>₹{total.toLocaleString()}</span></div>
           </div>
           <button
