@@ -93,7 +93,7 @@ async function seed() {
   const pw = async (plain: string) => bcrypt.hash(plain, 10);
 
   const users = [
-    { name: 'Ajithyaasaf (MD)',           email: 'md@godivarooms.com',              password: await pw('123456'),  role: 'MD' as UserRole },
+    { name: 'godivatech',                 email: 'md@godivarooms.com',              password: await pw('123456'),  role: 'MD' as UserRole },
     { name: 'Accounts',                   email: 'accounts@godivarooms.com',        password: await pw('123456'),  role: 'ACCOUNT_MANAGER' as UserRole },
     { name: 'Operations Manager',         email: 'operations@godivarooms.com',      password: await pw('123456'),  role: 'OPERATIONAL_MANAGER' as UserRole },
     { name: 'Restaurant Manager',         email: 'restaurant@godivarooms.com',      password: await pw('123456'),  role: 'RESTAURANT_MANAGER' as UserRole },
