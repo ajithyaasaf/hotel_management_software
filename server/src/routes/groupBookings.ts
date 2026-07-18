@@ -415,7 +415,7 @@ router.post('/:id/checkout-all', async (req: AuthRequest, res) => {
     checkoutDate.setMonth(month - 1);
     checkoutDate.setDate(day);
 
-    let newStatus = '';
+    let newStatus: any = '';
     await prisma.$transaction(async (tx) => {
       for (const booking of activeBookings) {
         await tx.booking.update({
