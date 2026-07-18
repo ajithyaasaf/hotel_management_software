@@ -183,8 +183,8 @@ export default function NewGroupBookingPage() {
       const entry = roomEntries[i];
       if (!entry.roomId) { toast.error(`Please select a room for entry ${i + 1}`); return; }
       if (!entry.expectedCheckout) { toast.error(`Please set a checkout date for room ${i + 1}`); return; }
-      if (entry.expectedCheckout <= entry.checkInDate) {
-        toast.error(`Room ${i + 1}: Checkout must be after check-in`); return;
+      if (entry.expectedCheckout < entry.checkInDate) {
+        toast.error(`Room ${i + 1}: Checkout cannot be before check-in`); return;
       }
       if (Number(entry.roomPrice) <= 0) { toast.error(`Room ${i + 1}: Price must be positive`); return; }
       if (entry.showGuestForm) {
@@ -331,7 +331,7 @@ export default function NewGroupBookingPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-1">Checkout Date *</label>
                   <input
-                    className="input" type="date" value={entry.expectedCheckout}
+                    className="input" type="date" min={entry.checkInDate} value={entry.expectedCheckout}
                     onChange={e => updateEntry(index, { expectedCheckout: e.target.value })}
                   />
                 </div>

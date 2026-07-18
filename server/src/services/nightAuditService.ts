@@ -235,12 +235,12 @@ export const nightAuditService = {
       let roomsCharged = 0;
       let totalRoomRevenue = 0;
 
-      // Tax setup (Default 12% total, split 6% CGST, 6% SGST)
+      // Tax setup (Default 5% total, split 2.5% CGST, 2.5% SGST)
       const taxConfigs = await tx.taxConfig.findMany({ where: { isActive: true } });
       const cgstConfig = taxConfigs.find(t => t.name === 'CGST');
       const sgstConfig = taxConfigs.find(t => t.name === 'SGST');
-      const cgstRate = cgstConfig ? Number(cgstConfig.rate) / 100 : 0.06;
-      const sgstRate = sgstConfig ? Number(sgstConfig.rate) / 100 : 0.06;
+      const cgstRate = cgstConfig ? Number(cgstConfig.rate) / 100 : 0.025;
+      const sgstRate = sgstConfig ? Number(sgstConfig.rate) / 100 : 0.025;
 
       for (const b of activeBookings) {
         const rate = Number(b.roomPrice);

@@ -4,6 +4,8 @@ import prisma from '../utils/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { createAuditLog, generateBookingNumber, generateGroupNumber } from '../utils/helpers';
 import { uploadToCloudinary } from '../utils/cloudinary';
+import { calculateTaxWithTx } from '../utils/tax';
+import { computeBillingSplit } from './bookings';
 
 const router = Router();
 router.use(authenticate);
@@ -160,8 +162,8 @@ router.post('/', async (req: AuthRequest, res) => {
       const checkIn = new Date(entry.checkInDate);
       const checkOut = new Date(entry.expectedCheckout);
 
-      if (checkOut <= checkIn) {
-        res.status(400).json({ error: `Room checkout date must be after check-in date` });
+      if (checkOut < checkIn) {
+        res.status(400).json({ error: `Room checkout date cannot be before check-in date` });
         return;
       }
 
@@ -180,17 +182,17 @@ router.post('/', async (req: AuthRequest, res) => {
       }
 
       // Check for overlapping bookings
-      const conflict = await prisma.booking.findFirst({
-        where: {
-          roomId: entry.roomId,
-          status: { in: ['CONFIRMED', 'CHECKED_IN'] },
-          AND: [
-            { checkInDate: { lt: checkOut } },
-            { expectedCheckout: { gt: checkIn } },
-          ],
-        },
+      const activeBookings = await prisma.booking.findMany({
+        where: { roomId: entry.roomId, status: { in: ['CONFIRMED', 'CHECKED_IN'] } },
       });
-      if (conflict) {
+      const hasConflict = activeBookings.some(b => {
+        const bIn = b.checkInDate.getTime();
+        const bOut = b.expectedCheckout.getTime() === bIn ? bIn + 1000 : b.expectedCheckout.getTime();
+        const newIn = checkIn.getTime();
+        const newOut = checkOut.getTime() === newIn ? newIn + 1000 : checkOut.getTime();
+        return Math.max(bIn, newIn) < Math.min(bOut, newOut);
+      });
+      if (hasConflict) {
         res.status(400).json({ error: `Room ${room.roomNumber} is already booked/occupied during the selected dates. Please choose another room or change the dates.` });
         return;
       }
@@ -305,9 +307,10 @@ router.post('/', async (req: AuthRequest, res) => {
         const nights = computeNights(checkIn, checkOut);
         const roomCharges = entry.roomPrice * nights;
 
-        const cgst = parseFloat((roomCharges * 0.06).toFixed(2));
-        const sgst = parseFloat((roomCharges * 0.06).toFixed(2));
-        const totalTax = cgst + sgst;
+        const tax = await calculateTaxWithTx(tx, roomCharges);
+        const cgst = tax.cgst;
+        const sgst = tax.sgst;
+        const totalTax = tax.totalTax;
         const grandTotal = parseFloat((roomCharges + totalTax).toFixed(2));
 
         await tx.invoice.create({
@@ -446,28 +449,15 @@ router.post('/:id/checkout-all', async (req: AuthRequest, res) => {
 
           const newSubtotal = roomCharges + foodCharges + Number(booking.invoice.extraCharges) - Number(booking.invoice.discountAmount);
           const taxableStayAmount = roomCharges + Number(booking.invoice.extraCharges) - Number(booking.invoice.discountAmount);
-          const newCgst = parseFloat((taxableStayAmount * 0.06).toFixed(2));
-          const newSgst = parseFloat((taxableStayAmount * 0.06).toFixed(2));
-          const newTax = newCgst + newSgst;
+          const tax = await calculateTaxWithTx(tx, taxableStayAmount);
+          const newCgst = tax.cgst;
+          const newSgst = tax.sgst;
+          const newTax = tax.totalTax;
           const newGrand = parseFloat((newSubtotal + newTax).toFixed(2));
 
-          let companyAmount = 0;
-          let guestAmount = 0;
-
-          if (booking.billingRule === 'COMPANY_ALL') {
-            companyAmount = newGrand;
-            guestAmount = 0;
-          } else if (booking.billingRule === 'COMPANY_ROOM_ONLY') {
-            const roomSubtotal = roomCharges;
-            const roomCgst = parseFloat((roomSubtotal * 0.06).toFixed(2));
-            const roomSgst = parseFloat((roomSubtotal * 0.06).toFixed(2));
-            const roomTax = roomCgst + roomSgst;
-            companyAmount = parseFloat((roomSubtotal + roomTax).toFixed(2));
-            guestAmount = Math.max(0, parseFloat((newGrand - companyAmount).toFixed(2)));
-          } else {
-            companyAmount = 0;
-            guestAmount = newGrand;
-          }
+          const split = await computeBillingSplit(booking.billingRule, newGrand, roomCharges, Number(booking.invoice.extraCharges), Number(booking.invoice.discountAmount), tx);
+          const companyAmount = split.companyAmount;
+          const guestAmount = split.guestAmount;
 
           const paid = Number(booking.invoice.amountPaid);
 

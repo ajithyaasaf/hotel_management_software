@@ -112,8 +112,8 @@ export default function NewBanquetPage() {
   const perHead = Number(form.perHeadFoodPrice) || 0;
   const extras = Number(form.extraCharges) || 0;
   const subtotal = rental + (perHead * pax) + extras;
-  const cgst = subtotal * 0.06;
-  const sgst = subtotal * 0.06;
+  const cgst = subtotal * 0.025;
+  const sgst = subtotal * 0.025;
   const total = subtotal + cgst + sgst;
   const pending = total - Number(form.advanceAmount || 0);
 

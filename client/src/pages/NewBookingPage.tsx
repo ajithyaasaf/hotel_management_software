@@ -145,8 +145,8 @@ export default function NewBookingPage() {
     if (form.guestEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.guestEmail)) {
       toast.error('Please enter a valid email address'); return;
     }
-    if (form.expectedCheckout <= form.checkInDate) {
-      toast.error('Checkout date must be after check-in date'); return;
+    if (form.expectedCheckout < form.checkInDate) {
+      toast.error('Checkout date cannot be before check-in date'); return;
     }
     if (Number(form.roomPrice) <= 0) {
       toast.error('Room rate must be a positive amount'); return;
@@ -326,7 +326,7 @@ export default function NewBookingPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Expected Checkout *</label>
-              <input className="input" type="date" value={form.expectedCheckout} onChange={e => setForm(p => ({ ...p, expectedCheckout: e.target.value }))} required />
+              <input className="input" type="date" min={form.checkInDate} value={form.expectedCheckout} onChange={e => setForm(p => ({ ...p, expectedCheckout: e.target.value }))} required />
             </div>
           </div>
           <div className="mt-4">

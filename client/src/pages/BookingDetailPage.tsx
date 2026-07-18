@@ -232,8 +232,8 @@ export default function BookingDetailPage() {
     const checkInStr = new Date(booking!.checkInDate).toISOString().split('T')[0];
     const referenceDate = businessDate || new Date().toISOString().split('T')[0];
 
-    if (newCheckoutStr <= checkInStr) {
-      toast.error('New checkout date must be after check-in date'); return;
+    if (newCheckoutStr < checkInStr) {
+      toast.error('New checkout date cannot be before check-in date'); return;
     }
     if (newCheckoutStr < referenceDate) {
       toast.error("New checkout date cannot be in the past relative to the hotel's business date"); return;
@@ -768,7 +768,7 @@ export default function BookingDetailPage() {
       {showExtend && (
         <Modal onClose={() => setShowExtend(false)} title="Extend Stay">
           <div className="space-y-4">
-            <div><label className="block text-sm font-medium text-gray-600 mb-1">New Checkout Date</label><input className="input" type="date" value={newCheckout} onChange={e => setNewCheckout(e.target.value)} /></div>
+            <div><label className="block text-sm font-medium text-gray-600 mb-1">New Checkout Date</label><input className="input" type="date" min={booking ? new Date(booking.checkInDate).toISOString().split('T')[0] : undefined} value={newCheckout} onChange={e => setNewCheckout(e.target.value)} /></div>
             <div className="flex gap-3 pt-2"><button className="btn btn-outline flex-1" onClick={() => setShowExtend(false)}>Cancel</button><button className="btn btn-primary flex-1" onClick={handleExtend}>Extend</button></div>
           </div>
         </Modal>

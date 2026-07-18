@@ -116,10 +116,17 @@ router.post('/', requirePermission('booking.create'), async (req: AuthRequest, r
 
     const checkIn = new Date(data.checkInDate);
     const checkOut = new Date(data.expectedCheckout);
-    const conflict = await prisma.booking.findFirst({
-      where: { roomId: data.roomId, status: { in: ['CONFIRMED', 'CHECKED_IN'] }, AND: [{ checkInDate: { lt: checkOut } }, { expectedCheckout: { gt: checkIn } }] },
+    const activeBookings = await prisma.booking.findMany({
+      where: { roomId: data.roomId, status: { in: ['CONFIRMED', 'CHECKED_IN'] } },
     });
-    if (conflict) { res.status(400).json({ error: 'Room is already booked during the selected dates.' }); return; }
+    const hasConflict = activeBookings.some(b => {
+      const bIn = b.checkInDate.getTime();
+      const bOut = b.expectedCheckout.getTime() === bIn ? bIn + 1000 : b.expectedCheckout.getTime();
+      const newIn = checkIn.getTime();
+      const newOut = checkOut.getTime() === newIn ? newIn + 1000 : checkOut.getTime();
+      return Math.max(bIn, newIn) < Math.min(bOut, newOut);
+    });
+    if (hasConflict) { res.status(400).json({ error: 'Room is already booked during the selected dates.' }); return; }
 
     const config = await prisma.systemConfig.findUnique({ where: { key: 'BUSINESS_DATE' } });
     const businessDateStr = config?.value || new Date().toISOString().split('T')[0];
@@ -207,7 +214,21 @@ router.put('/:id/extend', requirePermission('booking.extend'), async (req: AuthR
     const booking = await prisma.booking.findUnique({ where: { id: req.params.id as string }, include: { invoice: true } }) as any;
     if (!booking) { res.status(404).json({ error: 'Booking not found' }); return; }
     if (booking.status !== 'CHECKED_IN') { res.status(400).json({ error: 'Booking is not active' }); return; }
-    if (new Date(newCheckout) <= new Date(booking.checkInDate)) { res.status(400).json({ error: 'New checkout must be after check-in' }); return; }
+    if (new Date(newCheckout) < new Date(booking.checkInDate)) { res.status(400).json({ error: 'New checkout cannot be before check-in' }); return; }
+
+    const activeBookings = await prisma.booking.findMany({
+      where: { roomId: booking.roomId, id: { not: booking.id }, status: { in: ['CONFIRMED', 'CHECKED_IN'] } },
+    });
+    const checkIn = new Date(booking.checkInDate);
+    const checkOut = new Date(newCheckout);
+    const hasConflict = activeBookings.some(b => {
+      const bIn = b.checkInDate.getTime();
+      const bOut = b.expectedCheckout.getTime() === bIn ? bIn + 1000 : b.expectedCheckout.getTime();
+      const newIn = checkIn.getTime();
+      const newOut = checkOut.getTime() === newIn ? newIn + 1000 : checkOut.getTime();
+      return Math.max(bIn, newIn) < Math.min(bOut, newOut);
+    });
+    if (hasConflict) { res.status(400).json({ error: 'Cannot extend stay: Room is already booked during the extended period.' }); return; }
 
     const price = newPrice ?? Number(booking.roomPrice);
     const nights = Math.max(1, Math.ceil((new Date(newCheckout).getTime() - new Date(booking.checkInDate).getTime()) / (1000 * 60 * 60 * 24)));
