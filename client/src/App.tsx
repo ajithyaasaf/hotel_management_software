@@ -33,9 +33,12 @@ const BanquetsPage = lazy(() => import('./pages/BanquetsPage'));
 const NewBanquetPage = lazy(() => import('./pages/NewBanquetPage'));
 const BanquetDetailPage = lazy(() => import('./pages/BanquetDetailPage'));
 
+import { Toaster } from 'react-hot-toast';
+
 export default function App() {
   return (
     <BrowserRouter>
+      <Toaster position="top-right" />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
