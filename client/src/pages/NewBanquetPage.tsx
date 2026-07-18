@@ -448,10 +448,10 @@ export default function NewBanquetPage() {
                 </div>
               )}
               <div className="flex justify-between text-gray-500 border-t pt-2">
-                <span>CGST (6%)</span><span>₹{cgst.toFixed(2)}</span>
+                <span>CGST (2.5%)</span><span>₹{cgst.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-gray-500">
-                <span>SGST (6%)</span><span>₹{sgst.toFixed(2)}</span>
+                <span>SGST (2.5%)</span><span>₹{sgst.toFixed(2)}</span>
               </div>
               <div className="flex justify-between font-bold text-gray-900 border-t pt-2 text-base">
                 <span>Total Invoice</span><span>₹{total.toFixed(2)}</span>

@@ -487,8 +487,8 @@ export default function OrdersPage() {
 
           <div className="space-y-1 text-xs border-b border-dashed border-gray-400 pb-2 mb-2">
             <div className="flex justify-between"><span>Subtotal:</span><span>₹{Number(selectedOrder.subtotal).toFixed(2)}</span></div>
-            <div className="flex justify-between"><span>CGST (5%):</span><span>₹{(Number(selectedOrder.tax) / 2).toFixed(2)}</span></div>
-            <div className="flex justify-between"><span>SGST (5%):</span><span>₹{(Number(selectedOrder.tax) / 2).toFixed(2)}</span></div>
+            <div className="flex justify-between"><span>CGST (2.5%):</span><span>₹{(Number(selectedOrder.tax) / 2).toFixed(2)}</span></div>
+            <div className="flex justify-between"><span>SGST (2.5%):</span><span>₹{(Number(selectedOrder.tax) / 2).toFixed(2)}</span></div>
             <div className="flex justify-between font-bold text-sm pt-1 border-t border-dashed border-gray-300">
               <span>Grand Total:</span>
               <span>₹{Number(selectedOrder.total).toFixed(2)}</span>
