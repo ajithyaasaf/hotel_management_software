@@ -415,6 +415,7 @@ router.post('/:id/checkout-all', async (req: AuthRequest, res) => {
     checkoutDate.setMonth(month - 1);
     checkoutDate.setDate(day);
 
+    let newStatus = '';
     await prisma.$transaction(async (tx) => {
       for (const booking of activeBookings) {
         await tx.booking.update({
@@ -511,7 +512,7 @@ router.post('/:id/checkout-all', async (req: AuthRequest, res) => {
 
       // Update group status
       const remaining = (group as any).bookings.filter((b: any) => b.status === 'CHECKED_IN' && !activeBookings.find((a: any) => a.id === b.id));
-      const newStatus = remaining.length > 0 ? 'PARTIALLY_CHECKED_OUT' : 'COMPLETED';
+      newStatus = remaining.length > 0 ? 'PARTIALLY_CHECKED_OUT' : 'COMPLETED';
       await tx.groupBooking.update({ where: { id: group.id }, data: { status: newStatus } });
     });
 

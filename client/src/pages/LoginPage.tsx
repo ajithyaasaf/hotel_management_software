@@ -110,8 +110,11 @@ export default function LoginPage() {
                     </div>
                   </button>
                 ))}
-                {departments[selectedDept]?.length === 0 && (
-                  <div className="text-center text-gray-500 py-4">No users found in this department.</div>
+                {(!departments[selectedDept] || departments[selectedDept].length === 0) && (
+                  <div className="text-center text-gray-500 py-4 bg-gray-50 rounded-xl mt-2">
+                    <p className="text-sm font-bold text-gray-700">No users available.</p>
+                    <p className="text-xs mt-1">Check database connection or run seed script.</p>
+                  </div>
                 )}
               </div>
             </>

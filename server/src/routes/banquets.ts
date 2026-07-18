@@ -65,7 +65,7 @@ router.put('/halls/:id', requirePermission('banquet.manage'), async (req: AuthRe
     const existing = await prisma.banquetHall.findUnique({ where: { id: req.params.id as string } });
     if (!existing) { res.status(404).json({ error: 'Hall not found' }); return; }
     const hall = await prisma.banquetHall.update({ where: { id: req.params.id as string }, data });
-    await createAuditLog({ action: 'UPDATE_HALL', entity: 'banquetHall', entityId: hall.id, details: `Updated hall ${hall.name}`, userId: req.user!.id, oldValue: { name: existing.name, basePrice: Number(existing.basePrice), maxCapacity: existing.maxCapacity }, newValue: { name: hall.name, basePrice: Number(hall.basePrice), maxCapacity: hall.maxCapacity } });
+    await createAuditLog({ action: 'UPDATE_HALL', entity: 'banquetHall', entityId: hall.id, details: `Updated hall ${hall.name}`, userId: req.user!.id, oldValue: { name: existing.name, baseRental: Number(existing.baseRental), maxCapacity: existing.maxCapacity }, newValue: { name: hall.name, baseRental: Number(hall.baseRental), maxCapacity: hall.maxCapacity } });
     res.json(hall);
   } catch (err) { res.status(500).json({ error: 'Failed to update hall' }); }
 });

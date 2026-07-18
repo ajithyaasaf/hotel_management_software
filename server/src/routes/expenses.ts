@@ -99,7 +99,7 @@ router.delete('/:id', requirePermission('expense.manage'), async (req: AuthReque
     const existing = await prisma.expense.findUnique({ where: { id: id as string } });
     if (!existing) { res.status(404).json({ error: 'Expense not found' }); return; }
     await prisma.expense.delete({ where: { id: id as string } });
-    await createAuditLog({ action: 'DELETE_EXPENSE', entity: 'expense', entityId: id as string, details: `Deleted: ${existing.title} — ₹${Number(existing.amount)}`, userId: req.user!.id, oldValue: { title: existing.title, amount: Number(existing.amount), category: existing.category, department: existing.department, date: existing.date } });
+    await createAuditLog({ action: 'DELETE_EXPENSE', entity: 'expense', entityId: id as string, details: `Deleted: ${existing.title} — ₹${Number(existing.amount)}`, userId: req.user!.id, oldValue: { title: existing.title, amount: Number(existing.amount), category: existing.category, department: existing.department, paidDate: existing.paidDate } });
     res.json({ message: 'Expense deleted' });
   } catch { res.status(500).json({ error: 'Failed to delete expense' }); }
 });
