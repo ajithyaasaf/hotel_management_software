@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { Plus, Pencil, Trash2, X, Save, Shield } from 'lucide-react';
 import SearchableSelect from '../components/ui/SearchableSelect';
 import { useAuthStore } from '../store/authStore';
+import { useDialog } from '../contexts/DialogContext';
 
 interface RoomTypeForm {
   name: string;
@@ -34,6 +35,7 @@ interface BanquetHallForm {
 
 export default function SettingsPage() {
   const { hasPermission } = useAuthStore();
+  const { confirm } = useDialog();
   const [tab, setTab] = useState<'roomTypes' | 'menu' | 'banquetHalls' | 'permissions'>('roomTypes');
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [categories, setCategories] = useState<MenuCategory[]>([]);
@@ -109,7 +111,8 @@ export default function SettingsPage() {
   }
 
   async function deleteRoomType(id: string) {
-    if (!confirm('Delete this room type?')) return;
+    const isConfirmed = await confirm({ title: 'Delete Room Type', message: 'Are you sure you want to delete this room type?', confirmText: 'Delete', variant: 'danger' });
+    if (!isConfirmed) return;
     try { await menuApi.deleteRoomType(id); toast.success('Deleted'); load(); }
     catch { toast.error('Cannot delete — rooms may be using it'); }
   }
@@ -127,7 +130,8 @@ export default function SettingsPage() {
   }
 
   async function deleteCategory(id: string) {
-    if (!confirm('Delete this category?')) return;
+    const isConfirmed = await confirm({ title: 'Delete Category', message: 'Are you sure you want to delete this category?', confirmText: 'Delete', variant: 'danger' });
+    if (!isConfirmed) return;
     try { await menuApi.deleteCategory(id); toast.success('Deleted'); load(); }
     catch { toast.error('Cannot delete — items may exist'); }
   }
@@ -145,7 +149,8 @@ export default function SettingsPage() {
   }
 
   async function deleteItem(id: string) {
-    if (!confirm('Delete this item?')) return;
+    const isConfirmed = await confirm({ title: 'Delete Menu Item', message: 'Are you sure you want to delete this item?', confirmText: 'Delete', variant: 'danger' });
+    if (!isConfirmed) return;
     try { await menuApi.deleteItem(id); toast.success('Deleted'); load(); }
     catch { toast.error('Cannot delete — may be in active orders'); }
   }

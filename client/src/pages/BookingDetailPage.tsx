@@ -7,11 +7,13 @@ import { format } from 'date-fns';
 import { ArrowLeft, ArrowRightLeft, CalendarPlus, LogOut as CheckOutIcon, CreditCard, Receipt, X, Ban, Users, AlertTriangle, FileText, Edit, Upload, UserCheck, Image as ImageIcon, CheckCircle, XCircle } from 'lucide-react';
 import SearchableSelect from '../components/ui/SearchableSelect';
 import { useAuthStore } from '../store/authStore';
+import { useDialog } from '../contexts/DialogContext';
 
 export default function BookingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, hasPermission } = useAuthStore();
+  const { confirm, prompt } = useDialog();
   const [booking, setBooking] = useState<any>(null); // using any here to simplify, or extend Booking type
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
@@ -22,6 +24,7 @@ export default function BookingDetailPage() {
   const [showTransfer, setShowTransfer] = useState(false);
   const [showExtend, setShowExtend] = useState(false);
   const [showAdjustment, setShowAdjustment] = useState(false);
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
 
   // Transfer state
   const [availableRooms, setAvailableRooms] = useState<Room[]>([]);
@@ -76,15 +79,15 @@ export default function BookingDetailPage() {
     finally { setLoading(false); }
   }
 
-  async function handleCheckout() {
-    if (Number(invoice?.pendingAmount) > 0) {
-      if (!confirm(`Warning: Guest still has a pending balance of ₹${invoice?.pendingAmount}. Are you sure you want to checkout?`)) return;
-    } else {
-      if (!confirm('Confirm checkout? This will finalize the invoice.')) return;
-    }
+  function handleCheckout() {
+    setShowCheckoutModal(true);
+  }
+
+  async function executeCheckout() {
     try {
       await bookingsApi.checkout(id!);
       toast.success('Guest checked out successfully');
+      setShowCheckoutModal(false);
       loadBooking();
     } catch (e: any) { toast.error(e.response?.data?.error || 'Checkout failed'); }
   }
@@ -159,7 +162,13 @@ export default function BookingDetailPage() {
   }
 
   async function handleNoShow() {
-    if (!confirm('Mark guest as No Show? This will release the room reservation.')) return;
+    const isConfirmed = await confirm({
+      title: 'Mark as No Show',
+      message: 'Mark guest as No Show? This will release the room reservation.',
+      confirmText: 'Confirm',
+      variant: 'warning'
+    });
+    if (!isConfirmed) return;
     try {
       await bookingsApi.noShow(id!);
       toast.success('Marked as No Show');
@@ -168,7 +177,14 @@ export default function BookingDetailPage() {
   }
 
   async function handleCancel() {
-    const reason = prompt('Cancellation reason:');
+    const reason = await prompt({
+      title: 'Cancel Booking',
+      message: 'Please provide a reason for cancelling this booking.',
+      placeholder: 'Cancellation reason',
+      required: true,
+      confirmText: 'Cancel Booking',
+      variant: 'danger'
+    });
     if (!reason) return;
     try {
       const res = await bookingsApi.cancel(id!, reason);
@@ -182,7 +198,13 @@ export default function BookingDetailPage() {
   }
 
   async function handleApproveCancellation(reqId: string) {
-    if (!confirm('Are you sure you want to approve this cancellation?')) return;
+    const isConfirmed = await confirm({
+      title: 'Approve Cancellation',
+      message: 'Are you sure you want to approve this cancellation request?',
+      confirmText: 'Approve',
+      variant: 'primary'
+    });
+    if (!isConfirmed) return;
     try {
       await cancellationsApi.approve(reqId);
       toast.success('Cancellation approved');
@@ -191,7 +213,13 @@ export default function BookingDetailPage() {
   }
 
   async function handleRejectCancellation(reqId: string) {
-    const note = prompt('Rejection reason (optional):');
+    const note = await prompt({
+      title: 'Reject Cancellation',
+      message: 'Please provide a reason for rejecting this cancellation request (optional).',
+      placeholder: 'Rejection reason',
+      confirmText: 'Reject Request',
+      variant: 'warning'
+    });
     if (note === null) return;
     try {
       await cancellationsApi.reject(reqId, note);
@@ -903,6 +931,42 @@ export default function BookingDetailPage() {
               <button type="submit" className="btn btn-primary flex-1" disabled={loading}>Save Changes</button>
             </div>
           </form>
+        </Modal>
+      )}
+
+      {/* Checkout Modal */}
+      {showCheckoutModal && (
+        <Modal onClose={() => setShowCheckoutModal(false)} title="Confirm Checkout">
+          <div className="p-2 space-y-4">
+            {Number(invoice?.pendingAmount) > 0 ? (
+              <div className="bg-red-50 border border-red-100 p-4 rounded-xl flex items-start gap-3">
+                <AlertTriangle className="text-red-600 shrink-0 mt-0.5" size={20} />
+                <div>
+                  <h4 className="font-bold text-red-900">Pending Balance Warning</h4>
+                  <p className="text-sm text-red-700 mt-1">
+                    This guest still has a pending balance of <strong>₹{Number(invoice?.pendingAmount).toLocaleString()}</strong>. Are you sure you want to proceed with checkout without collecting the full payment?
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-gray-600">Are you sure you want to check out this guest? This will finalize their invoice and close the room.</p>
+            )}
+            <div className="flex gap-2 pt-4 border-t">
+              <button type="button" className="btn btn-outline flex-1" onClick={() => setShowCheckoutModal(false)}>Cancel</button>
+              {Number(invoice?.pendingAmount) > 0 && (
+                <button type="button" className="btn btn-primary flex-1" onClick={() => {
+                  setPayAmount(Number(invoice?.pendingAmount));
+                  setShowCheckoutModal(false);
+                  setShowPayment(true);
+                }}>
+                  Settle Bill
+                </button>
+              )}
+              <button type="button" className="btn btn-danger flex-1" onClick={executeCheckout}>
+                {Number(invoice?.pendingAmount) > 0 ? 'Checkout Anyway' : 'Confirm Checkout'}
+              </button>
+            </div>
+          </div>
         </Modal>
       )}
     </div>

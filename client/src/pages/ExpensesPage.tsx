@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { Plus, Pencil, Trash2, X, TrendingDown, Filter, Building2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import { useDialog } from '../contexts/DialogContext';
 
 const CATEGORIES: { value: ExpenseCategory; label: string }[] = [
   { value: 'ELECTRICITY', label: 'Electricity' },
@@ -48,6 +49,7 @@ const emptyForm = {
 
 export default function ExpensesPage() {
   const { user } = useAuthStore();
+  const { confirm } = useDialog();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [from, setFrom] = useState(() => { const d = new Date(); d.setDate(1); return d.toISOString().split('T')[0]; });
@@ -125,7 +127,13 @@ export default function ExpensesPage() {
   }
 
   async function handleDelete(expense: Expense) {
-    if (!confirm(`Delete expense "${expense.title}"? This cannot be undone.`)) return;
+    const isConfirmed = await confirm({
+      title: 'Delete Expense',
+      message: `Are you sure you want to delete expense "${expense.title}"? This cannot be undone.`,
+      confirmText: 'Delete',
+      variant: 'danger'
+    });
+    if (!isConfirmed) return;
     try {
       await expensesApi.delete(expense.id);
       toast.success('Expense deleted');

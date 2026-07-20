@@ -3,6 +3,7 @@ import { ordersApi, menuApi } from '../api';
 import type { Order, MenuCategory } from '../types';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import { useDialog } from '../contexts/DialogContext';
 import { Search, CheckCircle, XCircle, Plus, Minus, Trash2, X, PlusCircle, ShoppingBag, Edit } from 'lucide-react';
 
 const statusBadge: Record<string, string> = { 
@@ -12,6 +13,7 @@ const statusBadge: Record<string, string> = {
 };
 
 export default function OrdersPage() {
+  const { prompt } = useDialog();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filter, setFilter] = useState('');
   const [search, setSearch] = useState('');
@@ -75,7 +77,13 @@ export default function OrdersPage() {
   }
 
   async function cancelOrder(id: string) {
-    const reason = prompt('Enter cancellation reason (optional):');
+    const reason = await prompt({
+      title: 'Cancel Order',
+      message: 'Please enter a cancellation reason (optional).',
+      placeholder: 'Cancellation reason',
+      confirmText: 'Cancel Order',
+      variant: 'danger'
+    });
     if (reason === null) return;
     try { 
       await ordersApi.cancel(id, reason || undefined); 
@@ -104,12 +112,15 @@ export default function OrdersPage() {
 
   async function handleCancelItem(itemId: string) {
     if (!selectedOrder) return;
-    const reason = prompt('Enter reason for voiding/cancelling this item:');
+    const reason = await prompt({
+      title: 'Void/Cancel Item',
+      message: 'Please enter a reason for voiding or cancelling this item.',
+      placeholder: 'Cancellation reason',
+      required: true,
+      confirmText: 'Cancel Item',
+      variant: 'danger'
+    });
     if (reason === null) return;
-    if (!reason.trim()) {
-      toast.error('Cancellation reason is required');
-      return;
-    }
     try {
       await ordersApi.cancelItem(selectedOrder.id, itemId, reason);
       toast.success('Item cancelled successfully');

@@ -89,15 +89,7 @@ export default function ReportsPage() {
                   subtext: `H: ₹${summary.hotelExpenses || 0} | R: ₹${summary.restaurantExpenses || 0} | B: ₹${summary.banquetExpenses || 0}`,
                   icon: TrendingDown, 
                   color: 'bg-red-50 text-red-600' 
-                },
-                {
-                  label: 'Net Profit',
-                  value: `₹${Math.abs(summary.netProfit ?? 0).toLocaleString()}`,
-                  icon: DollarSign,
-                  color: (summary.netProfit ?? 0) >= 0 ? 'bg-violet-50 text-violet-600' : 'bg-red-100 text-red-700',
-                  prefix: (summary.netProfit ?? 0) < 0 ? '-' : '',
-                },
-                { label: 'Occupancy', value: `${summary.occupancyPercent}%`, icon: TrendingUp, color: 'bg-sky-50 text-sky-600' },
+                }
               ].map((s, i) => (
                 <div key={i} className="card p-5">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${s.color} mb-3`}><s.icon size={20} /></div>

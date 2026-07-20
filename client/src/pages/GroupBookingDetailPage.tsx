@@ -4,7 +4,8 @@ import { groupBookingsApi, nightAuditApi } from '../api';
 import type { GroupBooking, MasterInvoice } from '../types';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
-import { ArrowLeft, Users, Eye, LogOut, FileText, Unlink, AlertCircle } from 'lucide-react';
+import { useDialog } from '../contexts/DialogContext';
+import { ArrowLeft, Users, Eye, LogOut, FileText, Unlink, AlertCircle, AlertTriangle, X } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
   ACTIVE: 'badge-green',
@@ -24,12 +25,14 @@ const bookingStatusColors: Record<string, string> = {
 export default function GroupBookingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { confirm } = useDialog();
   const [group, setGroup] = useState<GroupBooking | null>(null);
   const [masterInvoice, setMasterInvoice] = useState<MasterInvoice | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'invoice'>('overview');
   const [loading, setLoading] = useState(true);
   const [checkingOut, setCheckingOut] = useState(false);
   const [businessDate, setBusinessDate] = useState<string>('');
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
 
   useEffect(() => { loadGroup(); }, [id]);
 
@@ -52,18 +55,14 @@ export default function GroupBookingDetailPage() {
     finally { setLoading(false); }
   }
 
-  async function handleCheckoutAll() {
+  function handleCheckoutClick() {
     const activeRooms = group?.bookings.filter(b => b.status === 'CHECKED_IN') ?? [];
     if (activeRooms.length === 0) { toast.error('No checked-in rooms to checkout'); return; }
+    setShowCheckoutModal(true);
+  }
 
-    const pendingRooms = activeRooms.filter(b => Number(b.invoice?.pendingAmount ?? 0) > 0);
-    if (pendingRooms.length > 0) {
-      const names = pendingRooms.map(b => `Room ${b.room.roomNumber} (₹${Number(b.invoice?.pendingAmount ?? 0).toLocaleString()} pending)`).join(', ');
-      if (!confirm(`Warning: The following rooms have pending balances:\n${names}\n\nProceed with checkout?`)) return;
-    } else {
-      if (!confirm(`Checkout all ${activeRooms.length} rooms in this group?`)) return;
-    }
-
+  async function executeCheckoutAll() {
+    setShowCheckoutModal(false);
     setCheckingOut(true);
     try {
       const { data } = await groupBookingsApi.checkoutAll(id!);
@@ -78,7 +77,13 @@ export default function GroupBookingDetailPage() {
   }
 
   async function handleUnlink(bookingId: string, roomNumber: string) {
-    if (!confirm(`Unlink Room ${roomNumber} from this group? The booking will remain as a standalone booking.`)) return;
+    const isConfirmed = await confirm({
+      title: 'Unlink Room',
+      message: `Unlink Room ${roomNumber} from this group? The booking will remain as a standalone booking.`,
+      confirmText: 'Unlink Room',
+      variant: 'warning'
+    });
+    if (!isConfirmed) return;
     try {
       await groupBookingsApi.unlinkBooking(id!, bookingId);
       toast.success(`Room ${roomNumber} unlinked from group`);
@@ -161,7 +166,7 @@ export default function GroupBookingDetailPage() {
         </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           {canCheckoutAll && (
-            <button onClick={handleCheckoutAll} disabled={checkingOut} className="btn btn-danger btn-sm flex-1 sm:flex-none justify-center">
+            <button onClick={handleCheckoutClick} disabled={checkingOut} className="btn btn-danger btn-sm flex-1 sm:flex-none justify-center">
               <LogOut size={16} /> {checkingOut ? 'Checking Out...' : 'Checkout All Rooms'}
             </button>
           )}
@@ -260,8 +265,8 @@ export default function GroupBookingDetailPage() {
                   </div>
                 </div>
               </div>
-          );
-        })}
+            );
+          })}
         </div>
       )}
 
@@ -342,6 +347,59 @@ export default function GroupBookingDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Checkout Modal */}
+      {showCheckoutModal && (() => {
+        const activeRooms = group?.bookings.filter(b => b.status === 'CHECKED_IN') ?? [];
+        const pendingRooms = activeRooms.filter(b => Number(b.invoice?.pendingAmount ?? 0) > 0);
+
+        return (
+          <Modal onClose={() => setShowCheckoutModal(false)} title="Confirm Group Checkout">
+            <div className="p-2 space-y-4">
+              {pendingRooms.length > 0 ? (
+                <div className="bg-red-50 border border-red-100 p-4 rounded-xl flex items-start gap-3">
+                  <AlertTriangle className="text-red-600 shrink-0 mt-0.5" size={20} />
+                  <div>
+                    <h4 className="font-bold text-red-900">Pending Balances Warning</h4>
+                    <p className="text-sm text-red-700 mt-1 mb-2">
+                      The following rooms still have pending balances. Are you sure you want to proceed with checking out all rooms?
+                    </p>
+                    <ul className="text-sm text-red-800 list-disc list-inside space-y-1">
+                      {pendingRooms.map(b => (
+                        <li key={b.id}>
+                          Room {b.room.roomNumber} <span className="font-semibold text-red-900">— ₹{Number(b.invoice?.pendingAmount ?? 0).toLocaleString()}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-gray-600">Are you sure you want to check out all {activeRooms.length} rooms in this group? This will finalize all invoices.</p>
+              )}
+              <div className="flex gap-3 pt-4 border-t">
+                <button type="button" className="btn btn-outline flex-1" onClick={() => setShowCheckoutModal(false)}>Cancel</button>
+                <button type="button" className="btn btn-danger flex-1" onClick={executeCheckoutAll}>
+                  Confirm Checkout
+                </button>
+              </div>
+            </div>
+          </Modal>
+        );
+      })()}
+    </div>
+  );
+}
+
+function Modal({ children, onClose, title }: { children: React.ReactNode; onClose: () => void; title: string }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-lg animate-scaleIn" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">{title}</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+        </div>
+        {children}
+      </div>
     </div>
   );
 }

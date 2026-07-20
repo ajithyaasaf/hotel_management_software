@@ -34,13 +34,15 @@ const NewBanquetPage = lazy(() => import('./pages/NewBanquetPage'));
 const BanquetDetailPage = lazy(() => import('./pages/BanquetDetailPage'));
 
 import { Toaster } from 'react-hot-toast';
+import { DialogProvider } from './contexts/DialogContext';
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Toaster position="top-right" />
-      <Suspense fallback={<PageLoader />}>
-        <Routes>
+    <DialogProvider>
+      <BrowserRouter>
+        <Toaster position="top-right" />
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
           <Route path="/login" element={<LoginPage />} />
 
           {/* Protected Routes inside Layout */}
@@ -81,6 +83,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
-    </BrowserRouter>
+      </BrowserRouter>
+    </DialogProvider>
   );
 }

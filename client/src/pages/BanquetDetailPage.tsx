@@ -4,6 +4,7 @@ import { banquetsApi } from '../api';
 import type { BanquetBooking } from '../types';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import { useDialog } from '../contexts/DialogContext';
 import { ArrowLeft, Wine, Users, Calendar, CheckCircle, XCircle, CreditCard, IndianRupee, Clock, FileText, X } from 'lucide-react';
 
 const STATUS_STYLES: Record<string, string> = {
@@ -36,6 +37,7 @@ const PAYMENT_TYPE_STYLES: Record<string, string> = {
 export default function BanquetDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { confirm, prompt } = useDialog();
   const [booking, setBooking] = useState<BanquetBooking | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -64,7 +66,13 @@ export default function BanquetDetailPage() {
   }
 
   async function handleConfirm() {
-    if (!confirm('Confirm this event booking? A deposit receipt should be collected.')) return;
+    const isConfirmed = await confirm({
+      title: 'Confirm Booking',
+      message: 'Confirm this event booking? A deposit receipt should be collected.',
+      confirmText: 'Confirm Event',
+      variant: 'primary'
+    });
+    if (!isConfirmed) return;
     try {
       await banquetsApi.confirmBooking(id!);
       toast.success('Event booking confirmed!');
@@ -73,7 +81,13 @@ export default function BanquetDetailPage() {
   }
 
   async function handleComplete() {
-    if (!confirm('Mark this event as completed? This finalises the folio.')) return;
+    const isConfirmed = await confirm({
+      title: 'Complete Event',
+      message: 'Mark this event as completed? This finalises the folio.',
+      confirmText: 'Complete Event',
+      variant: 'primary'
+    });
+    if (!isConfirmed) return;
     try {
       await banquetsApi.completeBooking(id!);
       toast.success('Event marked as completed');
@@ -82,7 +96,13 @@ export default function BanquetDetailPage() {
   }
 
   async function handleCancel() {
-    const reason = prompt('Cancellation reason (optional):');
+    const reason = await prompt({
+      title: 'Cancel Event Booking',
+      message: 'Please provide a reason for cancelling this event.',
+      placeholder: 'Cancellation reason (optional)',
+      confirmText: 'Cancel Event',
+      variant: 'danger'
+    });
     if (reason === null) return;
     try {
       await banquetsApi.cancelBooking(id!, reason || undefined);
