@@ -242,6 +242,12 @@ model Guest {
   idProofType   String?
   idProofNumber String?
   idProofUrl    String?
+  idProofBackUrl String?
+  isForeigner   Boolean  @default(false)
+  passportNo    String?
+  visaNo        String?
+  visaExpiry    DateTime?
+  country       String?
   address       String?
   visitCount    Int      @default(0)
   notes         String?
@@ -254,6 +260,28 @@ model Guest {
 
   @@index([phone])
   @@map("guests")
+}
+
+// ─── ACCOMPANYING GUESTS ────────────────────────────────
+model AccompanyingGuest {
+  id            String    @id @default(uuid())
+  bookingId     String
+  booking       Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  name          String
+  idProofType   String?
+  idProofNumber String?
+  idProofFrontUrl String?
+  idProofBackUrl String?
+  isForeigner   Boolean   @default(false)
+  passportNo    String?
+  visaNo        String?
+  visaExpiry    DateTime?
+  country       String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([bookingId])
+  @@map("accompanying_guests")
 }
 
 // ─── BOOKINGS ───────────────────────────────────────────
@@ -278,6 +306,8 @@ model Booking {
   createdBy         User          @relation(fields: [createdById], references: [id])
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
+
+  accompanyingGuests AccompanyingGuest[]
 
   invoice               Invoice?
   transfers             RoomTransfer[]

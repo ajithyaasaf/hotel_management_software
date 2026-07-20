@@ -485,21 +485,77 @@ export default function BookingDetailPage() {
               <div><span className="text-gray-400">Phone</span><p className="font-medium">{booking.guest.phone}</p></div>
               <div><span className="text-gray-400">ID Proof</span><p className="font-medium">{booking.guest.idProofType} — {booking.guest.idProofNumber || 'N/A'}</p></div>
               <div><span className="text-gray-400">Visit Count</span><p className="font-medium">{booking.guest.visitCount}</p></div>
-              {booking.guest.idProofUrl && (
+              
+              {booking.guest.isForeigner && (
+                <>
+                  <div><span className="text-gray-400">Country</span><p className="font-medium">{booking.guest.country || 'N/A'}</p></div>
+                  <div><span className="text-gray-400">Passport / Visa</span><p className="font-medium">{booking.guest.passportNo || 'N/A'} (Exp: {booking.guest.visaExpiry ? format(new Date(booking.guest.visaExpiry), 'dd MMM yyyy') : 'N/A'})</p></div>
+                </>
+              )}
+              
+              {(booking.guest.idProofUrl || booking.guest.idProofBackUrl) && (
                 <div className="col-span-2 mt-2 pt-2 border-t border-gray-100 flex items-center justify-between">
-                  <span className="text-gray-500 font-medium">ID Document</span>
-                  <a
-                    href={booking.guest.idProofUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs font-semibold text-primary-600 hover:text-primary-700 flex items-center gap-1.5 bg-primary-50 px-3 py-1.5 rounded-lg border border-primary-100 transition-colors"
-                  >
-                    <FileText size={14} /> View Attached ID Document
-                  </a>
+                  <span className="text-gray-500 font-medium">ID Documents</span>
+                  <div className="flex gap-2">
+                    {booking.guest.idProofUrl && (
+                      <a href={booking.guest.idProofUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-primary-600 hover:text-primary-700 flex items-center gap-1.5 bg-primary-50 px-3 py-1.5 rounded-lg border border-primary-100 transition-colors">
+                        <FileText size={14} /> View Front
+                      </a>
+                    )}
+                    {booking.guest.idProofBackUrl && (
+                      <a href={booking.guest.idProofBackUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-primary-600 hover:text-primary-700 flex items-center gap-1.5 bg-primary-50 px-3 py-1.5 rounded-lg border border-primary-100 transition-colors">
+                        <FileText size={14} /> View Back
+                      </a>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
           </div>
+
+          {/* Accompanying Guests */}
+          {booking.accompanyingGuests && booking.accompanyingGuests.length > 0 && (
+            <div className="card p-5">
+              <h3 className="font-semibold text-gray-900 mb-4">Accompanying Guests</h3>
+              <div className="space-y-4">
+                {booking.accompanyingGuests.map((ag: any, idx: number) => (
+                  <div key={ag.id} className="border border-gray-200 bg-gray-50/50 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-bold text-gray-800 flex items-center gap-2">
+                        <span className="bg-gray-200 text-gray-600 rounded-full w-5 h-5 flex items-center justify-center text-xs">{idx + 2}</span>
+                        {ag.name}
+                      </h4>
+                      {ag.isForeigner && <span className="bg-primary-100 text-primary-700 font-semibold px-2 py-0.5 rounded text-[10px] uppercase">Foreign National</span>}
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3 text-sm mb-3">
+                      <div><span className="text-gray-400 text-xs block mb-0.5">ID Type</span><p className="font-medium text-gray-700">{ag.idProofType || 'N/A'}</p></div>
+                      {ag.isForeigner ? (
+                        <div><span className="text-gray-400 text-xs block mb-0.5">Passport / Country</span><p className="font-medium text-gray-700">{ag.passportNo || 'N/A'} ({ag.country || 'N/A'})</p></div>
+                      ) : (
+                        <div><span className="text-gray-400 text-xs block mb-0.5">ID Number</span><p className="font-medium text-gray-700">{ag.idProofNumber || 'N/A'}</p></div>
+                      )}
+                    </div>
+
+                    {(ag.idProofFrontUrl || ag.idProofBackUrl) && (
+                      <div className="flex gap-2 pt-3 border-t border-gray-200">
+                        {ag.idProofFrontUrl && (
+                          <a href={ag.idProofFrontUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100 transition-colors flex items-center gap-1">
+                            <FileText size={12} /> Front Side
+                          </a>
+                        )}
+                        {ag.idProofBackUrl && (
+                          <a href={ag.idProofBackUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100 transition-colors flex items-center gap-1">
+                            <FileText size={12} /> Back Side
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="card p-5">
             <h3 className="font-semibold text-gray-900 mb-4">Stay Details</h3>

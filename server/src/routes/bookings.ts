@@ -16,6 +16,12 @@ const createBookingSchema = z.object({
   idProofType: z.string().optional().nullable(),
   idProofNumber: z.string().optional().nullable(),
   idProofImage: z.string().optional().nullable(),
+  idProofBackImage: z.string().optional().nullable(),
+  isForeigner: z.boolean().default(false),
+  passportNo: z.string().optional().nullable(),
+  visaNo: z.string().optional().nullable(),
+  visaExpiry: z.string().optional().nullable(),
+  country: z.string().optional().nullable(),
   roomId: z.string().uuid(),
   checkInDate: z.string().datetime(),
   expectedCheckout: z.string().datetime(),
@@ -26,6 +32,18 @@ const createBookingSchema = z.object({
   advanceMethod: z.enum(['CASH', 'UPI', 'CARD', 'BTC']).optional(),
   companyId: z.string().uuid().optional().nullable(),
   billingRule: z.enum(['GUEST', 'COMPANY_ROOM_ONLY', 'COMPANY_ALL']).default('GUEST'),
+  accompanyingGuests: z.array(z.object({
+    name: z.string().min(1),
+    idProofType: z.string().optional().nullable(),
+    idProofNumber: z.string().optional().nullable(),
+    idProofFrontImage: z.string().optional().nullable(),
+    idProofBackImage: z.string().optional().nullable(),
+    isForeigner: z.boolean().default(false),
+    passportNo: z.string().optional().nullable(),
+    visaNo: z.string().optional().nullable(),
+    visaExpiry: z.string().optional().nullable(),
+    country: z.string().optional().nullable(),
+  })).optional().default([]),
 });
 
 // Helper: compute company/guest billing split
@@ -90,6 +108,7 @@ router.get('/:id', requirePermission('booking.view'), async (req, res) => {
         transfers: { include: { fromRoom: true, toRoom: true } },
         createdBy: { select: { name: true } },
         cancellationRequests: { include: { requestedBy: { select: { name: true } }, approvedBy: { select: { name: true } } }, orderBy: { requestedAt: 'desc' } },
+        accompanyingGuests: true,
       },
     });
     if (!booking) { res.status(404).json({ error: 'Booking not found' }); return; }
@@ -136,20 +155,63 @@ router.post('/', requirePermission('booking.create'), async (req: AuthRequest, r
     const initialStatus = isAdvance ? 'CONFIRMED' : 'CHECKED_IN';
 
     let idProofUrl: string | undefined;
+    let idProofBackUrl: string | undefined;
     if (data.idProofImage) { idProofUrl = await uploadToCloudinary(data.idProofImage); }
+    if (data.idProofBackImage) { idProofBackUrl = await uploadToCloudinary(data.idProofBackImage); }
+
+    // Upload accompanying guest images concurrently
+    const guestsWithImages = await Promise.all(data.accompanyingGuests.map(async (ag) => {
+      let frontUrl: string | undefined;
+      let backUrl: string | undefined;
+      if (ag.idProofFrontImage) frontUrl = await uploadToCloudinary(ag.idProofFrontImage);
+      if (ag.idProofBackImage) backUrl = await uploadToCloudinary(ag.idProofBackImage);
+      return { ...ag, frontUrl, backUrl };
+    }));
 
     const result = await prisma.$transaction(async (tx) => {
       let guest = await tx.guest.findFirst({ where: { phone: data.guestPhone } });
+      const guestDataToUpdate = {
+        name: data.guestName,
+        email: data.guestEmail,
+        ...(data.idProofType && { idProofType: data.idProofType }),
+        ...(data.idProofNumber && { idProofNumber: data.idProofNumber }),
+        ...(idProofUrl && { idProofUrl }),
+        ...(idProofBackUrl && { idProofBackUrl }),
+        isForeigner: data.isForeigner,
+        ...(data.passportNo && { passportNo: data.passportNo }),
+        ...(data.visaNo && { visaNo: data.visaNo }),
+        ...(data.visaExpiry && { visaExpiry: new Date(data.visaExpiry) }),
+        ...(data.country && { country: data.country })
+      };
+
       if (!guest) {
-        guest = await tx.guest.create({ data: { name: data.guestName, phone: data.guestPhone, email: data.guestEmail, idProofType: data.idProofType, idProofNumber: data.idProofNumber, idProofUrl: idProofUrl || null, visitCount: 1 } });
+        guest = await tx.guest.create({ data: { ...guestDataToUpdate, phone: data.guestPhone, visitCount: 1 } });
       } else {
-        guest = await tx.guest.update({ where: { id: guest.id }, data: { name: data.guestName, visitCount: { increment: 1 }, ...(data.idProofType && { idProofType: data.idProofType }), ...(data.idProofNumber && { idProofNumber: data.idProofNumber }), ...(idProofUrl && { idProofUrl }) } });
+        guest = await tx.guest.update({ where: { id: guest.id }, data: { ...guestDataToUpdate, visitCount: { increment: 1 } } });
       }
 
       const booking = await tx.booking.create({
         data: { bookingNumber: generateBookingNumber(), guestId: guest.id, roomId: data.roomId, status: initialStatus, checkInDate: new Date(data.checkInDate), expectedCheckout: new Date(data.expectedCheckout), roomPrice: data.roomPrice, numberOfGuests: data.numberOfGuests, specialRequests: data.specialRequests, createdById: req.user!.id, companyId: data.companyId || null, billingRule: data.billingRule || 'GUEST' },
         include: { guest: true, room: { include: { roomType: true } }, company: true },
       });
+
+      if (guestsWithImages.length > 0) {
+        await tx.accompanyingGuest.createMany({
+          data: guestsWithImages.map(ag => ({
+            bookingId: booking.id,
+            name: ag.name,
+            idProofType: ag.idProofType,
+            idProofNumber: ag.idProofNumber,
+            idProofFrontUrl: ag.frontUrl,
+            idProofBackUrl: ag.backUrl,
+            isForeigner: ag.isForeigner,
+            passportNo: ag.passportNo,
+            visaNo: ag.visaNo,
+            visaExpiry: ag.visaExpiry ? new Date(ag.visaExpiry) : null,
+            country: ag.country
+          }))
+        });
+      }
 
       if (!isAdvance) { await tx.room.update({ where: { id: data.roomId }, data: { status: 'OCCUPIED' } }); }
 
@@ -176,10 +238,17 @@ router.post('/', requirePermission('booking.create'), async (req: AuthRequest, r
 
     await createAuditLog({ action: isAdvance ? 'ADVANCE_BOOKING' : 'CHECKIN', entity: 'booking', entityId: result.id, details: `Guest ${data.guestName} ${isAdvance ? 'advance booked' : 'checked into'} room ${room.roomNumber}`, userId: req.user!.id, newValue: { status: isAdvance ? 'CONFIRMED' : 'CHECKED_IN' } });
     res.status(201).json(result);
-  } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as any).errors }); return; }
-    console.error(err);
-    res.status(500).json({ error: 'Failed to create booking' });
+  } catch (err: any) {
+    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: err.errors }); return; }
+    console.error('Booking creation error:', err);
+    
+    // Explicitly handle image upload timeouts and failures
+    if (err.message && err.message.includes('Cloudinary')) {
+      res.status(400).json({ error: 'Image upload failed. The file is either too large or your internet connection timed out. Please try a smaller image.' });
+      return;
+    }
+
+    res.status(500).json({ error: err.message || 'Failed to create booking', stack: err.stack });
   }
 });
 

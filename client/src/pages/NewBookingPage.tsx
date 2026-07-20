@@ -13,6 +13,12 @@ interface BookingForm {
   idProofType: string;
   idProofNumber: string;
   idProofImage?: string;
+  idProofBackImage?: string;
+  isForeigner: boolean;
+  passportNo: string;
+  visaNo: string;
+  visaExpiry: string;
+  country: string;
   roomId: string;
   checkInDate: string;
   expectedCheckout: string;
@@ -23,6 +29,18 @@ interface BookingForm {
   advanceMethod: 'CASH' | 'UPI' | 'CARD' | 'BTC';
   companyId: string;
   billingRule: 'GUEST' | 'COMPANY_ROOM_ONLY' | 'COMPANY_ALL';
+  accompanyingGuests: {
+    name: string;
+    idProofType: string;
+    idProofNumber: string;
+    idProofFrontImage?: string;
+    idProofBackImage?: string;
+    isForeigner: boolean;
+    passportNo: string;
+    visaNo: string;
+    visaExpiry: string;
+    country: string;
+  }[];
 }
 
 export default function NewBookingPage() {
@@ -40,13 +58,15 @@ export default function NewBookingPage() {
 
   const [form, setForm] = useState<BookingForm>({
     guestName: '', guestPhone: '', guestEmail: '',
-    idProofType: 'Aadhar', idProofNumber: '', idProofImage: '',
+    idProofType: 'Aadhar', idProofNumber: '', idProofImage: '', idProofBackImage: '',
+    isForeigner: false, passportNo: '', visaNo: '', visaExpiry: '', country: '',
     roomId: preselected?.roomId || '',
     checkInDate: new Date().toISOString().split('T')[0],
     expectedCheckout: '', roomPrice: preselected?.roomPrice || 0,
     numberOfGuests: 1, specialRequests: '',
     advanceAmount: 0, advanceMethod: 'CASH',
     companyId: '', billingRule: 'GUEST',
+    accompanyingGuests: [],
   });
 
   useEffect(() => {
@@ -89,6 +109,11 @@ export default function NewBookingPage() {
           ...p, guestName: data.name,
           guestEmail: data.email || '', idProofType: data.idProofType || 'Aadhar',
           idProofNumber: data.idProofNumber || '',
+          isForeigner: data.isForeigner || false,
+          passportNo: data.passportNo || '',
+          visaNo: data.visaNo || '',
+          visaExpiry: data.visaExpiry ? data.visaExpiry.split('T')[0] : '',
+          country: data.country || '',
         }));
         setGuestFound(true);
         setExistingIdProofUrl(data.idProofUrl || '');
@@ -106,26 +131,68 @@ export default function NewBookingPage() {
     setForm(p => ({ ...p, roomId, roomPrice: room ? Number(room.roomType.basePrice) : 0 }));
   }
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>, field: 'idProofImage' | 'idProofBackImage', guestIndex?: number) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check size limit: keep it compressed (max 5MB for safety, but we recommend smaller)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('File size exceeds 5MB limit');
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error('File size exceeds 8MB limit. Please choose a smaller file.');
       return;
     }
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      setForm(p => ({ ...p, idProofImage: reader.result as string }));
-      setExistingIdProofUrl('');
+      const img = new window.Image();
+      img.src = reader.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        const MAX_DIMENSION = 1200;
+
+        if (width > height && width > MAX_DIMENSION) {
+          height *= MAX_DIMENSION / width;
+          width = MAX_DIMENSION;
+        } else if (height > MAX_DIMENSION) {
+          width *= MAX_DIMENSION / height;
+          height = MAX_DIMENSION;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        // Compress to 70% quality JPEG (turns 5MB into ~200KB)
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+
+        if (guestIndex !== undefined) {
+          setForm(p => {
+            const newGuests = [...p.accompanyingGuests];
+            if (field === 'idProofImage') newGuests[guestIndex].idProofFrontImage = compressedBase64;
+            else newGuests[guestIndex].idProofBackImage = compressedBase64;
+            return { ...p, accompanyingGuests: newGuests };
+          });
+        } else {
+          setForm(p => ({ ...p, [field]: compressedBase64 }));
+          if (field === 'idProofImage') setExistingIdProofUrl('');
+        }
+      };
     };
     reader.readAsDataURL(file);
   }
 
-  function removeSelectedFile() {
-    setForm(p => ({ ...p, idProofImage: '' }));
+  function removeSelectedFile(field: 'idProofImage' | 'idProofBackImage', guestIndex?: number) {
+    if (guestIndex !== undefined) {
+      setForm(p => {
+        const newGuests = [...p.accompanyingGuests];
+        if (field === 'idProofImage') newGuests[guestIndex].idProofFrontImage = '';
+        else newGuests[guestIndex].idProofBackImage = '';
+        return { ...p, accompanyingGuests: newGuests };
+      });
+    } else {
+      setForm(p => ({ ...p, [field]: '' }));
+    }
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -165,6 +232,21 @@ export default function NewBookingPage() {
         billingRule: form.billingRule,
         guestName: form.guestName,
         idProofImage: form.idProofImage || null,
+        idProofBackImage: form.idProofBackImage || null,
+        isForeigner: form.isForeigner,
+        passportNo: form.passportNo || null,
+        visaNo: form.visaNo || null,
+        visaExpiry: form.visaExpiry ? new Date(form.visaExpiry).toISOString() : null,
+        country: form.country || null,
+        accompanyingGuests: form.accompanyingGuests.slice(0, Number(form.numberOfGuests) - 1).map(ag => ({
+          ...ag,
+          idProofFrontImage: ag.idProofFrontImage || null,
+          idProofBackImage: ag.idProofBackImage || null,
+          passportNo: ag.passportNo || null,
+          visaNo: ag.visaNo || null,
+          visaExpiry: ag.visaExpiry ? new Date(ag.visaExpiry).toISOString() : null,
+          country: ag.country || null,
+        }))
       };
       const { data } = await bookingsApi.create(payload);
       toast.success(`Guest checked into Room ${data.room.roomNumber}!`);
@@ -183,6 +265,22 @@ export default function NewBookingPage() {
   const creditLimitExceeded = selectedCompany 
     ? (Number(selectedCompany.outstandingBalance) + estimatedCost > Number(selectedCompany.creditLimit))
     : false;
+
+  const numGuests = Number(form.numberOfGuests) || 1;
+  const showAccompanyingGuests = numGuests > 1;
+
+  // Sync accompanying guests array size with numberOfGuests
+  useEffect(() => {
+    if (numGuests > 1 && form.accompanyingGuests.length < numGuests - 1) {
+      setForm(p => {
+        const newGuests = [...p.accompanyingGuests];
+        while (newGuests.length < numGuests - 1) {
+          newGuests.push({ name: '', idProofType: 'Aadhar', idProofNumber: '', isForeigner: false, passportNo: '', visaNo: '', visaExpiry: '', country: '' });
+        }
+        return { ...p, accompanyingGuests: newGuests };
+      });
+    }
+  }, [numGuests]);
 
   return (
     <div className="animate-fadeIn max-w-3xl">
@@ -242,67 +340,173 @@ export default function NewBookingPage() {
             </div>
 
             <div className="md:col-span-2 mt-4 border-t pt-4">
-              <label className="block text-sm font-medium text-gray-600 mb-2">ID Proof Document (Aadhar / PAN Scan)</label>
+              <div className="flex items-center justify-between mb-4">
+                <label className="block text-sm font-medium text-gray-600">ID Proof Document (Aadhar / PAN Scan)</label>
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs font-medium ${!form.isForeigner ? 'text-gray-900' : 'text-gray-400'}`}>Domestic</span>
+                  <button type="button" onClick={() => setForm(p => ({ ...p, isForeigner: !p.isForeigner }))} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${form.isForeigner ? 'bg-primary-600' : 'bg-gray-200'}`}>
+                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition ${form.isForeigner ? 'translate-x-4' : 'translate-x-1'}`} />
+                  </button>
+                  <span className={`text-xs font-medium ${form.isForeigner ? 'text-primary-600' : 'text-gray-400'}`}>Foreign National</span>
+                </div>
+              </div>
+
+              {form.isForeigner && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 p-4 bg-primary-50/30 rounded-xl border border-primary-100">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Country</label>
+                    <input className="input text-sm" placeholder="e.g. USA" value={form.country} onChange={e => setForm(p => ({ ...p, country: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Passport Number</label>
+                    <input className="input text-sm" placeholder="Passport No" value={form.passportNo} onChange={e => setForm(p => ({ ...p, passportNo: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Visa Expiry Date</label>
+                    <input type="date" className="input text-sm" value={form.visaExpiry} onChange={e => setForm(p => ({ ...p, visaExpiry: e.target.value }))} />
+                  </div>
+                </div>
+              )}
               
               {existingIdProofUrl ? (
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-emerald-100/50 rounded-lg text-emerald-600">
-                      <UserCheck size={20} />
-                    </div>
+                    <div className="p-2 bg-emerald-100/50 rounded-lg text-emerald-600"><UserCheck size={20} /></div>
                     <div>
                       <p className="text-sm font-semibold text-emerald-800">Saved ID Found</p>
                       <p className="text-xs text-emerald-600">This returning guest already has an ID proof uploaded.</p>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
-                    <a 
-                      href={existingIdProofUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="text-xs font-semibold text-primary-600 hover:text-primary-700 bg-white border border-gray-200 py-1.5 px-3 rounded-lg shadow-sm flex-1 sm:flex-none justify-center text-center"
-                    >
-                      View Saved ID
-                    </a>
-                    <button 
-                      type="button" 
-                      onClick={() => setExistingIdProofUrl('')} 
-                      className="text-xs font-semibold text-red-600 hover:text-red-700 bg-white border border-gray-200 py-1.5 px-3 rounded-lg shadow-sm flex-1 sm:flex-none justify-center"
-                    >
-                      Replace ID
-                    </button>
+                    <a href={existingIdProofUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-primary-600 hover:text-primary-700 bg-white border border-gray-200 py-1.5 px-3 rounded-lg shadow-sm flex-1 sm:flex-none justify-center text-center">View Saved ID</a>
+                    <button type="button" onClick={() => setExistingIdProofUrl('')} className="text-xs font-semibold text-red-600 hover:text-red-700 bg-white border border-gray-200 py-1.5 px-3 rounded-lg shadow-sm flex-1 sm:flex-none justify-center">Replace ID</button>
                   </div>
-                </div>
-              ) : form.idProofImage ? (
-                <div className="flex items-center justify-between p-3 bg-primary-50/50 border border-primary-100 rounded-xl">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-lg bg-gray-100 border overflow-hidden flex items-center justify-center">
-                      <img src={form.idProofImage} alt="Selected ID Preview" className="w-full h-full object-cover" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-primary-800">ID Document Selected</p>
-                      <p className="text-xs text-primary-600">Will be uploaded on confirmation.</p>
-                    </div>
-                  </div>
-                  <button 
-                    type="button" 
-                    onClick={removeSelectedFile} 
-                    className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-red-500 transition-colors"
-                  >
-                    <X size={18} />
-                  </button>
                 </div>
               ) : (
-                <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 hover:border-primary-400 rounded-xl p-6 cursor-pointer bg-gray-50/50 hover:bg-primary-50/10 transition-all group">
-                  <Upload size={24} className="text-gray-400 group-hover:text-primary-500 mb-2 transition-colors" />
-                  <span className="text-sm font-medium text-gray-700">Click to upload photo or scan</span>
-                  <span className="text-xs text-gray-400 mt-1">PNG, JPG, WEBP up to 5MB</span>
-                  <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Front Upload */}
+                  {form.idProofImage ? (
+                    <div className="flex items-center justify-between p-3 bg-primary-50/50 border border-primary-100 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-lg bg-gray-100 border overflow-hidden flex items-center justify-center">
+                          <img src={form.idProofImage} alt="Front ID Preview" className="w-full h-full object-cover" />
+                        </div>
+                        <div><p className="text-sm font-semibold text-primary-800">Front Side Selected</p></div>
+                      </div>
+                      <button type="button" onClick={() => removeSelectedFile('idProofImage')} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-red-500"><X size={18} /></button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 hover:border-primary-400 rounded-xl p-6 cursor-pointer bg-gray-50/50 hover:bg-primary-50/10 transition-all group">
+                      <Upload size={24} className="text-gray-400 group-hover:text-primary-500 mb-2 transition-colors" />
+                      <span className="text-sm font-medium text-gray-700">Upload Front Side</span>
+                      <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'idProofImage')} className="hidden" />
+                    </label>
+                  )}
+                  {/* Back Upload */}
+                  {form.idProofBackImage ? (
+                    <div className="flex items-center justify-between p-3 bg-primary-50/50 border border-primary-100 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-lg bg-gray-100 border overflow-hidden flex items-center justify-center">
+                          <img src={form.idProofBackImage} alt="Back ID Preview" className="w-full h-full object-cover" />
+                        </div>
+                        <div><p className="text-sm font-semibold text-primary-800">Back Side Selected</p></div>
+                      </div>
+                      <button type="button" onClick={() => removeSelectedFile('idProofBackImage')} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-red-500"><X size={18} /></button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 hover:border-primary-400 rounded-xl p-6 cursor-pointer bg-gray-50/50 hover:bg-primary-50/10 transition-all group">
+                      <Upload size={24} className="text-gray-400 group-hover:text-primary-500 mb-2 transition-colors" />
+                      <span className="text-sm font-medium text-gray-700">Upload Back Side</span>
+                      <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'idProofBackImage')} className="hidden" />
+                    </label>
+                  )}
+                </div>
               )}
             </div>
           </div>
         </div>
+
+        {/* Accompanying Guests */}
+        {showAccompanyingGuests && form.accompanyingGuests.length > 0 && (
+          <div className="card p-5 mb-6 bg-gray-50/50">
+            <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center justify-between">
+              <span>Accompanying Guests ({form.accompanyingGuests.length})</span>
+            </h3>
+            <div className="space-y-4">
+              {form.accompanyingGuests.map((ag, i) => (
+                <div key={i} className="p-4 bg-white border border-gray-200 rounded-xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-medium text-gray-800">Guest {i + 2}</h4>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-medium ${!ag.isForeigner ? 'text-gray-900' : 'text-gray-400'}`}>Domestic</span>
+                      <button type="button" onClick={() => {
+                        const newGuests = [...form.accompanyingGuests];
+                        newGuests[i].isForeigner = !newGuests[i].isForeigner;
+                        setForm(p => ({ ...p, accompanyingGuests: newGuests }));
+                      }} className={`relative inline-flex h-4 w-8 items-center rounded-full transition-colors ${ag.isForeigner ? 'bg-primary-600' : 'bg-gray-200'}`}>
+                        <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition ${ag.isForeigner ? 'translate-x-4' : 'translate-x-1'}`} />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="sm:col-span-2">
+                      <input className="input text-sm" placeholder="Full Name *" value={ag.name} onChange={e => {
+                        const newGuests = [...form.accompanyingGuests];
+                        newGuests[i].name = e.target.value;
+                        setForm(p => ({ ...p, accompanyingGuests: newGuests }));
+                      }} />
+                    </div>
+                    <div>
+                      <select className="input text-sm" value={ag.idProofType} onChange={e => {
+                        const newGuests = [...form.accompanyingGuests];
+                        newGuests[i].idProofType = e.target.value;
+                        setForm(p => ({ ...p, accompanyingGuests: newGuests }));
+                      }}>
+                        <option>Aadhar</option><option>Passport</option><option>Driving License</option><option>Voter ID</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {ag.isForeigner && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-3 bg-primary-50/30 rounded-lg border border-primary-100">
+                      <div><input className="input text-xs" placeholder="Country" value={ag.country} onChange={e => { const newGuests = [...form.accompanyingGuests]; newGuests[i].country = e.target.value; setForm(p => ({ ...p, accompanyingGuests: newGuests })); }} /></div>
+                      <div><input className="input text-xs" placeholder="Passport No" value={ag.passportNo} onChange={e => { const newGuests = [...form.accompanyingGuests]; newGuests[i].passportNo = e.target.value; setForm(p => ({ ...p, accompanyingGuests: newGuests })); }} /></div>
+                      <div><input type="date" className="input text-xs" value={ag.visaExpiry} onChange={e => { const newGuests = [...form.accompanyingGuests]; newGuests[i].visaExpiry = e.target.value; setForm(p => ({ ...p, accompanyingGuests: newGuests })); }} /></div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Front Upload */}
+                    {ag.idProofFrontImage ? (
+                      <div className="flex items-center justify-between p-2 bg-gray-50 border rounded-lg">
+                        <span className="text-xs font-medium text-gray-700">Front Uploaded</span>
+                        <button type="button" onClick={() => removeSelectedFile('idProofImage', i)} className="p-1 hover:bg-gray-200 rounded"><X size={14} /></button>
+                      </div>
+                    ) : (
+                      <label className="flex items-center justify-center p-2 border border-dashed rounded-lg cursor-pointer hover:bg-gray-50">
+                        <span className="text-xs text-gray-600">Upload Front</span>
+                        <input type="file" accept="image/*" onChange={e => handleFileChange(e, 'idProofImage', i)} className="hidden" />
+                      </label>
+                    )}
+                    {/* Back Upload */}
+                    {ag.idProofBackImage ? (
+                      <div className="flex items-center justify-between p-2 bg-gray-50 border rounded-lg">
+                        <span className="text-xs font-medium text-gray-700">Back Uploaded</span>
+                        <button type="button" onClick={() => removeSelectedFile('idProofBackImage', i)} className="p-1 hover:bg-gray-200 rounded"><X size={14} /></button>
+                      </div>
+                    ) : (
+                      <label className="flex items-center justify-center p-2 border border-dashed rounded-lg cursor-pointer hover:bg-gray-50">
+                        <span className="text-xs text-gray-600">Upload Back</span>
+                        <input type="file" accept="image/*" onChange={e => handleFileChange(e, 'idProofBackImage', i)} className="hidden" />
+                      </label>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="card p-5 mb-6">
           <h3 className="text-sm font-semibold text-gray-700 mb-4">Room & Stay</h3>

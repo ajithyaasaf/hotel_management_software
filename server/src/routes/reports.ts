@@ -127,4 +127,32 @@ router.get('/occupancy', async (req, res) => {
   } catch { res.status(500).json({ error: 'Failed to fetch occupancy' }); }
 });
 
+router.get('/police-checkins', async (req, res) => {
+  try {
+    const from = req.query.from ? new Date(String(req.query.from)) : new Date();
+    from.setHours(0, 0, 0, 0);
+    const to = req.query.to ? new Date(String(req.query.to)) : new Date();
+    to.setHours(23, 59, 59, 999);
+
+    const bookings = await prisma.booking.findMany({
+      where: {
+        status: { in: ['CHECKED_IN', 'CHECKED_OUT'] },
+        checkInDate: { lte: to },
+        OR: [
+          { status: 'CHECKED_IN' },
+          { actualCheckout: { gte: from } }
+        ]
+      },
+      include: {
+        guest: true,
+        room: true,
+        accompanyingGuests: true
+      },
+      orderBy: { checkInDate: 'desc' }
+    });
+
+    res.json(bookings);
+  } catch (e) { res.status(500).json({ error: 'Failed to generate police report' }); }
+});
+
 export default router;

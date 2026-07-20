@@ -11,17 +11,53 @@ router.use(authenticate);
 router.get('/', async (req, res) => {
   try {
     const search = req.query.search ? String(req.query.search) : undefined;
+    
+    // Search Primary Guests
     const where = search
-      ? {
-          OR: [
-            { phone: { contains: search } },
-            { name: { contains: search, mode: 'insensitive' as const } },
-          ],
-        }
+      ? { OR: [{ phone: { contains: search } }, { name: { contains: search, mode: 'insensitive' as const } }] }
       : {};
-    const guests = await prisma.guest.findMany({ where, orderBy: { updatedAt: 'desc' }, take: 50 });
-    res.json(guests);
-  } catch {
+      
+    // Search Accompanying Guests
+    const accWhere = search
+      ? { name: { contains: search, mode: 'insensitive' as const } }
+      : {};
+
+    const [primaryGuests, accompanyingGuests] = await Promise.all([
+      prisma.guest.findMany({ where, orderBy: { updatedAt: 'desc' }, take: 50 }),
+      prisma.accompanyingGuest.findMany({ 
+        where: accWhere, 
+        take: 50,
+        include: { booking: { select: { guest: { select: { phone: true } } } } } 
+      })
+    ]);
+
+    // Normalize accompanying guests so they fit seamlessly into the Guest Directory table
+    const mappedAccompanying = accompanyingGuests.map(ag => ({
+      id: ag.id,
+      name: ag.name,
+      phone: ag.booking?.guest?.phone || '—',
+      idProofType: ag.idProofType,
+      idProofNumber: ag.idProofNumber,
+      idProofUrl: ag.idProofFrontUrl,
+      idProofBackUrl: ag.idProofBackUrl,
+      isForeigner: ag.isForeigner,
+      passportNo: ag.passportNo,
+      country: ag.country,
+      visitCount: 1,
+      isAccompanying: true,
+      bookingId: ag.bookingId,
+      updatedAt: ag.updatedAt
+    }));
+
+    // Combine and sort by newest first
+    const combinedGuests = [...primaryGuests, ...mappedAccompanying].sort(
+      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    );
+
+    // Send to UI
+    res.json(combinedGuests);
+  } catch (err) {
+    console.error('Failed to fetch guests:', err);
     res.status(500).json({ error: 'Failed to fetch guests' });
   }
 });

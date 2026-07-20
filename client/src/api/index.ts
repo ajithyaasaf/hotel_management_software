@@ -124,6 +124,7 @@ export const usersApi = {
 export const reportsApi = {
   summary: (params?: any) => api.get('/reports/summary', { params }),
   revenueDaily: (params?: any) => api.get('/reports/revenue-daily', { params }),
+  policeCheckins: (params: any) => api.get('/reports/police-checkins', { params }),
   occupancy: () => api.get('/reports/occupancy'),
 };
 
