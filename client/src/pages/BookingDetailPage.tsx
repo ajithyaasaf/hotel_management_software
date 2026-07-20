@@ -11,7 +11,7 @@ import { useAuthStore } from '../store/authStore';
 export default function BookingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { hasPermission } = useAuthStore();
+  const { user, hasPermission } = useAuthStore();
   const [booking, setBooking] = useState<any>(null); // using any here to simplify, or extend Booking type
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
@@ -348,7 +348,8 @@ export default function BookingDetailPage() {
   const isActive = booking.status === 'CHECKED_IN';
   const referenceDate = businessDate || new Date().toISOString().split('T')[0];
   const checkoutStr = new Date(booking.expectedCheckout).toISOString().split('T')[0];
-  const isOverdue = booking.status === 'CHECKED_IN' && checkoutStr < referenceDate;
+  const realToday = new Date().toISOString().split('T')[0];
+  const isOverdue = booking.status === 'CHECKED_IN' && checkoutStr < realToday;
 
   const taxableStayAmount = invoice 
     ? Number(invoice.roomCharges) + Number(invoice.extraCharges) - Number(invoice.discountAmount) 
@@ -597,7 +598,7 @@ export default function BookingDetailPage() {
               )}
 
               <div className="mt-4 flex gap-2">
-                {isActive && (
+                {(isActive || (user?.role === 'MD' && invoice)) && (
                   <button onClick={() => setShowAdjustment(true)} className="btn btn-outline btn-sm flex-1">Adjustment</button>
                 )}
                 <button onClick={() => window.print()} className="btn btn-primary btn-sm flex-1">Print PDF</button>

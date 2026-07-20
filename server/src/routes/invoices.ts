@@ -47,7 +47,7 @@ router.post('/:id/adjustments', requirePermission('booking.manage', 'payment.man
     const data = z.object({ type: z.enum(['DISCOUNT_FLAT', 'DISCOUNT_PERCENT', 'EXTRA_CHARGE']), amount: z.number().positive(), reason: z.string().min(1) }).parse(req.body);
     const invoice = await prisma.invoice.findUnique({ where: { id: req.params.id as string }, include: { booking: true } }) as any;
     if (!invoice) { res.status(404).json({ error: 'Invoice not found' }); return; }
-    if (invoice.isFinalized) { res.status(400).json({ error: 'Invoice is finalized' }); return; }
+    if (invoice.isFinalized && req.user?.role !== 'MD') { res.status(400).json({ error: 'Invoice is finalized. Only the MD can make post-checkout adjustments.' }); return; }
 
     let adjustedAmount = data.amount;
     if (data.type === 'DISCOUNT_PERCENT') { adjustedAmount = parseFloat(((data.amount / 100) * Number(invoice.subtotal)).toFixed(2)); }
@@ -70,9 +70,19 @@ router.post('/:id/adjustments', requirePermission('booking.manage', 'payment.man
         where: { id: invoice.id },
         data: { discountAmount: newDiscount, extraCharges: newExtra, subtotal: newSubtotal, cgst: tax.cgst, sgst: tax.sgst, totalTax: tax.totalTax, grandTotal: newGrand, companyAmount: split.companyAmount, guestAmount: split.guestAmount, pendingAmount: split.guestAmount - Number(invoice.amountPaid) },
       });
+
+      // Update company outstanding balance if corporate billing is active and invoice was already finalized
+      if (invoice.isFinalized && invoice.booking.companyId && invoice.booking.billingRule !== 'GUEST') {
+        const companyDiff = split.companyAmount - Number(invoice.companyAmount);
+        if (companyDiff > 0) {
+          await tx.company.update({ where: { id: invoice.booking.companyId }, data: { outstandingBalance: { increment: companyDiff } } });
+        } else if (companyDiff < 0) {
+          await tx.company.update({ where: { id: invoice.booking.companyId }, data: { outstandingBalance: { decrement: Math.abs(companyDiff) } } });
+        }
+      }
     });
 
-    await createAuditLog({ action: 'INVOICE_ADJUSTMENT', entity: 'invoice', entityId: invoice.id, details: `${data.type}: ₹${adjustedAmount} — ${data.reason}`, userId: req.user!.id, oldValue: { extraCharges: Number(invoice.extraCharges), discountAmount: Number(invoice.discountAmount), grandTotal: Number(invoice.grandTotal) }, newValue: { extraCharges: newExtra, discountAmount: newDiscount, grandTotal: finalGrand } });
+    await createAuditLog({ action: 'INVOICE_ADJUSTMENT', entity: 'invoice', entityId: invoice.id, details: `${data.type}: ₹${adjustedAmount} — ${data.reason}${invoice.isFinalized ? ' (Post-checkout correction by MD)' : ''}`, userId: req.user!.id, oldValue: { extraCharges: Number(invoice.extraCharges), discountAmount: Number(invoice.discountAmount), grandTotal: Number(invoice.grandTotal) }, newValue: { extraCharges: newExtra, discountAmount: newDiscount, grandTotal: finalGrand } });
     const updated = await prisma.invoice.findUnique({ where: { id: invoice.id }, include: { adjustments: { include: { createdBy: { select: { name: true } } } } } });
     res.json(updated);
   } catch (err) {

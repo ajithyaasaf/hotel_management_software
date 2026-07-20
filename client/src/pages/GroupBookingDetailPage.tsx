@@ -185,9 +185,9 @@ export default function GroupBookingDetailPage() {
       {activeTab === 'overview' && (
         <div className="space-y-4">
           {group.bookings.map(booking => {
-            const referenceDate = businessDate || new Date().toISOString().split('T')[0];
+            const realToday = new Date().toISOString().split('T')[0];
             const checkoutStr = new Date(booking.expectedCheckout).toISOString().split('T')[0];
-            const isOverdue = booking.status === 'CHECKED_IN' && checkoutStr < referenceDate;
+            const isOverdue = booking.status === 'CHECKED_IN' && checkoutStr < realToday;
             return (
               <div key={booking.id} className={`card p-5 transition-colors ${isOverdue ? 'bg-red-50/20 border-l-4 border-l-red-500' : ''}`}>
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">

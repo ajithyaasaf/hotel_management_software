@@ -13,6 +13,7 @@ export default function DashboardPage() {
   const [summary, setSummary] = useState<ReportSummary | null>(null);
   const [recentBookings, setRecentBookings] = useState<Booking[]>([]);
   const [activeOrders, setActiveOrders] = useState<Order[]>([]);
+  const [overdueCount, setOverdueCount] = useState(0);
   const [businessDate, setBusinessDate] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
@@ -25,7 +26,10 @@ export default function DashboardPage() {
         nightAuditApi.getStatus(),
       ]);
       setSummary(sumRes.data);
-      setRecentBookings(bookRes.data.slice(0, 5));
+      const activeBookings = bookRes.data;
+      setRecentBookings(activeBookings.slice(0, 5));
+      const realToday = new Date().toISOString().split('T')[0];
+      setOverdueCount(activeBookings.filter((b: Booking) => b.status === 'CHECKED_IN' && new Date(b.expectedCheckout).toISOString().split('T')[0] < realToday).length);
       setActiveOrders(ordRes.data.slice(0, 5));
       setBusinessDate(statusRes.data.businessDate || statusRes.data.currentBusinessDate || new Date().toISOString().split('T')[0]);
     } catch { /* silent */ } finally { setLoading(false); }
@@ -67,8 +71,8 @@ export default function DashboardPage() {
         </div>
 
         {/* 3 Quick Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {Array.from({ length: 3 }).map((_, i) => (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-20 bg-gray-50 rounded-2xl p-4 border border-gray-150/60 flex items-center gap-4">
               <div className="h-12 w-12 bg-gray-200 rounded-xl" />
               <div className="space-y-2">
@@ -138,6 +142,7 @@ export default function DashboardPage() {
   const quickStats = summary ? [
     { label: 'Current Check-ins', value: summary.currentCheckins, icon: CalendarCheck },
     { label: 'Upcoming Bookings', value: summary.confirmedBookings, icon: Clock },
+    { label: 'Overdue Checkouts', value: overdueCount, icon: AlertTriangle, customColor: 'text-red-600', customBg: 'bg-red-50' },
     { label: 'Active Orders', value: activeOrders.length, icon: Utensils },
   ] : [];
 
@@ -200,10 +205,10 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {quickStats.map((s, i) => (
           <div key={i} className="card p-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-primary-50 flex items-center justify-center text-primary-600">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${s.customBg || 'bg-primary-50'} ${s.customColor || 'text-primary-600'}`}>
               <s.icon size={22} />
             </div>
             <div>
@@ -226,9 +231,9 @@ export default function DashboardPage() {
             {recentBookings.length === 0 ? (
               <p className="text-sm text-gray-400 px-5 py-8 text-center">No active check-ins</p>
             ) : recentBookings.map((b: Booking) => {
-              const referenceDate = businessDate || new Date().toISOString().split('T')[0];
+              const realToday = new Date().toISOString().split('T')[0];
               const checkoutStr = new Date(b.expectedCheckout).toISOString().split('T')[0];
-              const isOverdue = b.status === 'CHECKED_IN' && checkoutStr < referenceDate;
+              const isOverdue = b.status === 'CHECKED_IN' && checkoutStr < realToday;
               return (
                 <div key={b.id} className={`px-5 py-3 flex items-center justify-between hover:bg-gray-50/50 transition-colors ${isOverdue ? 'bg-red-50/20' : ''}`}>
                   <div className="flex items-center gap-3">

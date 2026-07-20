@@ -256,9 +256,9 @@ export default function BookingsPage() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {filtered.map(b => {
-                  const referenceDate = businessDate || new Date().toISOString().split('T')[0];
+                  const realToday = new Date().toISOString().split('T')[0];
                   const checkoutStr = new Date(b.expectedCheckout).toISOString().split('T')[0];
-                  const isOverdue = b.status === 'CHECKED_IN' && checkoutStr < referenceDate;
+                  const isOverdue = b.status === 'CHECKED_IN' && checkoutStr < realToday;
                   return (
                     <tr key={b.id} className={`transition-colors ${isOverdue ? 'bg-red-50/30 hover:bg-red-50/40' : 'hover:bg-gray-50/50'}`}>
                       <td className="px-5 py-3 whitespace-nowrap">
