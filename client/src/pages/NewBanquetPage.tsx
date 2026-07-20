@@ -141,18 +141,24 @@ export default function NewBanquetPage() {
   const foodPriceInvalid = form.foodPreference !== 'NONE' && (Number(form.perHeadFoodPrice) <= 0 || !form.perHeadFoodPrice);
   const foodPriceNoneInvalid = form.foodPreference === 'NONE' && Number(form.perHeadFoodPrice) !== 0;
 
-  const canSubmit = !isPastDate && !customTooShort && !foodPriceInvalid && !foodPriceNoneInvalid && form.guestName && form.guestPhone && form.hallId && form.eventDate && pax > 0;
-
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (isPastDate) { toast.error("Event date cannot be in the past."); return; }
+    if (customTooShort) { toast.error("Custom slot duration must be at least 4 hours."); return; }
+    if (foodPriceInvalid) { toast.error("Please enter a valid Per-Head Food Price since catering is requested."); return; }
+    if (foodPriceNoneInvalid) { toast.error("Per-Head Food Price must be 0 when 'No Catering' is selected."); return; }
+    if (pax <= 0) { toast.error("Estimated Guest Count must be greater than 0."); return; }
+    if (!form.guestName || !form.guestPhone || !form.hallId || !form.eventDate) {
+      toast.error("Please fill all required fields (Guest Name, Phone, Hall, Date)."); return;
+    }
+    
     setLoading(true);
     try {
       const payload: any = {
         guestPhone: form.guestPhone,
         guestName: form.guestName,
         hallId: form.hallId,
-        eventDate: form.eventDate,
+        eventDate: new Date(form.eventDate).toISOString(),
         slot: form.slot,
         eventType: form.eventType,
         estimatedPax: Number(form.estimatedPax),
@@ -174,7 +180,14 @@ export default function NewBanquetPage() {
       navigate(`/banquets/${res.data.id}`);
     } catch (err: any) {
       console.error('Banquet booking creation error:', err);
-      toast.error(err.response?.data?.error || err.message || 'Failed to create banquet booking');
+      const data = err.response?.data;
+      if (data?.details && Array.isArray(data.details)) {
+        // Display the specific Zod field error
+        const firstError = data.details[0];
+        toast.error(`Invalid ${firstError.path.join('.')}: ${firstError.message}`);
+      } else {
+        toast.error(data?.error || err.message || 'Failed to create banquet booking');
+      }
     } finally {
       setLoading(false);
     }
@@ -259,12 +272,12 @@ export default function NewBanquetPage() {
                   >
                     {halls.map(h => (
                       <option key={h.id} value={h.id}>
-                        {h.name} (max {h.maxCapacity} pax)
+                        {h.name} (max {h.maxCapacity} guests)
                       </option>
                     ))}
                   </select>
                   {selectedHall && (
-                    <p className="text-xs text-gray-400 mt-1">Capacity: {selectedHall.maxCapacity} pax</p>
+                    <p className="text-xs text-gray-400 mt-1">Capacity: {selectedHall.maxCapacity} guests</p>
                   )}
                 </div>
                 <div>
@@ -365,7 +378,7 @@ export default function NewBanquetPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Estimated Guest Count (Pax) *</label>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Estimated Guest Count *</label>
               <div className="relative">
                 <Users size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -380,7 +393,7 @@ export default function NewBanquetPage() {
               {overCapacity && (
                 <p className="text-xs text-amber-600 font-semibold mt-1 flex items-center gap-1">
                   <AlertTriangle size={12} />
-                  Warning: Guest count exceeds maximum hall capacity ({selectedHall?.maxCapacity} pax)
+                  Warning: Guest count exceeds maximum hall capacity ({selectedHall?.maxCapacity} guests)
                 </p>
               )}
             </div>
@@ -448,7 +461,7 @@ export default function NewBanquetPage() {
               </div>
               {perHead > 0 && pax > 0 && (
                 <div className="flex justify-between text-gray-600">
-                  <span>Food (₹{perHead}/head × {pax} pax)</span><span>₹{(perHead * pax).toLocaleString()}</span>
+                  <span>Food (₹{perHead}/head × {pax} guests)</span><span>₹{(perHead * pax).toLocaleString()}</span>
                 </div>
               )}
               {extras > 0 && (
@@ -505,9 +518,9 @@ export default function NewBanquetPage() {
           <button
             type="submit"
             className="btn btn-primary flex-1"
-            disabled={loading || !canSubmit}
+            disabled={loading}
           >
-            {loading ? 'Creating Booking...' : 'Confirm Event Booking'}
+            {loading ? 'Creating Booking...' : 'Create Event Booking'}
           </button>
         </div>
       </form>

@@ -319,8 +319,8 @@ export default function BanquetDetailPage() {
                   </p>
                 )}
               </div>
-              <div><span className="text-gray-400 text-xs block">Guest Count</span><p className="font-semibold">{booking.estimatedPax} pax</p></div>
-              <div><span className="text-gray-400 text-xs block">Hall Capacity</span><p className="font-semibold">{booking.hall.maxCapacity} pax</p></div>
+              <div><span className="text-gray-400 text-xs block">Guest Count</span><p className="font-semibold">{booking.estimatedPax} guests</p></div>
+              <div><span className="text-gray-400 text-xs block">Hall Capacity</span><p className="font-semibold">{booking.hall.maxCapacity} guests</p></div>
               <div>
                 <span className="text-gray-400 text-xs block">Food Preference</span>
                 <p className="font-semibold">{FOOD_PREF_LABELS[booking.foodPreference] || booking.foodPreference}</p>

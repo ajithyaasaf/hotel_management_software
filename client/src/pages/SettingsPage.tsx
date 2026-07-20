@@ -374,7 +374,7 @@ export default function SettingsPage() {
                 {banquetHalls.map(hall => (
                   <tr key={hall.id} className="hover:bg-gray-50/50">
                     <td className="px-5 py-3 text-sm font-medium text-gray-900">{hall.name}</td>
-                    <td className="px-5 py-3 text-sm text-gray-700">{hall.maxCapacity} Pax</td>
+                    <td className="px-5 py-3 text-sm text-gray-700">{hall.maxCapacity} Guests</td>
                     <td className="px-5 py-3 text-sm font-semibold text-primary-600">₹{Number(hall.baseRental).toLocaleString()}</td>
                     <td className="px-5 py-3 text-sm text-gray-500">{hall.description || '—'}</td>
                     <td className="px-5 py-3 text-sm">
@@ -544,7 +544,7 @@ export default function SettingsPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Max Capacity (Pax) *</label>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Max Capacity (Guests) *</label>
                 <input
                   className="input"
                   type="number"
