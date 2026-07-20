@@ -255,11 +255,11 @@ export default function SettingsPage() {
         <button onClick={() => setTab('roomTypes')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${tab === 'roomTypes' ? 'bg-gray-900 text-white shadow-md' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}>Room Types & Pricing</button>
         <button onClick={() => setTab('menu')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${tab === 'menu' ? 'bg-gray-900 text-white shadow-md' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}>Menu Items</button>
         <button onClick={() => setTab('banquetHalls')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${tab === 'banquetHalls' ? 'bg-gray-900 text-white shadow-md' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}>Banquet Halls</button>
-        {hasPermission(['permission.manage']) && (
+        {/* Temporarily hidden: hasPermission(['permission.manage']) && (
           <button onClick={() => setTab('permissions')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 ${tab === 'permissions' ? 'bg-gray-900 text-white shadow-md' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}>
             <Shield size={16} /> Roles & Permissions
           </button>
-        )}
+        ) */}
       </div>
 
       {/* Room Types Tab */}
