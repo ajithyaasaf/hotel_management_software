@@ -64,5 +64,32 @@ The following files require date format updates (changing `dd MMM yyyy` to `dd M
 
 ---
 
+## 5. The Early-Morning Night Audit Collapse (CATASTROPHIC)
+**Location:** `server/src/services/nightAuditService.ts`
+
+**The Issue:**
+Currently, the Night Audit heavily relies on extracting the calendar date from timestamps using the formula: `booking.checkInDate.toISOString().split('T')[0]`.
+If exact times are introduced, guests checking in between Midnight and 5:30 AM IST will have their timestamps saved into the database. When the backend runs `.toISOString()`, it converts the time to UTC. Because India is 5.5 hours ahead of UTC, a check-in at 2:00 AM on Tuesday mathematically falls on **Monday** in UTC time.
+
+This means `toISOString().split('T')[0]` will suddenly yield the **previous calendar day** for all early-morning guests. The Night Audit will falsely mark these guests as "No-Shows" for the previous day, and the hotel statistics will attribute their revenue to the wrong business date.
+
+**The Fix:**
+Before deploying exact time tracking, every date extraction in the backend (over 12 locations in `nightAuditService.ts`) must be upgraded from native JavaScript date splitting to explicit timezone-aware formatting (e.g., using `Intl.DateTimeFormat` with a forced `Asia/Kolkata` timezone context) to ensure early morning guests are not corrupted.
+
+---
+
+## 6. The "Check-In" Button Architecture (Positive Finding)
+**Location:** `server/src/routes/bookings.ts` (Lines 263-270)
+
+**The Discovery:**
+When a guest has an advance booking (e.g., scheduled for 2:00 PM) but arrives early at 11:00 AM, the system currently handles this perfectly. When the receptionist clicks the "Check In" button, the backend intercepts the request and overwrites the `checkInDate` with `Date.now()`.
+
+Even more impressively, it forcefully binds the current time to the active Business Date. This means if a walk-in guest arrives at 2:00 AM, the system captures the exact time (2:00 AM) but correctly logs their Check-in Date under the previous calendar day (the active business date).
+
+**Conclusion on this finding:** 
+The backend is already 100% structurally prepared to handle exact time-tracking for walk-ins and early arrivals. The only blockers to full implementation are the mathematical bugs documented above.
+
+---
+
 ## Conclusion
 The transition from Date-tracking to Exact Time-tracking is fully feasible and requires no database migrations. However, executing this change requires careful handling of the 7 specific mathematical calculations in the backend to prevent systemic billing corruption.
