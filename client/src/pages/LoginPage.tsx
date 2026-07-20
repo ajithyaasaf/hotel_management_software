@@ -154,6 +154,12 @@ export default function LoginPage() {
             </>
           )}
 
+          <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+            <p className="text-xs text-gray-400 font-medium">
+              Password for all roles: <span className="font-semibold text-gray-500">123456</span>
+            </p>
+          </div>
+
         </div>
         <p className="text-center text-gray-400 text-xs font-bold uppercase tracking-widest mt-10">
           © 2026 Godiva Rooms • Godivatech
