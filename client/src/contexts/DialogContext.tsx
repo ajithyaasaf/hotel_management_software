@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 import { AlertTriangle, AlertCircle, Info, CheckCircle } from 'lucide-react';
 
 type DialogVariant = 'danger' | 'warning' | 'info' | 'primary' | 'success';
