@@ -6,6 +6,7 @@ import { createAuditLog, generateBookingNumber, generateGroupNumber } from '../u
 import { uploadToCloudinary } from '../utils/cloudinary';
 import { calculateTaxWithTx } from '../utils/tax';
 import { computeBillingSplit } from './bookings';
+import { getTodayIST, toISTDateString, computeCalendarNightsIST, formatIST } from '../utils/dateTime';
 
 const router = Router();
 router.use(authenticate);
@@ -14,8 +15,8 @@ router.use(authenticate);
 
 const roomEntrySchema = z.object({
   roomId: z.string().uuid(),
-  checkInDate: z.string().datetime(),
-  expectedCheckout: z.string().datetime(),
+  checkInDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid check-in date" }),
+  expectedCheckout: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid checkout date" }),
   roomPrice: z.number().positive(),
   numberOfGuests: z.number().int().min(1).default(1),
   specialRequests: z.string().optional().nullable(),
@@ -27,6 +28,13 @@ const roomEntrySchema = z.object({
   idProofType: z.string().optional().nullable(),
   idProofNumber: z.string().optional().nullable(),
   idProofImage: z.string().optional().nullable(),
+}).refine(data => {
+  const checkIn = new Date(data.checkInDate).getTime();
+  const checkOut = new Date(data.expectedCheckout).getTime();
+  return checkOut > checkIn;
+}, {
+  message: "Expected checkout date and time must be strictly after check-in date and time",
+  path: ["expectedCheckout"],
 });
 
 const createGroupSchema = z.object({
@@ -38,8 +46,10 @@ const createGroupSchema = z.object({
 
 // ─── Helpers ────────────────────────────────────────────
 
-function computeNights(checkIn: Date, checkout: Date): number {
-  return Math.max(1, Math.ceil((checkout.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)));
+// IST-aware calendar night computation for group bookings billing.
+// Uses IST date boundaries so a 25-hour stay = 1 night, not 2 (Section 4 fix).
+function computeNights(checkIn: Date, checkOut: Date): number {
+  return computeCalendarNightsIST(checkIn, checkOut);
 }
 
 // ─── Routes ─────────────────────────────────────────────
@@ -237,19 +247,14 @@ router.post('/', async (req: AuthRequest, res) => {
         },
       });
 
-      const config = await tx.systemConfig.findUnique({
-        where: { key: 'BUSINESS_DATE' },
-      });
-      const businessDateStr = config?.value || new Date().toISOString().split('T')[0];
-      const today = new Date(businessDateStr);
-      today.setHours(0, 0, 0, 0);
+      const todayIST = getTodayIST();
 
       // Create each booking + invoice
       for (const entry of roomsWithUrls) {
         const checkIn = new Date(entry.checkInDate);
         const checkOut = new Date(entry.expectedCheckout);
-        const inDate = new Date(checkIn); inDate.setHours(0, 0, 0, 0);
-        const isAdvance = inDate > today;
+        // Compare IST calendar dates to determine advance vs walk-in
+        const isAdvance = toISTDateString(checkIn) > todayIST;
         const status = isAdvance ? 'CONFIRMED' : 'CHECKED_IN';
 
         // Resolve guest for this specific room
@@ -284,6 +289,20 @@ router.post('/', async (req: AuthRequest, res) => {
           guestId = roomGuest.id;
         }
 
+        // Resolve final timestamps for this room
+        let actualCheckIn: Date;
+        let actualCheckout: Date;
+        if (isAdvance) {
+          // Advance: keep scheduled midnight IST dates
+          actualCheckIn = checkIn;
+          actualCheckout = checkOut;
+        } else {
+          // Walk-in: stamp live server clock; checkout = check-in + nights * 24h
+          actualCheckIn = new Date();
+          const bookedNights = computeNights(checkIn, checkOut);
+          actualCheckout = new Date(actualCheckIn.getTime() + bookedNights * 24 * 60 * 60 * 1000);
+        }
+
         const booking = await tx.booking.create({
           data: {
             bookingNumber: generateBookingNumber(),
@@ -291,8 +310,8 @@ router.post('/', async (req: AuthRequest, res) => {
             roomId: entry.roomId,
             groupBookingId: group.id,
             status,
-            checkInDate: checkIn,
-            expectedCheckout: checkOut,
+            checkInDate: actualCheckIn,
+            expectedCheckout: actualCheckout,
             roomPrice: entry.roomPrice,
             numberOfGuests: entry.numberOfGuests,
             specialRequests: entry.specialRequests,
@@ -304,7 +323,7 @@ router.post('/', async (req: AuthRequest, res) => {
           await tx.room.update({ where: { id: entry.roomId }, data: { status: 'OCCUPIED' } });
         }
 
-        const nights = computeNights(checkIn, checkOut);
+        const nights = isAdvance ? computeNights(checkIn, checkOut) : computeNights(actualCheckIn, actualCheckout);
         const roomCharges = entry.roomPrice * nights;
 
         const tax = await calculateTaxWithTx(tx, roomCharges);
@@ -347,23 +366,35 @@ router.post('/', async (req: AuthRequest, res) => {
         }
       }
 
-      return group;
+      return { group, leadGuest };
+    });
+
+    const created = await prisma.groupBooking.findUnique({
+      where: { id: result.group.id },
+      include: {
+        leadGuest: true,
+        bookings: { include: { room: { include: { roomType: true } }, invoice: true } },
+      },
     });
 
     await createAuditLog({
       action: 'CREATE_GROUP_BOOKING',
       entity: 'group_booking',
-      entityId: result.id,
-      details: `Group ${result.groupNumber} with ${data.rooms.length} rooms`,
+      entityId: result.group.id,
+      details: `Group ${result.group.groupNumber} created with ${data.rooms.length} room(s) for ${result.leadGuest.name}`,
       userId: req.user!.id,
-    });
-
-    const created = await prisma.groupBooking.findUnique({
-      where: { id: result.id },
-      include: {
-        leadGuest: true,
-        bookings: { include: { room: { include: { roomType: true } }, invoice: true } },
-      },
+      newValue: {
+        groupNumber: result.group.groupNumber,
+        leadGuestName: result.leadGuest.name,
+        roomCount: data.rooms.length,
+        rooms: (created?.bookings || []).map((b) => ({
+          roomNumber: b.room.roomNumber,
+          checkInTime: formatIST(new Date(b.checkInDate)),
+          checkInDate: b.checkInDate,
+          expectedCheckout: b.expectedCheckout,
+          roomPrice: b.roomPrice,
+        }))
+      }
     });
 
     res.status(201).json(created);
@@ -411,7 +442,8 @@ router.post('/:id/checkout-all', async (req: AuthRequest, res) => {
     const config = await prisma.systemConfig.findUnique({
       where: { key: 'BUSINESS_DATE' },
     });
-    const businessDateStr = config?.value || new Date().toISOString().split('T')[0];
+    const todayIST = getTodayIST();
+    const businessDateStr = (config?.value && config.value >= todayIST) ? config.value : todayIST;
     const checkoutDate = new Date();
     const [year, month, day] = businessDateStr.split('-').map(Number);
     checkoutDate.setFullYear(year);
@@ -431,13 +463,7 @@ router.post('/:id/checkout-all', async (req: AuthRequest, res) => {
         });
 
         if (booking.invoice) {
-          const nights = Math.max(
-            1,
-            Math.ceil(
-              (checkoutDate.getTime() - new Date(booking.checkInDate).getTime()) /
-              (1000 * 60 * 60 * 24)
-            )
-          );
+          const nights = computeCalendarNightsIST(new Date(booking.checkInDate), checkoutDate);
           const roomCharges = Number(booking.roomPrice) * nights;
 
           // Sum F&B charges
@@ -506,14 +532,17 @@ router.post('/:id/checkout-all', async (req: AuthRequest, res) => {
       await tx.groupBooking.update({ where: { id: group.id }, data: { status: newStatus } });
     });
 
+    const actualCheckoutTime = formatIST(new Date());
+    const checkedOutRoomNumbers = activeBookings.map((b: any) => b.room.roomNumber).join(', ');
+
     await createAuditLog({
       action: 'GROUP_CHECKOUT',
       entity: 'group_booking',
       entityId: group.id,
-      details: `Checked out ${activeBookings.length} rooms from group ${group.groupNumber}`,
+      details: `Checked out ${activeBookings.length} room(s) [${checkedOutRoomNumbers}] from group ${group.groupNumber} (Checkout Time: ${actualCheckoutTime})`,
       userId: req.user!.id,
       oldValue: { status: group.status },
-      newValue: { status: newStatus },
+      newValue: { status: newStatus, actualCheckoutTime, roomCount: activeBookings.length, roomNumbers: checkedOutRoomNumbers },
     });
 
     const updated = await prisma.groupBooking.findUnique({

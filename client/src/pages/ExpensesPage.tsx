@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { Plus, Pencil, Trash2, X, TrendingDown, Filter, Building2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useDialog } from '../contexts/DialogContext';
+import { getTodayIST } from '../utils/dateTime';
 
 const CATEGORIES: { value: ExpenseCategory; label: string }[] = [
   { value: 'ELECTRICITY', label: 'Electricity' },
@@ -42,7 +43,7 @@ const emptyForm = {
   category: 'ELECTRICITY' as ExpenseCategory,
   department: 'HOTEL' as 'HOTEL' | 'RESTAURANT' | 'BANQUET',
   amount: '' as number | string,
-  paidDate: new Date().toISOString().split('T')[0],
+  paidDate: getTodayIST(),
   method: 'CASH' as 'CASH' | 'UPI' | 'CARD',
   notes: '',
 };
@@ -52,8 +53,8 @@ export default function ExpensesPage() {
   const { confirm } = useDialog();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
-  const [from, setFrom] = useState(() => { const d = new Date(); d.setDate(1); return d.toISOString().split('T')[0]; });
-  const [to, setTo] = useState(() => new Date().toISOString().split('T')[0]);
+  const [from, setFrom] = useState(() => { const d = new Date(); d.setDate(1); return getTodayIST().slice(0, 8) + '01'; });
+  const [to, setTo] = useState(() => getTodayIST());
   const [categoryFilter, setCategoryFilter] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
 
@@ -110,7 +111,7 @@ export default function ExpensesPage() {
       const payload = {
         ...form,
         amount: Number(form.amount),
-        paidDate: new Date(form.paidDate).toISOString(),
+        paidDate: new Date(`${form.paidDate}T12:00:00+05:30`).toISOString(),
       };
       if (editExpense) {
         await expensesApi.update(editExpense.id, payload);

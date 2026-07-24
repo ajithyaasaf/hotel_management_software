@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { useDialog } from '../contexts/DialogContext';
 import { ArrowLeft, Users, Eye, LogOut, FileText, Unlink, AlertCircle, AlertTriangle, X } from 'lucide-react';
+import { getTodayIST, toISTDateString, formatIST } from '../utils/dateTime';
 
 const statusColors: Record<string, string> = {
   ACTIVE: 'badge-green',
@@ -46,10 +47,11 @@ export default function GroupBookingDetailPage() {
       ]);
       setGroup(gRes.data);
       setMasterInvoice(miRes.data);
-      if (auditRes) {
-        setBusinessDate(auditRes.data.businessDate);
+      if (auditRes && auditRes.data.businessDate) {
+        const rawDate = auditRes.data.businessDate;
+        setBusinessDate(rawDate < getTodayIST() ? getTodayIST() : rawDate);
       } else {
-        setBusinessDate(format(new Date(), 'yyyy-MM-dd'));
+        setBusinessDate(getTodayIST());
       }
     } catch { toast.error('Failed to load group booking'); }
     finally { setLoading(false); }
@@ -190,9 +192,7 @@ export default function GroupBookingDetailPage() {
       {activeTab === 'overview' && (
         <div className="space-y-4">
           {group.bookings.map(booking => {
-            const realToday = new Date().toISOString().split('T')[0];
-            const checkoutStr = new Date(booking.expectedCheckout).toISOString().split('T')[0];
-            const isOverdue = booking.status === 'CHECKED_IN' && checkoutStr < realToday;
+            const isOverdue = booking.status === 'CHECKED_IN' && new Date(booking.expectedCheckout) < new Date();
             return (
               <div key={booking.id} className={`card p-5 transition-colors ${isOverdue ? 'bg-red-50/20 border-l-4 border-l-red-500' : ''}`}>
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
@@ -206,13 +206,13 @@ export default function GroupBookingDetailPage() {
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm text-gray-600 mt-2">
                       <div>
                         <span className="text-gray-400 text-xs block">Check-in</span>
-                        {format(new Date(booking.checkInDate), 'dd MMM yyyy')}
+                        {formatIST(new Date(booking.checkInDate))}
                       </div>
                       <div>
                         <span className="text-gray-400 text-xs block">Checkout</span>
                         <span className={`font-medium flex items-center gap-1 ${isOverdue ? 'text-red-600 font-bold' : ''}`}>
                           {isOverdue && <AlertCircle size={12} className="text-red-500 animate-pulse" />}
-                          {format(new Date(booking.expectedCheckout), 'dd MMM yyyy')}
+                          {formatIST(new Date(booking.expectedCheckout))}
                         </span>
                       </div>
                       <div>
@@ -308,8 +308,8 @@ export default function GroupBookingDetailPage() {
                       <p className="font-medium">Room {r.roomNumber}</p>
                       <p className="text-xs text-gray-400">{r.roomType}</p>
                     </td>
-                    <td className="py-3 text-gray-500">
-                      {format(new Date(r.checkInDate), 'dd MMM')} — {format(new Date(r.expectedCheckout), 'dd MMM yyyy')}
+                    <td className="py-3 text-gray-500 text-xs">
+                      {formatIST(new Date(r.checkInDate))} — {formatIST(new Date(r.expectedCheckout))}
                     </td>
                     <td className="py-3 text-right">₹{r.roomCharges.toLocaleString()}</td>
                     <td className="py-3 text-right">{r.foodCharges > 0 ? `₹${r.foodCharges.toLocaleString()}` : '—'}</td>

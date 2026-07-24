@@ -58,7 +58,21 @@ router.post('/', async (req: AuthRequest, res) => {
       return p;
     });
 
-    await createAuditLog({ action: 'RECORD_PAYMENT', entity: entityName, entityId, details: `${data.type} payment of ₹${data.amount} via ${data.method}`, userId: req.user!.id });
+    await createAuditLog({
+      action: 'RECORD_PAYMENT',
+      entity: entityName,
+      entityId,
+      details: `${data.type} payment of ₹${data.amount} via ${data.method}`,
+      userId: req.user!.id,
+      newValue: {
+        amount: data.amount,
+        method: data.method,
+        type: data.type,
+        reference: data.reference || null,
+        bookingId: data.bookingId || null,
+        orderId: data.orderId || null,
+      }
+    });
     res.status(201).json(payment);
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as any).errors }); return; }

@@ -7,6 +7,7 @@ import {
   CalendarCheck, Clock, DollarSign, Calendar, AlertTriangle
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { getTodayIST, toISTDateString, formatIST } from '../utils/dateTime';
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
@@ -28,10 +29,10 @@ export default function DashboardPage() {
       setSummary(sumRes.data);
       const activeBookings = bookRes.data;
       setRecentBookings(activeBookings.slice(0, 5));
-      const realToday = new Date().toISOString().split('T')[0];
-      setOverdueCount(activeBookings.filter((b: Booking) => b.status === 'CHECKED_IN' && new Date(b.expectedCheckout).toISOString().split('T')[0] < realToday).length);
+      setOverdueCount(activeBookings.filter((b: Booking) => b.status === 'CHECKED_IN' && new Date(b.expectedCheckout) < new Date()).length);
       setActiveOrders(ordRes.data.slice(0, 5));
-      setBusinessDate(statusRes.data.businessDate || statusRes.data.currentBusinessDate || new Date().toISOString().split('T')[0]);
+      const rawBDate = statusRes.data.businessDate || statusRes.data.currentBusinessDate || getTodayIST();
+      setBusinessDate(rawBDate < getTodayIST() ? getTodayIST() : rawBDate);
     } catch { /* silent */ } finally { setLoading(false); }
   };
 
@@ -231,9 +232,7 @@ export default function DashboardPage() {
             {recentBookings.length === 0 ? (
               <p className="text-sm text-gray-400 px-5 py-8 text-center">No active check-ins</p>
             ) : recentBookings.map((b: Booking) => {
-              const realToday = new Date().toISOString().split('T')[0];
-              const checkoutStr = new Date(b.expectedCheckout).toISOString().split('T')[0];
-              const isOverdue = b.status === 'CHECKED_IN' && checkoutStr < realToday;
+              const isOverdue = b.status === 'CHECKED_IN' && new Date(b.expectedCheckout) < new Date();
               return (
                 <div key={b.id} className={`px-5 py-3 flex items-center justify-between hover:bg-gray-50/50 transition-colors ${isOverdue ? 'bg-red-50/20' : ''}`}>
                   <div className="flex items-center gap-3">
@@ -251,7 +250,7 @@ export default function DashboardPage() {
                     </span>
                     <p className={`text-xs mt-1 flex items-center justify-end gap-1 ${isOverdue ? 'text-red-600 font-extrabold' : 'text-gray-400'}`}>
                       {isOverdue && <AlertTriangle size={10} className="text-red-500 animate-pulse" />}
-                      Out: {format(new Date(b.expectedCheckout), 'dd MMM')}
+                      Out: {formatIST(new Date(b.expectedCheckout))}
                     </p>
                   </div>
                 </div>

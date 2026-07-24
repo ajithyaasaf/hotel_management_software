@@ -4,13 +4,14 @@ import type { ReportSummary, AuditLog } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
 import { DollarSign, BedDouble, Utensils, TrendingUp, TrendingDown } from 'lucide-react';
+import { getTodayIST, formatIST } from '../utils/dateTime';
 
 export default function ReportsPage() {
   const [summary, setSummary] = useState<ReportSummary | null>(null);
   const [dailyData, setDailyData] = useState<{ date: string; revenue: number; expense: number; profit: number }[]>([]);
   const [policeData, setPoliceData] = useState<any[]>([]);
-  const [from, setFrom] = useState(() => { const d = new Date(); d.setDate(1); return d.toISOString().split('T')[0]; });
-  const [to, setTo] = useState(() => new Date().toISOString().split('T')[0]);
+  const [from, setFrom] = useState(() => { return getTodayIST().slice(0, 8) + '01'; });
+  const [to, setTo] = useState(() => getTodayIST());
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'FINANCIALS' | 'POLICE_REPORT'>('FINANCIALS');
 
@@ -129,7 +130,7 @@ export default function ReportsPage() {
           onClick={() => {
             setActiveTab('POLICE_REPORT');
             if (from !== to) {
-              const today = new Date().toISOString().split('T')[0];
+              const today = getTodayIST();
               setFrom(today);
               setTo(today);
             }
@@ -284,7 +285,7 @@ export default function ReportsPage() {
                           ) : <span className="text-red-500 font-semibold text-xs">Missing ID</span>}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">
-                          {format(new Date(g.checkInDate), 'dd MMM yyyy')}
+                          {formatIST(new Date(g.checkInDate))}
                         </td>
                       </tr>
                     ))}

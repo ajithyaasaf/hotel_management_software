@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Plus, BedDouble, Ban, Sparkles, Lock, Search, Filter, Users } from 'lucide-react';
 import SearchableSelect from '../components/ui/SearchableSelect';
+import { localDateTimeToIST } from '../utils/dateTime';
 
 const statusConfig: Record<string, { label: string; badge: string; bg: string }> = {
   AVAILABLE: { label: 'Available', badge: 'badge-green', bg: 'bg-status-available-bg border-status-available-text/20' },
@@ -75,8 +76,10 @@ export default function RoomsPage() {
     if (!blockReason || blockReason.length < 5) { toast.error('Please provide a descriptive reason (min 5 characters)'); return; }
     try {
       const payload: any = { reason: blockReason };
-      if (blockStart) payload.blockStart = new Date(blockStart).toISOString();
-      if (blockEnd) payload.blockEnd = new Date(blockEnd).toISOString();
+      // Attach IST offset to datetime-local strings so cloud UTC server stores the
+      // correct block times (Section 12 fix — prevents 5.5-hour forward shift)
+      if (blockStart) payload.blockStart = localDateTimeToIST(blockStart);
+      if (blockEnd) payload.blockEnd = localDateTimeToIST(blockEnd);
       await roomsApi.block(id, payload);
       toast.success('Room blocked');
       setShowBlock(null);

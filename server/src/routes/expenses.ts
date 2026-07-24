@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '../utils/prisma';
 import { authenticate, requirePermission, AuthRequest } from '../middleware/auth';
 import { createAuditLog } from '../utils/helpers';
+import { getTomorrowMidnightIST } from '../utils/dateTime';
 
 const router = Router();
 router.use(authenticate);
@@ -12,7 +13,7 @@ const expenseSchema = z.object({
   category: z.enum(['ELECTRICITY', 'WATER', 'STAFF_SALARY', 'KITCHEN_SUPPLIES', 'LAUNDRY', 'MAINTENANCE', 'HOUSEKEEPING', 'MARKETING', 'MISCELLANEOUS']),
   department: z.enum(['HOTEL', 'RESTAURANT', 'BANQUET']).default('HOTEL'),
   amount: z.number().positive('Amount must be a positive number'),
-  paidDate: z.string().datetime(),
+  paidDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid paidDate format" }),
   method: z.enum(['CASH', 'UPI', 'CARD']),
   notes: z.string().optional().nullable(),
 });
@@ -26,8 +27,8 @@ router.get('/', requirePermission('expense.view'), async (req, res) => {
     if (department) where.department = String(department);
     if (from || to) {
       where.paidDate = {};
-      if (from) where.paidDate.gte = new Date(String(from));
-      if (to) { const toDate = new Date(String(to)); toDate.setHours(23, 59, 59, 999); where.paidDate.lte = toDate; }
+      if (from) where.paidDate.gte = new Date(`${from}T00:00:00+05:30`);
+      if (to) where.paidDate.lte = new Date(`${to}T23:59:59.999+05:30`);
     }
     const expenses = await prisma.expense.findMany({ where, include: { createdBy: { select: { name: true } } }, orderBy: { paidDate: 'desc' } });
     res.json(expenses);
@@ -42,8 +43,8 @@ router.get('/summary', requirePermission('expense.view'), async (req, res) => {
     if (department) where.department = String(department);
     if (from || to) {
       where.paidDate = {};
-      if (from) where.paidDate.gte = new Date(String(from));
-      if (to) { const toDate = new Date(String(to)); toDate.setHours(23, 59, 59, 999); where.paidDate.lte = toDate; }
+      if (from) where.paidDate.gte = new Date(`${from}T00:00:00+05:30`);
+      if (to) where.paidDate.lte = new Date(`${to}T23:59:59.999+05:30`);
     }
     const expenses = await prisma.expense.findMany({ where });
     const total = expenses.reduce((s, e) => s + Number(e.amount), 0);
@@ -62,10 +63,19 @@ router.post('/', requirePermission('expense.manage'), async (req: AuthRequest, r
   try {
     const data = expenseSchema.parse(req.body);
     const paidDate = new Date(data.paidDate);
-    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1); tomorrow.setHours(0, 0, 0, 0);
+    // Use IST-aware tomorrow boundary so staff are not locked out between
+    // midnight and 5:30 AM IST on cloud UTC servers (Section 13 fix).
+    const tomorrow = getTomorrowMidnightIST();
     if (paidDate >= tomorrow) { res.status(400).json({ error: 'Expense date cannot be in the future' }); return; }
     const expense = await prisma.expense.create({ data: { title: data.title, category: data.category, department: data.department, amount: data.amount, paidDate, method: data.method, notes: data.notes ?? null, createdById: req.user!.id }, include: { createdBy: { select: { name: true } } } });
-    await createAuditLog({ action: 'CREATE_EXPENSE', entity: 'expense', entityId: expense.id, details: `[${data.department}] ${data.category}: ${data.title} — ₹${data.amount}`, userId: req.user!.id });
+    await createAuditLog({
+      action: 'CREATE_EXPENSE',
+      entity: 'expense',
+      entityId: expense.id,
+      details: `[${data.department}] ${data.category}: ${data.title} — ₹${data.amount}`,
+      userId: req.user!.id,
+      newValue: { title: data.title, amount: data.amount, category: data.category, department: data.department, method: data.method, paidDate: data.paidDate }
+    });
     res.status(201).json(expense);
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: err.issues }); return; }
@@ -81,7 +91,8 @@ router.put('/:id', requirePermission('expense.manage'), async (req: AuthRequest,
     const existing = await prisma.expense.findUnique({ where: { id: id as string } });
     if (!existing) { res.status(404).json({ error: 'Expense not found' }); return; }
     const paidDate = new Date(data.paidDate);
-    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1); tomorrow.setHours(0, 0, 0, 0);
+    // Use IST-aware tomorrow boundary (Section 13 fix).
+    const tomorrow = getTomorrowMidnightIST();
     if (paidDate >= tomorrow) { res.status(400).json({ error: 'Expense date cannot be in the future' }); return; }
     const updated = await prisma.expense.update({ where: { id: id as string }, data: { title: data.title, category: data.category, department: data.department, amount: data.amount, paidDate, method: data.method, notes: data.notes ?? null }, include: { createdBy: { select: { name: true } } } });
     await createAuditLog({ action: 'UPDATE_EXPENSE', entity: 'expense', entityId: updated.id, details: `Updated: ${data.title} — ₹${data.amount}`, userId: req.user!.id, oldValue: { title: existing.title, amount: Number(existing.amount), category: existing.category, department: existing.department }, newValue: { title: data.title, amount: data.amount, category: data.category, department: data.department } });

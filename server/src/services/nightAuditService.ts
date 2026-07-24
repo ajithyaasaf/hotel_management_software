@@ -1,5 +1,6 @@
 import prisma from '../utils/prisma';
 import { createAuditLog } from '../utils/helpers';
+import { getTodayIST, toISTDateString, getTodayMidnightIST, getCurrentHourIST } from '../utils/dateTime';
 import { Booking, Room, Order, Payment } from '@prisma/client';
 
 export interface PreCheckResult {
@@ -36,8 +37,8 @@ export const nightAuditService = {
       where: { key: 'BUSINESS_DATE' },
     });
     if (!config) {
-      // Fallback if not seeded
-      const today = new Date().toISOString().split('T')[0];
+      // Fallback: use IST-aware today — NOT .toISOString() which returns UTC
+      const today = getTodayIST();
       await prisma.systemConfig.create({
         data: { key: 'BUSINESS_DATE', value: today },
       });
@@ -78,7 +79,7 @@ export const nightAuditService = {
     });
     
     const expectedNoShows = bookings.filter(b => {
-      const bDateStr = b.checkInDate.toISOString().split('T')[0];
+      const bDateStr = toISTDateString(b.checkInDate);
       return bDateStr <= businessDateStr;
     });
 
@@ -89,8 +90,8 @@ export const nightAuditService = {
     });
 
     const overstays = activeBookings.filter(b => {
-      const bCheckoutStr = b.expectedCheckout.toISOString().split('T')[0];
-      return bCheckoutStr < businessDateStr;
+      const bCheckoutStr = toISTDateString(b.expectedCheckout);
+      return bCheckoutStr < businessDateStr || (bCheckoutStr === businessDateStr && new Date(b.expectedCheckout) < new Date());
     });
 
     return {
@@ -116,7 +117,7 @@ export const nightAuditService = {
         bookingNumber: b.bookingNumber,
         guestName: b.guest.name,
         roomNumber: b.room.roomNumber,
-        expectedCheckout: b.expectedCheckout.toISOString().split('T')[0],
+        expectedCheckout: toISTDateString(b.expectedCheckout),
       })),
     };
   },
@@ -133,31 +134,29 @@ export const nightAuditService = {
       throw new Error('User authorization failed. Account not found.');
     }
 
-    // Guard: Time-Lock Guard. Block receptionists from executing before 10 PM.
-    // This lock only applies if we are closing today's date or a future date.
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const todayStr = `${year}-${month}-${day}`;
-
+    // Guard: Time-Lock Guard. Block receptionists from executing before 10 PM IST.
+    // Uses getCurrentHourIST() so cloud UTC servers apply the guard based on India time,
+    // not London time (which would lock staff out until 3:30 AM IST).
+    const todayStr = getTodayIST();
     const isPastDate = businessDateStr < todayStr;
 
     if (!isPastDate) {
-      const currentHour = now.getHours();
-      if (currentHour < 22 && userObj.role !== 'MD') {
-        throw new Error('Early Day-End Lock: Receptionists can only run the Night Audit after 10:00 PM (22:00) local time. An Administrator must run this transaction to execute early.');
+      const currentHourIST = getCurrentHourIST();
+      if (currentHourIST < 22 && userObj.role !== 'MD') {
+        throw new Error('Early Day-End Lock: Receptionists can only run the Night Audit after 10:00 PM IST (22:00). An Administrator must run this transaction to execute early.');
       }
     }
 
     // Guard: Strict Calendar Lock. Do not allow rolling the business date into the future.
-    const todayLocal = new Date();
-    todayLocal.setHours(0, 0, 0, 0);
-    const targetBusinessDate = new Date(businessDateStr);
-    if (todayLocal <= targetBusinessDate) {
+    // Uses IST midnight so this guard works correctly on cloud UTC servers.
+    // Without this fix, the guard would fire at midnight UTC = 5:30 AM IST,
+    // locking the Night Audit for the first 5.5 hours of every Indian morning.
+    const todayMidnightIST = getTodayMidnightIST();
+    const targetBusinessDate = new Date(`${businessDateStr}T00:00:00+05:30`);
+    if (todayMidnightIST <= targetBusinessDate) {
       const isDev = !process.env.NODE_ENV || process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
       if (!isDev || userObj.role !== 'MD') {
-        throw new Error(`Calendar Lock: You cannot close the business date of ${businessDateStr} until the real-world calendar date has progressed to the next day (after midnight).`);
+        throw new Error(`Calendar Lock: You cannot close the business date of ${businessDateStr} until the real-world calendar date has progressed to the next day (after midnight IST).`);
       }
     }
 
@@ -165,8 +164,8 @@ export const nightAuditService = {
     const existingAudit = await prisma.nightAudit.findFirst({
       where: {
         businessDate: {
-          gte: new Date(businessDateStr + 'T00:00:00.000Z'),
-          lte: new Date(businessDateStr + 'T23:59:59.999Z'),
+          gte: new Date(`${businessDateStr}T00:00:00+05:30`),
+          lte: new Date(`${businessDateStr}T23:59:59+05:30`),
         },
         status: 'COMPLETED',
       },
@@ -195,7 +194,7 @@ export const nightAuditService = {
       });
 
       const noShowBookings = bookings.filter(b => {
-        const bDateStr = b.checkInDate.toISOString().split('T')[0];
+        const bDateStr = toISTDateString(b.checkInDate);
         return bDateStr <= businessDateStr;
       });
 
@@ -273,8 +272,9 @@ export const nightAuditService = {
         where: {
           status: 'COMPLETED',
           updatedAt: {
-            gte: new Date(businessDateStr + 'T00:00:00.000Z'),
-            lte: new Date(businessDateStr + 'T23:59:59.999Z'),
+            // Use IST midnight boundaries so cloud UTC servers query the correct calendar day
+            gte: new Date(`${businessDateStr}T00:00:00+05:30`),
+            lte: new Date(`${businessDateStr}T23:59:59+05:30`),
           },
         },
         include: {
@@ -330,8 +330,9 @@ export const nightAuditService = {
       const todayPayments = await tx.payment.findMany({
         where: {
           createdAt: {
-            gte: new Date(businessDateStr + 'T00:00:00.000Z'),
-            lte: new Date(businessDateStr + 'T23:59:59.999Z'),
+            // Use IST midnight boundaries so cloud UTC servers query the correct calendar day
+            gte: new Date(`${businessDateStr}T00:00:00+05:30`),
+            lte: new Date(`${businessDateStr}T23:59:59+05:30`),
           },
         },
       });
@@ -351,14 +352,14 @@ export const nightAuditService = {
       const totalRoomsCount = await tx.room.count();
       const occupiedRoomsCount = activeBookings.length;
       const newCheckinsCount = activeBookings.filter(b => {
-        return b.checkInDate.toISOString().split('T')[0] === businessDateStr;
+        return toISTDateString(b.checkInDate) === businessDateStr;
       }).length;
       const checkoutsTodayCount = await tx.booking.count({
         where: {
           status: 'CHECKED_OUT',
           actualCheckout: {
-            gte: new Date(businessDateStr + 'T00:00:00.000Z'),
-            lte: new Date(businessDateStr + 'T23:59:59.999Z'),
+            gte: new Date(`${businessDateStr}T00:00:00+05:30`),
+            lte: new Date(`${businessDateStr}T23:59:59+05:30`),
           },
         },
       });
@@ -386,9 +387,10 @@ export const nightAuditService = {
       });
 
       // 8. Roll Forward the Business Date in SystemConfig
-      const nextDate = new Date(businessDate);
+      // Advance business date by 1 calendar day using IST-safe arithmetic
+      const nextDate = new Date(`${businessDateStr}T12:00:00+05:30`);
       nextDate.setDate(nextDate.getDate() + 1);
-      const nextDateStr = nextDate.toISOString().split('T')[0];
+      const nextDateStr = toISTDateString(nextDate);
 
       await tx.systemConfig.update({
         where: { key: 'BUSINESS_DATE' },

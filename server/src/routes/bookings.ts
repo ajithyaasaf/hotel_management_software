@@ -5,6 +5,7 @@ import { authenticate, requirePermission, hasPermission, AuthRequest } from '../
 import { createAuditLog, generateBookingNumber } from '../utils/helpers';
 import { uploadToCloudinary } from '../utils/cloudinary';
 import { calculateTax, calculateTaxWithTx } from '../utils/tax';
+import { getTodayIST, toISTDateString, computeCalendarNightsIST, formatIST } from '../utils/dateTime';
 
 const router = Router();
 router.use(authenticate);
@@ -23,8 +24,8 @@ const createBookingSchema = z.object({
   visaExpiry: z.string().optional().nullable(),
   country: z.string().optional().nullable(),
   roomId: z.string().uuid(),
-  checkInDate: z.string().datetime(),
-  expectedCheckout: z.string().datetime(),
+  checkInDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid check-in date" }),
+  expectedCheckout: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid checkout date" }),
   roomPrice: z.number().positive(),
   numberOfGuests: z.number().int().min(1).default(1),
   specialRequests: z.string().optional().nullable(),
@@ -44,6 +45,13 @@ const createBookingSchema = z.object({
     visaExpiry: z.string().optional().nullable(),
     country: z.string().optional().nullable(),
   })).optional().default([]),
+}).refine(data => {
+  const checkIn = new Date(data.checkInDate).getTime();
+  const checkOut = new Date(data.expectedCheckout).getTime();
+  return checkOut > checkIn;
+}, {
+  message: "Expected checkout date and time must be strictly after check-in date and time",
+  path: ["expectedCheckout"],
 });
 
 // Helper: compute company/guest billing split
@@ -147,12 +155,33 @@ router.post('/', requirePermission('booking.create'), async (req: AuthRequest, r
     });
     if (hasConflict) { res.status(400).json({ error: 'Room is already booked during the selected dates.' }); return; }
 
-    const config = await prisma.systemConfig.findUnique({ where: { key: 'BUSINESS_DATE' } });
-    const businessDateStr = config?.value || new Date().toISOString().split('T')[0];
-    const today = new Date(businessDateStr); today.setHours(0,0,0,0);
-    const inDate = new Date(data.checkInDate); inDate.setHours(0,0,0,0);
-    const isAdvance = inDate > today;
+    const todayIST = getTodayIST();
+    const checkInDateStr = toISTDateString(new Date(data.checkInDate));
+    // WALK-IN (today or past date): immediately check the guest in.
+    // Use the live server timestamp so the 24-hour overdue window is counted
+    // from the moment they actually walked in — not from midnight.
+    //
+    // ADVANCE BOOKING (future date): save as CONFIRMED with the scheduled date.
+    const isAdvance = checkInDateStr > todayIST;
     const initialStatus = isAdvance ? 'CONFIRMED' : 'CHECKED_IN';
+
+    // Resolve final timestamps
+    let actualCheckIn: Date;
+    let actualCheckout: Date;
+    if (isAdvance) {
+      // Advance booking: store the scheduled midnight IST dates exactly as sent
+      actualCheckIn = new Date(data.checkInDate);
+      actualCheckout = new Date(data.expectedCheckout);
+    } else {
+      // Walk-in: stamp LIVE clock as the real check-in moment
+      actualCheckIn = new Date(); // server's live UTC timestamp
+      // Compute how many calendar nights the guest booked (date diff between midnight values)
+      const requestedCheckInMidnight = new Date(data.checkInDate);
+      const requestedCheckoutMidnight = new Date(data.expectedCheckout);
+      const nights = computeCalendarNightsIST(requestedCheckInMidnight, requestedCheckoutMidnight);
+      // Expected checkout = live check-in time + (nights × 24 hours)
+      actualCheckout = new Date(actualCheckIn.getTime() + nights * 24 * 60 * 60 * 1000);
+    }
 
     let idProofUrl: string | undefined;
     let idProofBackUrl: string | undefined;
@@ -191,7 +220,20 @@ router.post('/', requirePermission('booking.create'), async (req: AuthRequest, r
       }
 
       const booking = await tx.booking.create({
-        data: { bookingNumber: generateBookingNumber(), guestId: guest.id, roomId: data.roomId, status: initialStatus, checkInDate: new Date(data.checkInDate), expectedCheckout: new Date(data.expectedCheckout), roomPrice: data.roomPrice, numberOfGuests: data.numberOfGuests, specialRequests: data.specialRequests, createdById: req.user!.id, companyId: data.companyId || null, billingRule: data.billingRule || 'GUEST' },
+        data: {
+          bookingNumber: generateBookingNumber(),
+          guestId: guest.id,
+          roomId: data.roomId,
+          status: initialStatus,
+          checkInDate: actualCheckIn,
+          expectedCheckout: actualCheckout,
+          roomPrice: data.roomPrice,
+          numberOfGuests: data.numberOfGuests,
+          specialRequests: data.specialRequests,
+          createdById: req.user!.id,
+          companyId: data.companyId || null,
+          billingRule: data.billingRule || 'GUEST',
+        },
         include: { guest: true, room: { include: { roomType: true } }, company: true },
       });
 
@@ -215,7 +257,9 @@ router.post('/', requirePermission('booking.create'), async (req: AuthRequest, r
 
       if (!isAdvance) { await tx.room.update({ where: { id: data.roomId }, data: { status: 'OCCUPIED' } }); }
 
-      const nights = Math.max(1, Math.ceil((new Date(data.expectedCheckout).getTime() - new Date(data.checkInDate).getTime()) / (1000 * 60 * 60 * 24)));
+      const nights = isAdvance
+        ? computeCalendarNightsIST(new Date(data.checkInDate), new Date(data.expectedCheckout))
+        : computeCalendarNightsIST(actualCheckIn, actualCheckout);
       const roomCharges = data.roomPrice * nights;
       const tax = await calculateTaxWithTx(tx, roomCharges);
       const grandTotal = parseFloat((roomCharges + tax.totalTax).toFixed(2));
@@ -236,10 +280,30 @@ router.post('/', requirePermission('booking.create'), async (req: AuthRequest, r
       return booking;
     });
 
-    await createAuditLog({ action: isAdvance ? 'ADVANCE_BOOKING' : 'CHECKIN', entity: 'booking', entityId: result.id, details: `Guest ${data.guestName} ${isAdvance ? 'advance booked' : 'checked into'} room ${room.roomNumber}`, userId: req.user!.id, newValue: { status: isAdvance ? 'CONFIRMED' : 'CHECKED_IN' } });
+    const formattedCheckIn = formatIST(new Date(result.checkInDate));
+    await createAuditLog({
+      action: isAdvance ? 'ADVANCE_BOOKING' : 'CHECKIN',
+      entity: 'booking',
+      entityId: result.id,
+      details: `Guest ${data.guestName} ${isAdvance ? 'advance booked' : 'checked into'} room ${room.roomNumber} (Check-in Time: ${formattedCheckIn})`,
+      userId: req.user!.id,
+      newValue: {
+        status: isAdvance ? 'CONFIRMED' : 'CHECKED_IN',
+        roomNumber: room.roomNumber,
+        guestName: data.guestName,
+        checkInTime: formattedCheckIn,
+        checkInDate: result.checkInDate,
+        expectedCheckout: result.expectedCheckout,
+        roomPrice: data.roomPrice,
+      }
+    });
     res.status(201).json(result);
   } catch (err: any) {
-    if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: err.errors }); return; }
+    if (err instanceof z.ZodError) { 
+      const msg = err.errors.map(e => `${e.path.length ? e.path.join('.') + ': ' : ''}${e.message}`).join('; ');
+      res.status(400).json({ error: msg, details: err.errors }); 
+      return; 
+    }
     console.error('Booking creation error:', err);
     
     // Explicitly handle image upload timeouts and failures
@@ -261,25 +325,49 @@ router.put('/:id/checkin', requirePermission('booking.checkin'), async (req: Aut
     if (booking.room.status !== 'AVAILABLE') { res.status(400).json({ error: 'Room is not currently available' }); return; }
 
     const config = await prisma.systemConfig.findUnique({ where: { key: 'BUSINESS_DATE' } });
-    const businessDateStr = config?.value || new Date().toISOString().split('T')[0];
+    const todayIST = getTodayIST();
+    const businessDateStr = (config?.value && config.value >= todayIST) ? config.value : todayIST;
     const checkInDate = new Date();
     const [year, month, day] = businessDateStr.split('-').map(Number);
     checkInDate.setFullYear(year); checkInDate.setMonth(month - 1); checkInDate.setDate(day);
 
+    const scheduledTime = formatIST(new Date(booking.checkInDate));
+    const actualTime = formatIST(checkInDate); // Live real-time clock timestamp
+
+    // Compute booked nights from advance reservation to maintain accurate 24-hour window
+    const bookedNights = computeCalendarNightsIST(new Date(booking.checkInDate), new Date(booking.expectedCheckout));
+    const nights = bookedNights > 0 ? bookedNights : 1;
+    const expectedCheckout = new Date(checkInDate.getTime() + nights * 24 * 60 * 60 * 1000);
+
     await prisma.$transaction(async (tx) => {
-      await tx.booking.update({ where: { id: booking.id }, data: { status: 'CHECKED_IN', checkInDate } });
+      await tx.booking.update({ where: { id: booking.id }, data: { status: 'CHECKED_IN', checkInDate, expectedCheckout } });
       await tx.room.update({ where: { id: booking.roomId }, data: { status: 'OCCUPIED' } });
     });
 
-    await createAuditLog({ action: 'CHECKIN', entity: 'booking', entityId: booking.id, details: `${booking.guest.name} checked in to room ${booking.room.roomNumber}`, userId: req.user!.id, oldValue: { status: booking.status }, newValue: { status: 'CHECKED_IN' } });
+    await createAuditLog({
+      action: 'CHECKIN',
+      entity: 'booking',
+      entityId: booking.id,
+      details: `${booking.guest.name} checked into room ${booking.room.roomNumber} (Scheduled: ${scheduledTime} | Actual: ${actualTime})`,
+      userId: req.user!.id,
+      oldValue: { status: booking.status, scheduledCheckIn: scheduledTime },
+      newValue: {
+        status: 'CHECKED_IN',
+        scheduledCheckIn: scheduledTime,
+        actualCheckIn: actualTime,
+        roomNumber: booking.room.roomNumber
+      }
+    });
     res.json({ message: 'Checked in successfully' });
   } catch { res.status(500).json({ error: 'Check-in failed' }); }
 });
 
-// PUT /api/bookings/:id/extend
 router.put('/:id/extend', requirePermission('booking.extend'), async (req: AuthRequest, res) => {
   try {
-    const { newCheckout, newPrice } = z.object({ newCheckout: z.string().datetime(), newPrice: z.number().positive().optional() }).parse(req.body);
+    const { newCheckout, newPrice } = z.object({ 
+      newCheckout: z.string().refine(val => !isNaN(Date.parse(val)), { message: 'Invalid datetime format' }), 
+      newPrice: z.number().positive().optional() 
+    }).parse(req.body);
     const booking = await prisma.booking.findUnique({ where: { id: req.params.id as string }, include: { invoice: true } }) as any;
     if (!booking) { res.status(404).json({ error: 'Booking not found' }); return; }
     if (booking.status !== 'CHECKED_IN') { res.status(400).json({ error: 'Booking is not active' }); return; }
@@ -300,7 +388,9 @@ router.put('/:id/extend', requirePermission('booking.extend'), async (req: AuthR
     if (hasConflict) { res.status(400).json({ error: 'Cannot extend stay: Room is already booked during the extended period.' }); return; }
 
     const price = newPrice ?? Number(booking.roomPrice);
-    const nights = Math.max(1, Math.ceil((new Date(newCheckout).getTime() - new Date(booking.checkInDate).getTime()) / (1000 * 60 * 60 * 24)));
+    // Use IST calendar-night math (Section 4 fix) — prevents 25-hour stays from being
+    // billed as 2 nights due to millisecond-level Math.ceil overflow.
+    const nights = computeCalendarNightsIST(new Date(booking.checkInDate), new Date(newCheckout));
     const newRoomCharges = price * nights;
 
     await prisma.$transaction(async (tx) => {
@@ -319,7 +409,7 @@ router.put('/:id/extend', requirePermission('booking.extend'), async (req: AuthR
       }
     });
 
-    await createAuditLog({ action: 'EXTEND_STAY', entity: 'booking', entityId: req.params.id as string, details: `Extended to ${newCheckout}`, userId: req.user!.id, oldValue: { expectedCheckout: booking.expectedCheckout, roomPrice: Number(booking.roomPrice) }, newValue: { expectedCheckout: new Date(newCheckout), roomPrice: price } });
+    await createAuditLog({ action: 'EXTEND_STAY', entity: 'booking', entityId: req.params.id as string, details: `Extended stay for room ${booking.room.roomNumber} to ${formatIST(new Date(newCheckout))}`, userId: req.user!.id, oldValue: { expectedCheckout: booking.expectedCheckout, roomPrice: Number(booking.roomPrice) }, newValue: { expectedCheckout: formatIST(new Date(newCheckout)), roomPrice: price } });
     const updated = await prisma.booking.findUnique({ where: { id: req.params.id as any }, include: { guest: true, room: { include: { roomType: true } }, invoice: true } });
     res.json(updated);
   } catch (err) {
@@ -345,7 +435,7 @@ router.put('/:id/transfer', requirePermission('booking.transfer'), async (req: A
       await tx.order.updateMany({ where: { roomId: booking.roomId, status: 'ACTIVE' }, data: { roomId: toRoomId } });
     });
 
-    await createAuditLog({ action: 'ROOM_TRANSFER', entity: 'booking', entityId: booking.id, details: `Transferred from ${booking.room.roomNumber} to ${toRoom.roomNumber}. Reason: ${reason || 'N/A'}`, userId: req.user!.id, oldValue: { roomId: booking.roomId, roomPrice: Number(booking.roomPrice) }, newValue: { roomId: toRoomId, roomPrice: newRoomPrice ?? Number(booking.roomPrice) } });
+    await createAuditLog({ action: 'ROOM_TRANSFER', entity: 'booking', entityId: booking.id, details: `Transferred from Room ${booking.room.roomNumber} to Room ${toRoom.roomNumber}. Reason: ${reason || 'N/A'}`, userId: req.user!.id, oldValue: { roomId: booking.roomId, roomNumber: booking.room.roomNumber, roomPrice: Number(booking.roomPrice) }, newValue: { roomId: toRoomId, roomNumber: toRoom.roomNumber, roomPrice: newRoomPrice ?? Number(booking.roomPrice), reason: reason || 'N/A' } });
     const updated = await prisma.booking.findUnique({ where: { id: req.params.id as any }, include: { guest: true, room: { include: { roomType: true } } } });
     res.json(updated);
   } catch (err) {
@@ -365,7 +455,8 @@ router.put('/:id/checkout', requirePermission('booking.checkout'), async (req: A
     if (activeOrders.length > 0) { res.status(400).json({ error: `Cannot check out. Room ${booking.room.roomNumber} has active restaurant orders.` }); return; }
 
     const config = await prisma.systemConfig.findUnique({ where: { key: 'BUSINESS_DATE' } });
-    const businessDateStr = config?.value || new Date().toISOString().split('T')[0];
+    const todayIST = getTodayIST();
+    const businessDateStr = (config?.value && config.value >= todayIST) ? config.value : todayIST;
     const checkoutDate = new Date();
     const [year, month, day] = businessDateStr.split('-').map(Number);
     checkoutDate.setFullYear(year); checkoutDate.setMonth(month - 1); checkoutDate.setDate(day);
@@ -375,7 +466,8 @@ router.put('/:id/checkout', requirePermission('booking.checkout'), async (req: A
       await tx.room.update({ where: { id: booking.roomId }, data: { status: 'CLEANING' } });
 
       if (booking.invoice) {
-        const nights = Math.max(1, Math.ceil((checkoutDate.getTime() - new Date(booking.checkInDate).getTime()) / (1000 * 60 * 60 * 24)));
+        // Use IST calendar-night math (Section 4 fix) — safe billing regardless of exact checkout time
+        const nights = computeCalendarNightsIST(new Date(booking.checkInDate), checkoutDate);
         const roomCharges = Number(booking.roomPrice) * nights;
         const roomOrders = await tx.order.findMany({ where: { roomId: booking.roomId, status: { not: 'CANCELLED' }, createdAt: { gte: booking.checkInDate } }, include: { items: { where: { isCancelled: false } } } });
         const foodCharges = roomOrders.reduce((sum: number, o: any) => sum + Number(o.total), 0);
@@ -397,7 +489,25 @@ router.put('/:id/checkout', requirePermission('booking.checkout'), async (req: A
       }
     });
 
-    await createAuditLog({ action: 'CHECKOUT', entity: 'booking', entityId: booking.id, details: `${booking.guest.name} checked out from room ${booking.room.roomNumber}`, userId: req.user!.id, oldValue: { status: booking.status }, newValue: { status: 'CHECKED_OUT' } });
+    const scheduledCheckoutTime = formatIST(new Date(booking.expectedCheckout));
+    const actualCheckoutTime = formatIST(new Date()); // Live real-time clock timestamp
+    const isLateCheckout = new Date() > new Date(booking.expectedCheckout);
+
+    await createAuditLog({
+      action: 'CHECKOUT',
+      entity: 'booking',
+      entityId: booking.id,
+      details: `${booking.guest.name} checked out from room ${booking.room.roomNumber} (Scheduled: ${scheduledCheckoutTime} | Actual: ${actualCheckoutTime}${isLateCheckout ? ' - LATE CHECKOUT' : ''})`,
+      userId: req.user!.id,
+      oldValue: { status: booking.status, scheduledCheckout: scheduledCheckoutTime },
+      newValue: {
+        status: 'CHECKED_OUT',
+        scheduledCheckout: scheduledCheckoutTime,
+        actualCheckout: actualCheckoutTime,
+        isLateCheckout,
+        roomNumber: booking.room.roomNumber
+      }
+    });
     const updated = await prisma.booking.findUnique({ where: { id: booking.id }, include: { guest: true, room: { include: { roomType: true } }, invoice: true, payments: true } });
     res.json(updated);
   } catch { res.status(500).json({ error: 'Checkout failed' }); }

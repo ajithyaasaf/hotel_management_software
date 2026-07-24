@@ -4,6 +4,7 @@ import { banquetsApi } from '../api';
 import type { BanquetBooking } from '../types';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import { formatIST } from '../utils/dateTime';
 import { useDialog } from '../contexts/DialogContext';
 import { ArrowLeft, Wine, Users, Calendar, CheckCircle, XCircle, CreditCard, IndianRupee, Clock, FileText, X } from 'lucide-react';
 
@@ -349,7 +350,7 @@ export default function BanquetDetailPage() {
                   <tbody className="whitespace-nowrap">
                     {booking.payments.map(p => (
                       <tr key={p.id} className="border-b last:border-0">
-                        <td className="py-2.5 text-gray-600">{format(new Date(p.createdAt), 'dd MMM, hh:mm a')}</td>
+                        <td className="py-2.5 text-gray-600">{formatIST(new Date(p.createdAt))}</td>
                         <td className={`py-2.5 ${PAYMENT_TYPE_STYLES[p.type]}`}>{p.type}</td>
                         <td className="py-2.5 text-gray-600">{p.method}</td>
                         <td className="py-2.5 text-gray-500">{p.reference || '—'}</td>
@@ -425,7 +426,7 @@ export default function BanquetDetailPage() {
           {/* Meta */}
           <div className="card p-4 text-xs text-gray-400 space-y-1.5">
             <p><span className="font-semibold text-gray-500">Created by:</span> {booking.createdBy?.name}</p>
-            <p><span className="font-semibold text-gray-500">Created on:</span> {format(new Date(booking.createdAt), 'dd MMM yyyy, hh:mm a')}</p>
+            <p><span className="font-semibold text-gray-500">Created on:</span> {formatIST(new Date(booking.createdAt))}</p>
           </div>
         </div>
       </div>

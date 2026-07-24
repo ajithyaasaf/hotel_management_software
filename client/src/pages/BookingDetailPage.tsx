@@ -5,6 +5,7 @@ import type { Booking, Invoice, Room } from '../types';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { ArrowLeft, ArrowRightLeft, CalendarPlus, LogOut as CheckOutIcon, CreditCard, Receipt, X, Ban, Users, AlertTriangle, FileText, Edit, Upload, UserCheck, Image as ImageIcon, CheckCircle, XCircle } from 'lucide-react';
+import { computeCalendarNightsIST, getTodayIST, toISTDateString, formatIST, getTodayISTDateTimeLocal, localDateTimeToIST } from '../utils/dateTime';
 import SearchableSelect from '../components/ui/SearchableSelect';
 import { useAuthStore } from '../store/authStore';
 import { useDialog } from '../contexts/DialogContext';
@@ -70,10 +71,11 @@ export default function BookingDetailPage() {
       ]);
       setBooking(bRes.data);
       if (iRes) setInvoice(iRes.data);
-      if (auditRes) {
-        setBusinessDate(auditRes.data.businessDate);
+      if (auditRes && auditRes.data.businessDate) {
+        const rawDate = auditRes.data.businessDate;
+        setBusinessDate(rawDate < getTodayIST() ? getTodayIST() : rawDate);
       } else {
-        setBusinessDate(format(new Date(), 'yyyy-MM-dd'));
+        setBusinessDate(getTodayIST());
       }
     } catch { toast.error('Failed to load booking'); }
     finally { setLoading(false); }
@@ -257,9 +259,14 @@ export default function BookingDetailPage() {
     if (!newCheckout) { toast.error('Select new checkout date'); return; }
     
     const newCheckoutStr = newCheckout; // already in "yyyy-MM-dd" format
-    const checkInStr = new Date(booking!.checkInDate).toISOString().split('T')[0];
-    const referenceDate = businessDate || new Date().toISOString().split('T')[0];
+    const checkInStr = toISTDateString(new Date(booking!.checkInDate));
+    const referenceDate = businessDate || getTodayIST();
 
+    const currentCheckoutStr = toISTDateString(new Date(booking!.expectedCheckout));
+
+    if (newCheckoutStr <= currentCheckoutStr) {
+      toast.error('New checkout date must be after current checkout date'); return;
+    }
     if (newCheckoutStr < checkInStr) {
       toast.error('New checkout date cannot be before check-in date'); return;
     }
@@ -267,7 +274,11 @@ export default function BookingDetailPage() {
       toast.error("New checkout date cannot be in the past relative to the hotel's business date"); return;
     }
     try {
-      await bookingsApi.extend(id!, { newCheckout: new Date(newCheckout).toISOString() });
+      const checkInTime = new Date(booking!.checkInDate);
+      const hours = String(checkInTime.getHours()).padStart(2, '0');
+      const minutes = String(checkInTime.getMinutes()).padStart(2, '0');
+      const isoCheckout = new Date(`${newCheckout}T${hours}:${minutes}:00+05:30`).toISOString();
+      await bookingsApi.extend(id!, { newCheckout: isoCheckout });
       toast.success('Stay extended');
       setShowExtend(false);
       loadBooking();
@@ -374,10 +385,8 @@ export default function BookingDetailPage() {
   if (!booking) return <p className="text-gray-500">Booking not found</p>;
 
   const isActive = booking.status === 'CHECKED_IN';
-  const referenceDate = businessDate || new Date().toISOString().split('T')[0];
-  const checkoutStr = new Date(booking.expectedCheckout).toISOString().split('T')[0];
-  const realToday = new Date().toISOString().split('T')[0];
-  const isOverdue = booking.status === 'CHECKED_IN' && checkoutStr < realToday;
+  const referenceDate = businessDate || getTodayIST();
+  const isOverdue = booking.status === 'CHECKED_IN' && new Date(booking.expectedCheckout) < new Date();
 
   const taxableStayAmount = invoice 
     ? Number(invoice.roomCharges) + Number(invoice.extraCharges) - Number(invoice.discountAmount) 
@@ -425,7 +434,7 @@ export default function BookingDetailPage() {
           <div>
             <h4 className="font-bold text-red-950">Overdue Checkout</h4>
             <p className="text-sm text-red-700 mt-0.5">
-              This guest was scheduled to check out on <strong>{format(new Date(booking.expectedCheckout), 'dd MMM yyyy')}</strong> but has not yet checked out. Please process their checkout or extend their stay.
+              This guest was scheduled to check out on <strong>{formatIST(new Date(booking.expectedCheckout))}</strong> but has not yet checked out. Please process their checkout or extend their stay.
             </p>
           </div>
         </div>
@@ -436,7 +445,7 @@ export default function BookingDetailPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
             {booking.bookingNumber}
-            <span className={`badge ${booking.status === 'CHECKED_IN' ? 'badge-green' : booking.status === 'CHECKED_OUT' ? 'badge-gray' : 'badge-red'}`}>{booking.status.replace('_', ' ')}</span>
+            <span className={`badge ${booking.status === 'CHECKED_IN' ? 'badge-green' : booking.status === 'CONFIRMED' ? 'badge-amber' : booking.status === 'CHECKED_OUT' ? 'badge-gray' : 'badge-red'}`}>{booking.status.replace('_', ' ')}</span>
           </h1>
           <p className="text-gray-500 mt-1">Room {booking.room.roomNumber} · {booking.room.roomType.name}</p>
           {booking.groupBookingId && (
@@ -560,12 +569,12 @@ export default function BookingDetailPage() {
           <div className="card p-5">
             <h3 className="font-semibold text-gray-900 mb-4">Stay Details</h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div><span className="text-gray-400">Check-in</span><p className="font-medium">{format(new Date(booking.checkInDate), 'dd MMM yyyy')}</p></div>
+              <div><span className="text-gray-400">Check-in</span><p className="font-medium">{formatIST(new Date(booking.checkInDate))}</p></div>
               <div>
                 <span className="text-gray-400">Expected Checkout</span>
                 <p className={`font-medium flex items-center gap-1 ${isOverdue ? 'text-red-600 font-bold' : ''}`}>
                   {isOverdue && <AlertTriangle size={14} className="text-red-500 animate-pulse" />}
-                  {format(new Date(booking.expectedCheckout), 'dd MMM yyyy')}
+                  {formatIST(new Date(booking.expectedCheckout))}
                   {isOverdue && (
                     <span className="bg-red-50 text-red-700 border border-red-100 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider animate-pulse">
                       Overdue
@@ -718,8 +727,8 @@ export default function BookingDetailPage() {
           <div>
             <h3 className="font-semibold text-gray-900 border-b pb-2 mb-2">Stay Details</h3>
             <p className="text-gray-600 text-sm">Room: <span className="font-medium">{booking.room.roomNumber}</span> ({booking.room.roomType.name})</p>
-            <p className="text-gray-600 text-sm">Check-in: <span className="font-medium">{format(new Date(booking.checkInDate), 'dd MMM yyyy')}</span></p>
-            <p className="text-gray-600 text-sm">Check-out: <span className="font-medium">{format(new Date(booking.actualCheckout || booking.expectedCheckout), 'dd MMM yyyy')}</span></p>
+            <p className="text-gray-600 text-sm">Check-in: <span className="font-medium">{formatIST(new Date(booking.checkInDate))}</span></p>
+            <p className="text-gray-600 text-sm">Check-out: <span className="font-medium">{formatIST(new Date(booking.actualCheckout || booking.expectedCheckout))}</span></p>
             <p className="text-gray-600 text-sm">Guests: {booking.numberOfGuests}</p>
           </div>
         </div>
@@ -734,7 +743,7 @@ export default function BookingDetailPage() {
             </thead>
             <tbody>
               <tr className="border-b border-gray-200">
-                <td className="py-3">Room Charges ({Math.max(1, Math.ceil((new Date(booking.actualCheckout || booking.expectedCheckout).getTime() - new Date(booking.checkInDate).getTime()) / (1000 * 60 * 60 * 24)))} nights x ₹{booking.roomPrice})</td>
+                <td className="py-3">Room Charges ({computeCalendarNightsIST(new Date(booking.checkInDate), new Date(booking.actualCheckout || booking.expectedCheckout))} nights x ₹{booking.roomPrice})</td>
                 <td className="py-3 text-right">{Number(invoice.roomCharges).toLocaleString()}</td>
               </tr>
               {invoice.roomOrders && invoice.roomOrders.length > 0 && invoice.roomOrders.map(order => (
@@ -863,7 +872,7 @@ export default function BookingDetailPage() {
       {showExtend && (
         <Modal onClose={() => setShowExtend(false)} title="Extend Stay">
           <div className="space-y-4">
-            <div><label className="block text-sm font-medium text-gray-600 mb-1">New Checkout Date</label><input className="input" type="date" min={booking ? new Date(booking.checkInDate).toISOString().split('T')[0] : undefined} value={newCheckout} onChange={e => setNewCheckout(e.target.value)} /></div>
+            <div><label className="block text-sm font-medium text-gray-600 mb-1">New Checkout Date</label><input className="input" type="date" min={booking ? toISTDateString(new Date(booking.expectedCheckout)) : undefined} value={newCheckout} onChange={e => setNewCheckout(e.target.value)} /></div>
             <div className="flex gap-3 pt-2"><button className="btn btn-outline flex-1" onClick={() => setShowExtend(false)}>Cancel</button><button className="btn btn-primary flex-1" onClick={handleExtend}>Extend</button></div>
           </div>
         </Modal>
@@ -1042,3 +1051,4 @@ function Modal({ children, onClose, title }: { children: React.ReactNode; onClos
     </div>
   );
 }
+

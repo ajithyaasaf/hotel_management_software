@@ -21,6 +21,7 @@ import {
   Utensils
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { getTodayIST } from '../utils/dateTime';
 
 interface OpenOrder {
   id: string;
@@ -151,9 +152,14 @@ export default function NightAuditPage() {
     ? history.filter(item => item.businessDate.startsWith(filterDate))
     : history;
 
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const todayStr = getTodayIST();
   const isPastDate = preCheck ? preCheck.businessDate < todayStr : false;
-  const isTimeLockActive = preCheck ? (!isPastDate && new Date().getHours() < 22) : false;
+  const currentHourIST = Number(new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Kolkata',
+    hour: 'numeric',
+    hour12: false
+  }).format(new Date()));
+  const isTimeLockActive = preCheck ? (!isPastDate && currentHourIST < 22) : false;
 
   const loadPreCheck = async () => {
     setLoadingPreCheck(true);
@@ -167,6 +173,7 @@ export default function NightAuditPage() {
       setLoadingPreCheck(false);
     }
   };
+
 
   const loadHistory = async () => {
     if (!isAdmin) return;

@@ -6,6 +6,7 @@ import {
   CreditCard, Calendar, FileText, AlertTriangle, Printer, ExternalLink
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import { toISTDateString } from '../utils/dateTime';
 
 interface Company {
   id: string;
@@ -372,7 +373,7 @@ export default function CorporateLedgerPage() {
                                 {status.label}
                               </span>
                               <span className="text-xs text-gray-400">
-                                {new Date(b.checkInDate).toLocaleDateString('en-IN')} - {new Date(b.expectedCheckout).toLocaleDateString('en-IN')}
+                                {toISTDateString(new Date(b.checkInDate)).split('-').reverse().join('/')} - {toISTDateString(new Date(b.expectedCheckout)).split('-').reverse().join('/')}
                               </span>
                             </div>
                             <p className="text-xs text-gray-500 font-medium">

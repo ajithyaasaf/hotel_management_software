@@ -1,9 +1,10 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { bookingsApi, roomsApi, guestsApi, companiesApi, nightAuditApi } from '../api';
+import { bookingsApi, roomsApi, guestsApi, companiesApi } from '../api';
 import type { Room } from '../types';
 import toast from 'react-hot-toast';
 import { ArrowLeft, Search, UserCheck, AlertTriangle, Upload, FileText, X, Image as ImageIcon } from 'lucide-react';
+import { getTodayIST, computeCalendarNightsIST } from '../utils/dateTime';
 import SearchableSelect from '../components/ui/SearchableSelect';
 
 interface BookingForm {
@@ -61,7 +62,7 @@ export default function NewBookingPage() {
     idProofType: 'Aadhar', idProofNumber: '', idProofImage: '', idProofBackImage: '',
     isForeigner: false, passportNo: '', visaNo: '', visaExpiry: '', country: '',
     roomId: preselected?.roomId || '',
-    checkInDate: new Date().toISOString().split('T')[0],
+    checkInDate: getTodayIST(),
     expectedCheckout: '', roomPrice: preselected?.roomPrice || 0,
     numberOfGuests: 1, specialRequests: '',
     advanceAmount: 0, advanceMethod: 'CASH',
@@ -71,15 +72,6 @@ export default function NewBookingPage() {
 
   useEffect(() => {
     companiesApi.getAll().then(res => setCompanies(res.data)).catch(() => {});
-    nightAuditApi.getStatus().then(res => {
-      console.log('nightAuditApi status response data:', res.data);
-      const bDate = res.data.businessDate || res.data.currentBusinessDate;
-      if (bDate) {
-        setForm(p => ({ ...p, checkInDate: bDate }));
-      }
-    }).catch(err => {
-      console.error('nightAuditApi status error:', err);
-    });
   }, []);
 
   useEffect(() => {
@@ -215,18 +207,24 @@ export default function NewBookingPage() {
     if (form.expectedCheckout < form.checkInDate) {
       toast.error('Checkout date cannot be before check-in date'); return;
     }
-    if (Number(form.roomPrice) <= 0) {
-      toast.error('Room rate must be a positive amount'); return;
-    }
     setLoading(true);
     try {
+      // Check-in timestamp: midnight IST of selected date.
+      // The backend overwrites this with live `new Date()` for same-day (walk-in) bookings,
+      // and stores it as the scheduled date for advance bookings.
+      const checkInIso = new Date(`${form.checkInDate}T00:00:00+05:30`).toISOString();
+      // Checkout timestamp: midnight IST of selected checkout date.
+      // After the actual live check-in is stamped, the server computes expected checkout
+      // as checkInDate + (checkout_date - checkin_date) full 24-hour cycles.
+      const checkoutIso = new Date(`${form.expectedCheckout}T00:00:00+05:30`).toISOString();
+
       const payload = {
         ...form,
         roomPrice: Number(form.roomPrice) || 0,
         numberOfGuests: Number(form.numberOfGuests) || 1,
         advanceAmount: Number(form.advanceAmount) || 0,
-        checkInDate: new Date(form.checkInDate).toISOString(),
-        expectedCheckout: new Date(form.expectedCheckout).toISOString(),
+        checkInDate: checkInIso,
+        expectedCheckout: checkoutIso,
         guestEmail: form.guestEmail || null,
         companyId: form.companyId || null,
         billingRule: form.billingRule,
@@ -253,14 +251,15 @@ export default function NewBookingPage() {
       navigate(`/bookings/${data.id}`);
     } catch (err: any) {
       console.error('Booking creation error:', err);
-      toast.error(err.response?.data?.error || err.message || 'Booking failed');
+      const serverErr = err.response?.data;
+      toast.error(serverErr?.error || err.message || 'Booking failed');
     } finally { setLoading(false); }
   }
 
   const selectedCompany = companies.find(c => c.id === form.companyId);
   const checkIn = new Date(form.checkInDate);
   const checkOut = form.expectedCheckout ? new Date(form.expectedCheckout) : null;
-  const nights = checkOut ? Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))) : 0;
+  const nights = checkOut ? computeCalendarNightsIST(checkIn, checkOut) : 0;
   const estimatedCost = (Number(form.roomPrice) || 0) * nights;
   const creditLimitExceeded = selectedCompany 
     ? (Number(selectedCompany.outstandingBalance) + estimatedCost > Number(selectedCompany.creditLimit))
@@ -526,7 +525,14 @@ export default function NewBookingPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Check-in Date *</label>
-              <input className="input" type="date" value={form.checkInDate} onChange={e => setForm(p => ({ ...p, checkInDate: e.target.value }))} required />
+              <input
+                className="input"
+                type="date"
+                min={getTodayIST()}
+                value={form.checkInDate}
+                onChange={e => setForm(p => ({ ...p, checkInDate: e.target.value }))}
+                required
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Expected Checkout *</label>

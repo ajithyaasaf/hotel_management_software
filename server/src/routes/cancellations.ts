@@ -62,8 +62,10 @@ router.put('/:id/approve', requirePermission('booking.cancel.approve'), async (r
       action: 'CANCELLATION_APPROVED',
       entity: 'booking',
       entityId: request.bookingId,
-      details: `Approved by ${req.user!.name}. Original request by ${request.booking.guest?.name || 'Unknown'}. Note: ${note || 'None'}`,
+      details: `Approved by ${req.user!.name}. Guest: ${request.booking.guest?.name || 'Unknown'}. Room: ${request.booking.room?.roomNumber || 'N/A'}. Note: ${note || 'None'}`,
       userId: req.user!.id,
+      oldValue: { status: 'PENDING' },
+      newValue: { status: 'APPROVED', approver: req.user!.name, roomNumber: request.booking.room?.roomNumber, note: note || null }
     });
 
     res.json({ message: 'Cancellation approved' });
@@ -89,6 +91,8 @@ router.put('/:id/reject', requirePermission('booking.cancel.approve'), async (re
       entityId: request.bookingId,
       details: `Rejected by ${req.user!.name}. Note: ${note || 'None'}`,
       userId: req.user!.id,
+      oldValue: { status: 'PENDING' },
+      newValue: { status: 'REJECTED', approver: req.user!.name, note: note || null }
     });
 
     res.json({ message: 'Cancellation rejected' });

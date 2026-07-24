@@ -4,6 +4,7 @@ import { banquetsApi, guestsApi, nightAuditApi, menuApi } from '../api';
 import type { BanquetHall } from '../types';
 import toast from 'react-hot-toast';
 import { ArrowLeft, Search, UserCheck, AlertTriangle, Users, Wine, IndianRupee } from 'lucide-react';
+import { localDateTimeToIST, getTodayIST } from '../utils/dateTime';
 
 const EVENT_TYPES = ['Wedding', 'Birthday Party', 'Corporate Meeting', 'Conference', 'Seminar', 'Reception', 'Anniversary', 'Other'];
 
@@ -59,13 +60,8 @@ export default function NewBanquetPage() {
       }
     }).catch(() => {});
 
-    nightAuditApi.getStatus().then(res => {
-      const bDate = res.data.businessDate || res.data.currentBusinessDate;
-      if (bDate) {
-        setBusinessDate(bDate);
-        setForm(p => ({ ...p, eventDate: bDate }));
-      }
-    }).catch(() => {});
+    setBusinessDate(getTodayIST());
+    setForm(p => ({ ...p, eventDate: getTodayIST() }));
 
     menuApi.getTaxConfig().then(res => {
       const cgstConfig = res.data.find((t: any) => t.name === 'CGST');
@@ -158,7 +154,8 @@ export default function NewBanquetPage() {
         guestPhone: form.guestPhone,
         guestName: form.guestName,
         hallId: form.hallId,
-        eventDate: new Date(form.eventDate).toISOString(),
+        // Attach IST offset so cloud UTC server stores the correct time (Section 12 fix)
+        eventDate: localDateTimeToIST(form.eventDate),
         slot: form.slot,
         eventType: form.eventType,
         estimatedPax: Number(form.estimatedPax),
@@ -172,8 +169,9 @@ export default function NewBanquetPage() {
         advanceReference: form.advanceReference || null,
       };
       if (form.slot === 'CUSTOM') {
-        payload.startTime = new Date(form.startTime).toISOString();
-        payload.endTime = new Date(form.endTime).toISOString();
+        // Attach IST offset to custom slot times (Section 12 fix)
+        payload.startTime = localDateTimeToIST(form.startTime);
+        payload.endTime = localDateTimeToIST(form.endTime);
       }
       const res = await banquetsApi.createBooking(payload);
       toast.success(`Banquet booking ${res.data.bookingNumber} created!`);

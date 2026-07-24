@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { Plus, Search, CalendarCheck, Eye, Users, AlertTriangle, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import { getTodayIST, toISTDateString, formatIST } from '../utils/dateTime';
 
 const statusBadge: Record<string, string> = {
   CONFIRMED: 'badge-blue', CHECKED_IN: 'badge-green', CHECKED_OUT: 'badge-gray',
@@ -34,12 +35,12 @@ export default function BookingsPage() {
     nightAuditApi.getStatus().then(res => {
       const bDate = res.data.businessDate || res.data.currentBusinessDate;
       if (bDate) {
-        setBusinessDate(bDate);
+        setBusinessDate(bDate < getTodayIST() ? getTodayIST() : bDate);
       } else {
-        setBusinessDate(format(new Date(), 'yyyy-MM-dd'));
+        setBusinessDate(getTodayIST());
       }
     }).catch(() => {
-      setBusinessDate(format(new Date(), 'yyyy-MM-dd'));
+      setBusinessDate(getTodayIST());
     });
   }, []);
 
@@ -256,9 +257,7 @@ export default function BookingsPage() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {filtered.map(b => {
-                  const realToday = new Date().toISOString().split('T')[0];
-                  const checkoutStr = new Date(b.expectedCheckout).toISOString().split('T')[0];
-                  const isOverdue = b.status === 'CHECKED_IN' && checkoutStr < realToday;
+                  const isOverdue = b.status === 'CHECKED_IN' && new Date(b.expectedCheckout) < new Date();
                   return (
                     <tr key={b.id} className={`transition-colors ${isOverdue ? 'bg-red-50/30 hover:bg-red-50/40' : 'hover:bg-gray-50/50'}`}>
                       <td className="px-5 py-3 whitespace-nowrap">
@@ -277,10 +276,10 @@ export default function BookingsPage() {
                         </span>
                         <p className="text-xs text-gray-400">{b.room.roomType.name}</p>
                       </td>
-                      <td className="px-5 py-3 text-sm text-gray-600 whitespace-nowrap">{format(new Date(b.checkInDate), 'dd MMM yyyy')}</td>
+                      <td className="px-5 py-3 text-sm text-gray-600 whitespace-nowrap">{formatIST(new Date(b.checkInDate))}</td>
                       <td className="px-5 py-3 text-sm whitespace-nowrap">
                         <span className={isOverdue ? 'text-red-600 font-bold' : 'text-gray-600'}>
-                          {format(new Date(b.expectedCheckout), 'dd MMM yyyy')}
+                          {formatIST(new Date(b.expectedCheckout))}
                         </span>
                         {isOverdue && (
                           <span className="block text-[10px] font-bold text-red-500 uppercase tracking-wider mt-0.5 flex items-center gap-0.5 animate-pulse">

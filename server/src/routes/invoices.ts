@@ -5,6 +5,7 @@ import { authenticate, requirePermission, AuthRequest } from '../middleware/auth
 import { createAuditLog } from '../utils/helpers';
 import { calculateTaxWithTx } from '../utils/tax';
 import { computeBillingSplit } from './bookings';
+import { computeCalendarNightsIST } from '../utils/dateTime';
 
 const router = Router();
 router.use(authenticate);
@@ -98,7 +99,7 @@ router.post('/:id/recalculate', requirePermission('payment.manage', 'MD'), async
 
     const booking = invoice.booking;
     const checkoutDate = booking.actualCheckout || booking.expectedCheckout;
-    const nights = Math.max(1, Math.ceil((new Date(checkoutDate).getTime() - new Date(booking.checkInDate).getTime()) / (1000 * 60 * 60 * 24)));
+    const nights = computeCalendarNightsIST(new Date(booking.checkInDate), new Date(checkoutDate));
     const roomCharges = Number(booking.roomPrice) * nights;
 
     const roomOrders = await prisma.order.findMany({ where: { roomId: booking.roomId, status: 'COMPLETED', createdAt: { gte: booking.checkInDate } }, include: { items: { where: { isCancelled: false } } } });

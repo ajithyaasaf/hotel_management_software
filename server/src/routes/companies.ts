@@ -52,7 +52,7 @@ router.post('/', requirePermission('corporate.manage'), async (req: AuthRequest,
       email: data.email || null,
       phone: data.phone || null,
     } });
-    await createAuditLog({ action: 'CREATE_COMPANY', entity: 'company', entityId: company.id, details: `Created corporate account: ${company.name}`, userId: req.user!.id });
+    await createAuditLog({ action: 'CREATE_COMPANY', entity: 'company', entityId: company.id, details: `Created corporate account: ${company.name}`, userId: req.user!.id, newValue: { name: company.name, creditLimit: Number(company.creditLimit), state: company.state, gstin: company.gstin } });
     res.status(201).json(company);
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as any).errors }); return; }
@@ -84,7 +84,12 @@ router.put('/:id', requirePermission('corporate.manage'), async (req: AuthReques
 
 router.post('/:id/payments', requirePermission('corporate.manage', 'payment.manage'), async (req: AuthRequest, res) => {
   try {
-    const { amount, method, referenceNo, paymentDate } = z.object({ amount: z.number().positive(), method: z.enum(['CASH', 'UPI', 'CARD']), referenceNo: z.string().optional().nullable(), paymentDate: z.string().datetime() }).parse(req.body);
+    const { amount, method, referenceNo, paymentDate } = z.object({ 
+      amount: z.number().positive(), 
+      method: z.enum(['CASH', 'UPI', 'CARD']), 
+      referenceNo: z.string().optional().nullable(), 
+      paymentDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid payment date format" }) 
+    }).parse(req.body);
     const company = await prisma.company.findUnique({ where: { id: req.params.id as string } });
     if (!company) { res.status(404).json({ error: 'Company not found' }); return; }
     
@@ -94,7 +99,7 @@ router.post('/:id/payments', requirePermission('corporate.manage', 'payment.mana
       return p;
     });
 
-    await createAuditLog({ action: 'CORPORATE_PAYMENT', entity: 'company', entityId: company.id, details: `Payment of ₹${amount} received via ${method}`, userId: req.user!.id });
+    await createAuditLog({ action: 'CORPORATE_PAYMENT', entity: 'company', entityId: company.id, details: `Payment of ₹${amount} received via ${method} for ${company.name}`, userId: req.user!.id, newValue: { companyName: company.name, amount, method, referenceNo: referenceNo || null, paymentDate } });
     res.status(201).json(payment);
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as any).errors }); return; }

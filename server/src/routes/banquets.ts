@@ -20,10 +20,10 @@ const banquetBookingSchema = z.object({
   guestName: z.string().min(3).refine(val => !/^\d+$/.test(val), { message: "Name cannot be just numbers" }),
   guestPhone: z.string().min(10),
   hallId: z.string().uuid(),
-  eventDate: z.string().datetime(),
+  eventDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid event date format" }),
   slot: z.enum(['MORNING', 'AFTERNOON', 'EVENING', 'CUSTOM']),
-  startTime: z.string().datetime().optional().nullable(),
-  endTime: z.string().datetime().optional().nullable(),
+  startTime: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid startTime format" }).optional().nullable(),
+  endTime: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid endTime format" }).optional().nullable(),
   eventType: z.string().min(2),
   estimatedPax: z.number().int().positive(),
   hallRentalPrice: z.number().nonnegative(),
@@ -140,7 +140,20 @@ router.post('/', requirePermission('banquet.manage'), async (req: AuthRequest, r
       return booking;
     });
 
-    await createAuditLog({ action: 'CREATE_BANQUET', entity: 'banquetBooking', entityId: result.id, details: `${result.eventType} for ${data.guestName}`, userId: req.user!.id });
+    await createAuditLog({
+      action: 'CREATE_BANQUET',
+      entity: 'banquetBooking',
+      entityId: result.id,
+      details: `${result.eventType} for ${data.guestName} in ${hall.name}`,
+      userId: req.user!.id,
+      newValue: {
+        eventType: result.eventType,
+        guestName: data.guestName,
+        hallName: hall.name,
+        eventDate: data.eventDate,
+        totalAmount: Number(result.totalAmount),
+      }
+    });
     res.status(201).json(result);
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as any).errors }); return; }
@@ -202,7 +215,14 @@ router.post('/:id/payments', requirePermission('banquet.manage', 'payment.manage
       return p;
     });
 
-    await createAuditLog({ action: 'BANQUET_PAYMENT', entity: 'banquetBooking', entityId: booking.id, details: `Settlement of ₹${amount} via ${method}`, userId: req.user!.id });
+    await createAuditLog({
+      action: 'BANQUET_PAYMENT',
+      entity: 'banquetBooking',
+      entityId: booking.id,
+      details: `Settlement of ₹${amount} via ${method} for ${booking.bookingNumber}`,
+      userId: req.user!.id,
+      newValue: { amount, method, reference: reference || null, notes: notes || null }
+    });
     res.status(201).json(result);
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (err as any).errors }); return; }

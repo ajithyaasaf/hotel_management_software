@@ -16,8 +16,8 @@ const roomSchema = z.object({
 
 const blockSchema = z.object({
   reason: z.string().min(1),
-  blockStart: z.string().datetime().optional(),
-  blockEnd: z.string().datetime().optional(),
+  blockStart: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid blockStart date" }).optional(),
+  blockEnd: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid blockEnd date" }).optional(),
 });
 
 // GET /api/rooms
@@ -87,7 +87,7 @@ router.put('/:id/status', requirePermission('room.view'), async (req: AuthReques
     const existing = await prisma.room.findUnique({ where: { id: req.params.id as string } });
     if (!existing) { res.status(404).json({ error: 'Room not found' }); return; }
     const room = await prisma.room.update({ where: { id: req.params.id as string }, data: { status, ...(status !== 'BLOCKED' && { blockReason: null, blockStart: null, blockEnd: null }) }, include: { roomType: true } });
-    await createAuditLog({ action: 'UPDATE_ROOM_STATUS', entity: 'room', entityId: room.id, details: `Changed status to ${status}`, userId: req.user!.id, oldValue: { status: existing.status }, newValue: { status } });
+    await createAuditLog({ action: 'UPDATE_ROOM_STATUS', entity: 'room', entityId: room.id, details: `Changed status of Room ${room.roomNumber} from ${existing.status} to ${status}`, userId: req.user!.id, oldValue: { status: existing.status }, newValue: { status, roomNumber: room.roomNumber } });
     res.json(room);
   } catch (error) {
     if (error instanceof z.ZodError) { res.status(400).json({ error: 'Invalid input', details: (error as any).errors }); return; }

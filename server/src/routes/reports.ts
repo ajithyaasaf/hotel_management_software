@@ -1,15 +1,17 @@
 import { Router } from 'express';
 import prisma from '../utils/prisma';
 import { authenticate, requirePermission } from '../middleware/auth';
+import { toISTDateString, getTodayIST } from '../utils/dateTime';
 
 const router = Router();
 router.use(authenticate, requirePermission('report.view'));
 
 router.get('/summary', async (req, res) => {
   try {
-    const from = req.query.from ? new Date(String(req.query.from)) : new Date(new Date().setDate(1));
-    const to = req.query.to ? new Date(String(req.query.to)) : new Date();
-    to.setHours(23, 59, 59, 999);
+    const fromStr = req.query.from ? String(req.query.from) : getTodayIST().slice(0, 8) + '01';
+    const toStr = req.query.to ? String(req.query.to) : getTodayIST();
+    const from = new Date(`${fromStr}T00:00:00+05:30`);
+    const to = new Date(`${toStr}T23:59:59.999+05:30`);
 
     const diffTime = Math.abs(to.getTime() - from.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
@@ -34,7 +36,7 @@ router.get('/summary', async (req, res) => {
 
     const periodExpenses = await prisma.expense.findMany({ where: { paidDate: { gte: from, lte: to } } });
     const totalExpenses = parseFloat(periodExpenses.reduce((s, e) => s + Number(e.amount), 0).toFixed(2));
-    
+
     let hotelExpenses = 0, restaurantExpenses = 0, banquetExpenses = 0;
     periodExpenses.forEach(e => {
       if (e.department === 'HOTEL') hotelExpenses += Number(e.amount);
@@ -83,9 +85,10 @@ router.get('/summary', async (req, res) => {
 
 router.get('/revenue-daily', async (req, res) => {
   try {
-    const from = req.query.from ? new Date(String(req.query.from)) : new Date(new Date().setDate(1));
-    const to = req.query.to ? new Date(String(req.query.to)) : new Date();
-    to.setHours(23, 59, 59, 999);
+    const fromStr = req.query.from ? String(req.query.from) : getTodayIST().slice(0, 8) + '01';
+    const toStr = req.query.to ? String(req.query.to) : getTodayIST();
+    const from = new Date(`${fromStr}T00:00:00+05:30`);
+    const to = new Date(`${toStr}T23:59:59.999+05:30`);
 
     const [checkouts, walkInOrders] = await Promise.all([
       prisma.booking.findMany({ where: { status: 'CHECKED_OUT', actualCheckout: { gte: from, lte: to } }, include: { invoice: true } }),
@@ -94,7 +97,9 @@ router.get('/revenue-daily', async (req, res) => {
 
     const byDay: Record<string, number> = {};
     checkouts.forEach(b => {
-      const day = b.actualCheckout!.toISOString().split('T')[0];
+      // Use IST date bucketing so revenue from a late-night checkout (e.g. 11:30 PM IST)
+      // is credited to the correct Indian calendar day, not the UTC-shifted one.
+      const day = toISTDateString(b.actualCheckout!);
       const amount = b.invoice ? (Number(b.invoice.roomCharges) + Number(b.invoice.foodCharges) + Number(b.invoice.extraCharges) - Number(b.invoice.discountAmount)) : 0;
       byDay[day] = (byDay[day] || 0) + amount;
     });
@@ -104,7 +109,8 @@ router.get('/revenue-daily', async (req, res) => {
     const dailyData = [];
     let currentDate = new Date(from);
     while (currentDate <= to) {
-      const dateStr = currentDate.toISOString().split('T')[0];
+      // Use IST date string so the loop iterates by Indian calendar days
+      const dateStr = toISTDateString(currentDate);
       const nextDate = new Date(currentDate);
       nextDate.setDate(nextDate.getDate() + 1);
 
@@ -129,10 +135,10 @@ router.get('/occupancy', async (req, res) => {
 
 router.get('/police-checkins', async (req, res) => {
   try {
-    const from = req.query.from ? new Date(String(req.query.from)) : new Date();
-    from.setHours(0, 0, 0, 0);
-    const to = req.query.to ? new Date(String(req.query.to)) : new Date();
-    to.setHours(23, 59, 59, 999);
+    const fromStr = req.query.from ? String(req.query.from) : getTodayIST();
+    const toStr = req.query.to ? String(req.query.to) : getTodayIST();
+    const from = new Date(`${fromStr}T00:00:00+05:30`);
+    const to = new Date(`${toStr}T23:59:59.999+05:30`);
 
     const bookings = await prisma.booking.findMany({
       where: {

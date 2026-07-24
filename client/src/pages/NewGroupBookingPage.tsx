@@ -1,10 +1,11 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { groupBookingsApi, roomsApi, guestsApi, nightAuditApi } from '../api';
+import { groupBookingsApi, roomsApi, guestsApi } from '../api';
 import type { Room } from '../types';
 import toast from 'react-hot-toast';
 import { ArrowLeft, Plus, Trash2, Search, Users, UserCheck, Upload, X, Image as ImageIcon } from 'lucide-react';
 import SearchableSelect from '../components/ui/SearchableSelect';
+import { getTodayIST, computeCalendarNightsIST } from '../utils/dateTime';
 
 interface RoomEntry {
   roomId: string;
@@ -25,9 +26,9 @@ interface RoomEntry {
   showGuestForm?: boolean;
 }
 
-const emptyRoomEntry = (businessDate?: string): RoomEntry => ({
+const emptyRoomEntry = (): RoomEntry => ({
   roomId: '',
-  checkInDate: businessDate || new Date().toISOString().split('T')[0],
+  checkInDate: getTodayIST(),
   expectedCheckout: '',
   roomPrice: 0,
   numberOfGuests: 1,
@@ -49,7 +50,6 @@ export default function NewGroupBookingPage() {
   const location = useLocation();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(false);
-  const [businessDate, setBusinessDate] = useState<string>('');
 
   // Lead guest
   const [guestPhone, setGuestPhone] = useState('');
@@ -62,16 +62,6 @@ export default function NewGroupBookingPage() {
 
   // Room entries (minimum 2)
   const [roomEntries, setRoomEntries] = useState<RoomEntry[]>([emptyRoomEntry(), emptyRoomEntry()]);
-
-  useEffect(() => {
-    nightAuditApi.getStatus().then(res => {
-      const bDate = res.data.businessDate || res.data.currentBusinessDate;
-      if (bDate) {
-        setBusinessDate(bDate);
-        setRoomEntries(prev => prev.map(e => ({ ...e, checkInDate: bDate })));
-      }
-    }).catch(() => {});
-  }, []);
 
   useEffect(() => {
     roomsApi.getAvailable().then(r => {
@@ -131,7 +121,7 @@ export default function NewGroupBookingPage() {
   }
 
   function addRoom() {
-    setRoomEntries(prev => [...prev, emptyRoomEntry(businessDate)]);
+    setRoomEntries(prev => [...prev, emptyRoomEntry()]);
   }
 
   function removeRoom(index: number) {
@@ -206,28 +196,41 @@ export default function NewGroupBookingPage() {
       return;
     }
 
+    for (let i = 0; i < roomEntries.length; i++) {
+      const entry = roomEntries[i];
+      const inTime = new Date(`${entry.checkInDate}T00:00:00+05:30`).getTime();
+      const outTime = new Date(`${entry.expectedCheckout}T00:00:00+05:30`).getTime();
+      if (outTime <= inTime) {
+        toast.error(`Room #${i + 1}: Checkout date must be after check-in date.`);
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       const payload = {
         leadGuestPhone: guestPhone,
         leadGuestName: isReturning ? undefined : leadGuestName,
         notes: notes || undefined,
-        rooms: roomEntries.map(entry => ({
-          roomId: entry.roomId,
-          checkInDate: new Date(entry.checkInDate).toISOString(),
-          expectedCheckout: new Date(entry.expectedCheckout).toISOString(),
-          roomPrice: Number(entry.roomPrice),
-          numberOfGuests: Number(entry.numberOfGuests) || 1,
-          specialRequests: entry.specialRequests || undefined,
-          advanceAmount: Number(entry.advanceAmount) || 0,
-          advanceMethod: entry.advanceMethod,
-          guestName: entry.showGuestForm ? entry.guestName : undefined,
-          guestPhone: entry.showGuestForm ? entry.guestPhone : undefined,
-          guestEmail: entry.showGuestForm && entry.guestEmail ? entry.guestEmail : undefined,
-          idProofType: entry.showGuestForm ? entry.idProofType : undefined,
-          idProofNumber: entry.showGuestForm ? entry.idProofNumber : undefined,
-          idProofImage: entry.showGuestForm ? (entry.idProofImage || null) : undefined,
-        })),
+        rooms: roomEntries.map(entry => {
+          const checkInIso = new Date(`${entry.checkInDate}T00:00:00+05:30`).toISOString();
+          return {
+            roomId: entry.roomId,
+            checkInDate: checkInIso,
+            expectedCheckout: new Date(`${entry.expectedCheckout}T00:00:00+05:30`).toISOString(),
+            roomPrice: Number(entry.roomPrice) || 0,
+            numberOfGuests: Number(entry.numberOfGuests) || 1,
+            specialRequests: entry.specialRequests || undefined,
+            advanceAmount: Number(entry.advanceAmount) || 0,
+            advanceMethod: entry.advanceMethod,
+            guestName: entry.showGuestForm ? entry.guestName : undefined,
+            guestPhone: entry.showGuestForm ? entry.guestPhone : undefined,
+            guestEmail: entry.showGuestForm ? entry.guestEmail : undefined,
+            idProofType: entry.showGuestForm ? entry.idProofType : undefined,
+            idProofNumber: entry.showGuestForm ? entry.idProofNumber : undefined,
+            idProofImage: entry.showGuestForm ? entry.idProofImage : undefined,
+          };
+        }),
       };
 
       const { data } = await groupBookingsApi.create(payload);
@@ -324,8 +327,12 @@ export default function NewGroupBookingPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-1">Check-in Date *</label>
                   <input
-                    className="input" type="date" value={entry.checkInDate}
+                    className="input"
+                    type="date"
+                    min={getTodayIST()}
+                    value={entry.checkInDate}
                     onChange={e => updateEntry(index, { checkInDate: e.target.value })}
+                    required
                   />
                 </div>
                 <div>
@@ -532,7 +539,7 @@ export default function NewGroupBookingPage() {
             Total estimate: <span className="font-semibold text-primary-600">
               ₹{roomEntries.reduce((s, e) => {
                 if (!e.checkInDate || !e.expectedCheckout) return s;
-                const nights = Math.max(1, Math.ceil((new Date(e.expectedCheckout).getTime() - new Date(e.checkInDate).getTime()) / (1000 * 60 * 60 * 24)));
+                const nights = computeCalendarNightsIST(new Date(e.checkInDate), new Date(e.expectedCheckout));
                 return s + (Number(e.roomPrice) * nights);
               }, 0).toLocaleString()}
             </span>
